@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import type { Item, Level, Opening, Project, Room, Vec2, Wall } from '../model/types'
 import { activeLevel, useStore } from '../store/store'
 import { catalogEntry } from '../model/catalog'
-import { dist, norm, pointInPolygon, rectCorners, sub } from '../model/geometry'
+import { dist, pointInPolygon, rectCorners, sub } from '../model/geometry'
 import { levelBounds, paintRoomWalls, updateWall } from '../model/ops'
 import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
@@ -13,6 +13,7 @@ import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUV
 import { Walker } from './Walker'
 import { DraggableHome } from './ItemDrag'
 import { useHover } from './hover'
+import { homeGroupRef } from './exportModel'
 import { explodeState, useExplodeOffset } from './explode'
 
 const M = 0.01 // cm → m
@@ -73,7 +74,10 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
   const edge = stdMat('#D9D6D0')
   const hovered = useHover((s) => s.id === `wall:${w.id}`)
   const mats = [edge, edge, top, edge, wallMat(w.finishA, w.colorA, selected), wallMat(w.finishB, w.colorB, selected)]
-  const geos = useMemo(() => pieces.map((p) => worldUVBox((p.x1 - p.x0) * M, (p.y1 - p.y0) * M, w.thickness * M, p.x0 * M, p.y0 * M)), [JSON.stringify(pieces), w.thickness])
+  const piecesKey = JSON.stringify(pieces)
+  // Rebuild geometry only when the wall's solid pieces actually change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const geos = useMemo(() => pieces.map((p) => worldUVBox((p.x1 - p.x0) * M, (p.y1 - p.y0) * M, w.thickness * M, p.x0 * M, p.y0 * M)), [piecesKey, w.thickness])
   useEffect(() => () => geos.forEach((g) => g.dispose()), [geos])
   const mx = (w.a.x + w.b.x) / 2 - center.x
   const my = (w.a.y + w.b.y) / 2 - center.y
@@ -680,7 +684,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
       <fog attach="fog" args={[skyColor, radius * 4 + 30, radius * 10 + 90]} />
       <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
       {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
-      <group onClick={onClick}>
+      <group onClick={onClick} ref={(g) => void (homeGroupRef.current = g)}>
         <DraggableHome disabled={walk}>
         {visible.map((l) => (
           <LevelModel
@@ -705,4 +709,3 @@ export function Scene3D({ walk }: { walk: boolean }) {
   )
 }
 
-export { norm }

@@ -10,7 +10,7 @@ import type { Item, Level, OpeningKind, Project, Room, RoofStyle, Vec2, Wall, Wa
 import { CATALOG, catalogEntry } from '../model/catalog'
 import { FLOORS, WALL_FINISHES, PAINTS } from '../model/materials'
 import { addRoom, clampOpening, deleteRoom, edgeOnSide, exteriorSides, moveRoom, moveRoomEdge, paintExterior, paintRoomWalls, rectPoints, roomArea, roomWallSides, snapItemToWall, wallLength } from '../model/ops'
-import { bounds, closestOnSegment, lerp, pointInPolygon } from '../model/geometry'
+import { bounds, lerp, pointInPolygon } from '../model/geometry'
 import { makeItem, makeOpening } from '../model/factory'
 import { CM_PER_FT } from '../model/units'
 
@@ -366,4 +366,3 @@ export function runActions(project: Project, levelId: string, actions: Action[])
   return { project: { ...project, levels: project.levels.map((l) => (l.id === levelId ? level : l)), updatedAt: Date.now() }, applied, skipped }
 }
 
-export { closestOnSegment }

@@ -325,7 +325,6 @@ export function SelectionHandles({ level, selection, px, units }: { level: Level
   if (selection.kind === 'wall') {
     const w = level.walls.find((x) => x.id === selection.id)
     if (!w) return null
-    const n = normalOf(w.a, w.b)
     return (
       <g>
         <DimLine a={w.a} b={w.b} px={px} units={units} offset={w.thickness / 2 + 26 * px} />
@@ -335,7 +334,7 @@ export function SelectionHandles({ level, selection, px, units }: { level: Level
         <g className="handle" data-hit={`h:wall-b:${w.id}`}>
           <circle cx={w.b.x} cy={w.b.y} r={R} strokeWidth={px * 1.5} />
         </g>
-        <g className="handle is-move" data-hit={`wall:${w.id}`} transform={`translate(${(w.a.x + w.b.x) / 2 + n.x * 0} ${(w.a.y + w.b.y) / 2})`}>
+        <g className="handle is-move" data-hit={`wall:${w.id}`} transform={`translate(${(w.a.x + w.b.x) / 2} ${(w.a.y + w.b.y) / 2})`}>
           <rect x={-R} y={-R} width={R * 2} height={R * 2} rx={R * 0.3} strokeWidth={px * 1.5} />
         </g>
       </g>
@@ -402,7 +401,6 @@ export function SelectionHandles({ level, selection, px, units }: { level: Level
     const w = o && level.walls.find((x) => x.id === o.wallId)
     if (!o || !w) return null
     const d = norm(sub(w.b, w.a))
-    const n = normalOf(w.a, w.b)
     const a = add(w.a, scale(d, o.offset - o.width / 2))
     const b = add(w.a, scale(d, o.offset + o.width / 2))
     const toA = o.offset - o.width / 2
@@ -412,7 +410,7 @@ export function SelectionHandles({ level, selection, px, units }: { level: Level
         <DimLine a={a} b={b} px={px} units={units} offset={-(w.thickness / 2 + 22 * px)} />
         {toA > 1 && <DimLine a={w.a} b={a} px={px} units={units} offset={w.thickness / 2 + 22 * px} />}
         {toB > 1 && <DimLine a={b} b={w.b} px={px} units={units} offset={w.thickness / 2 + 22 * px} />}
-        <g className="handle is-edge" data-hit={`h:op-w:${o.id}:-1`} transform={`translate(${a.x + n.x * 0} ${a.y}) rotate(${angleDeg(w.a, w.b) + 90})`}>
+        <g className="handle is-edge" data-hit={`h:op-w:${o.id}:-1`} transform={`translate(${a.x} ${a.y}) rotate(${angleDeg(w.a, w.b) + 90})`}>
           <rect x={-R * 1.3} y={-R * 0.6} width={R * 2.6} height={R * 1.2} rx={R * 0.6} strokeWidth={px * 1.5} />
         </g>
         <g className="handle is-edge" data-hit={`h:op-w:${o.id}:1`} transform={`translate(${b.x} ${b.y}) rotate(${angleDeg(w.a, w.b) + 90})`}>

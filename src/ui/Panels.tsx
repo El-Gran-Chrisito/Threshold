@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { activeLevel, addLevelAbove, addLevelBelow, useStore } from '../store/store'
-import { CATEGORIES, catalogEntry, searchCatalog, type Category } from '../model/catalog'
+import { CATEGORIES, searchCatalog, type Category } from '../model/catalog'
 import { FLOORS, PAINTS } from '../model/materials'
 import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
@@ -13,6 +13,7 @@ import { deleteSaved, listSaved, loadSaved, normalizeProject } from '../store/pe
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
+import { exportGlb } from '../three/exportModel'
 import { readImage, useUnderlay } from '../store/underlay'
 import { levelBounds } from '../model/ops'
 
@@ -398,6 +399,23 @@ export function ProjectPanel() {
       s.notify('Could not draw the floor plan image')
     }
   }
+  const exportModel = async () => {
+    const st = useStore.getState()
+    if (st.view === 'plan') {
+      st.setView('split')
+      return s.notify('3D view opened. Press Save 3D model again.')
+    }
+    st.select(null)
+    await new Promise((r) => setTimeout(r, 120))
+    try {
+      const blob = await exportGlb()
+      if (!blob) return s.notify('Open the 3D view first')
+      const r = await saveFile(`${slug(project.name)}.glb`, blob, 'model/gltf-binary')
+      s.notify(r === 'saved' ? '3D model saved' : '3D model not saved')
+    } catch {
+      s.notify('Could not export the 3D model')
+    }
+  }
   const copyJson = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(project))
@@ -495,6 +513,9 @@ export function ProjectPanel() {
           <button type="button" className="btn" onClick={exportPlan}>
             <Icon name="plan" size={16} /> Save floor plan image
           </button>
+          <button type="button" className="btn" onClick={exportModel}>
+            <Icon name="cube" size={16} /> Save 3D model (.glb)
+          </button>
           <button type="button" className="btn" onClick={exportImage}>
             <Icon name="image" size={16} /> Save 3D image
           </button>
@@ -540,4 +561,3 @@ export function ProjectPanel() {
   )
 }
 
-export { catalogEntry }

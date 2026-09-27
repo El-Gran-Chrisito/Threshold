@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Item, Level, Opening, Vec2 } from '../model/types'
 import { activeLevel, selectedItemIds, useStore } from '../store/store'
-import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, rotate, scale, sideOf, snapToGrid, sub } from '../model/geometry'
+import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, scale, sideOf, snapToGrid, sub } from '../model/geometry'
 import {
   addRoom,
   addWalls,
+  insertRoomVertex,
   clampOpening,
   findWallAt,
   levelBounds,
@@ -832,6 +833,15 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       const el = (e.target as Element).closest('[data-hit]')
       const hit = el?.getAttribute('data-hit')
       if (!hit) return
+      if (hit.startsWith('h:room-e:')) {
+        const [, , roomId, idx] = hit.split(':')
+        const res = insertRoomVertex(activeLevel(s), roomId, Number(idx))
+        if (res) {
+          s.applyLevel(() => res.level)
+          s.notify('Corner added. Drag it to reshape the room.')
+        }
+        return
+      }
       const [kind, id] = hit.split(':')
       if (kind === 'room') {
         s.select({ kind: 'room', id })
@@ -1203,4 +1213,3 @@ function ToolHint({ drawing }: { drawing: Draft }) {
   return <div className="tool-hint">{text}</div>
 }
 
-export { rotate }

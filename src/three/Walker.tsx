@@ -209,4 +209,3 @@ export function Walker() {
   return null
 }
 
-export { THREE }

@@ -21,7 +21,7 @@ await page.waitForTimeout(200)
 await page.keyboard.press('r')
 await page.click('text=Floor only')
 const ft = 30.48
-let a = await toScreen({ x: 2 * ft, y: -14 * ft }), b = await toScreen({ x: 30 * ft, y: -1 * ft })
+let a = await toScreen({ x: 2 * ft, y: 33 * ft }), b = await toScreen({ x: 30 * ft, y: 46 * ft })
 await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 8 }); await page.mouse.up()
 await page.waitForTimeout(300)
 const place = async (name, x, y) => {
@@ -32,10 +32,10 @@ const place = async (name, x, y) => {
   await page.mouse.move(p.x, p.y); await page.waitForTimeout(80); await page.mouse.click(p.x, p.y)
   await page.waitForTimeout(150)
 }
-await place('Pergola', 10, -8)
-await place('Fire pit', 23, -8)
-await place('Garden bed', 27, -12)
-await place('Patio umbrella', 17, -5)
+await place('Pergola', 10, 40)
+await place('Fire pit', 23, 40)
+await place('Garden bed', 27, 44)
+await place('Patio umbrella', 17, 36)
 const st = await page.evaluate(() => { const l = window.__threshold.store.getState().project.levels[0]; const r = l.rooms[l.rooms.length - 1]; return { area: r.name, floor: r.floor, walls: l.walls.length, items: l.items.slice(-4).map((i) => i.type) } })
 console.log(JSON.stringify(st))
 await page.click('.view-switch >> text=3D')

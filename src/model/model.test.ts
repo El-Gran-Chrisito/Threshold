@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatArea, formatLength, parseLength, CM_PER_FT, CM_PER_IN } from './units'
 import { polygonArea, signedArea, subtractCovered, pointInPolygon, snapAngle } from './geometry'
-import { addRoom, addWalls, autoRooms, detectFaces, moveRoomEdge, moveVertex, rectPoints, roomWallSides, snapItemToWall, splitWall, wallLength } from './ops'
+import { addRoom, addWalls, autoRooms, detectFaces, insertRoomVertex, moveRoomEdge, moveVertex, rectPoints, roomWallSides, snapItemToWall, splitWall, wallLength } from './ops'
 import { makeItem, makeLevel, makeOpening } from './factory'
 import { TEMPLATES } from './templates'
 
@@ -94,6 +94,18 @@ describe('rooms and walls', () => {
     // Edge 1 is the east edge (300,0)→(300,300).
     const next = moveRoomEdge(level, r.room.id, 1, 50)
     expect(polygonArea(next.rooms[0].points)).toBe(350 * 300)
+  })
+  it('adds a corner to a room edge and splits the wall under it', () => {
+    let level = makeLevel('L', 0)
+    const r = addRoom(level, rectPoints({ x: 0, y: 0 }, { x: 400, y: 300 }))
+    level = r.level
+    const res = insertRoomVertex(level, r.room.id, 1)!
+    expect(res.point).toEqual({ x: 400, y: 150 })
+    expect(res.level.rooms[0].points).toHaveLength(5)
+    expect(res.level.walls).toHaveLength(5)
+    // Dragging the new corner outward makes an L-shaped room with more area.
+    const moved = moveVertex(res.level, res.point, { x: 500, y: 150 })
+    expect(polygonArea(moved.rooms[0].points)).toBeGreaterThan(400 * 300)
   })
   it('splits a wall and keeps openings on the right half', () => {
     let level = makeLevel('L', 0)

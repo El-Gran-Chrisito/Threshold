@@ -271,7 +271,7 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
           Delete with its walls
         </ConfirmButton>
       </div>
-      <p className="tip">Click a selected room again and drag to move it with its furniture. Drag edge pills to resize. Drag corner dots to reshape.</p>
+      <p className="tip">Drag the selected room to move it with its furniture. Drag an edge pill to resize. Drag a corner dot to reshape. Double-click an edge pill to add a corner there (for L-shaped rooms).</p>
     </section>
   )
 }
@@ -646,4 +646,3 @@ function LevelSummary({ level }: { level: Level }) {
   )
 }
 
-export { lerp }

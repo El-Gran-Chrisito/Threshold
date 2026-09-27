@@ -5,7 +5,6 @@
 import type { Item, Level, Opening, Room, Vec2, Wall, WallFinish } from './types'
 import {
   add,
-  angleDeg,
   bounds,
   closestOnSegment,
   dist,
@@ -22,7 +21,6 @@ import {
   sideOf,
   signedArea,
   simplifyPolygon,
-  sub,
   subtractCovered,
 } from './geometry'
 import { makeRoom, makeWall } from './factory'
@@ -325,6 +323,29 @@ export function moveRoomEdge(base: Level, roomId: string, edgeIndex: number, dis
   return next
 }
 
+/**
+ * Add a corner in the middle of a room edge so the edge can bend (a
+ * rectangle becomes an L-shape). Walls running through that point are split
+ * there, so dragging the new corner moves them too.
+ */
+export function insertRoomVertex(level: Level, roomId: string, edgeIndex: number): { level: Level; point: Vec2 } | null {
+  const room = level.rooms.find((r) => r.id === roomId)
+  if (!room) return null
+  const a = room.points[edgeIndex]
+  const b = room.points[(edgeIndex + 1) % room.points.length]
+  if (!a || !b || dist(a, b) < 20) return null
+  const m = lerp(a, b, 0.5)
+  let next: Level = {
+    ...level,
+    rooms: level.rooms.map((r) => (r.id === roomId ? { ...r, points: [...r.points.slice(0, edgeIndex + 1), m, ...r.points.slice(edgeIndex + 1)] } : r)),
+  }
+  for (const w of level.walls) {
+    const c = closestOnSegment(m, w.a, w.b)
+    if (c.d < 1 && c.t > 0.01 && c.t < 0.99) next = splitWall(next, w.id, m)
+  }
+  return { level: next, point: m }
+}
+
 /** Index of the room edge lying on a side of its bounding box (N/E/S/W), or -1. */
 export function edgeOnSide(room: Room, side: 'N' | 'E' | 'S' | 'W'): number {
   const b = bounds(room.points)
@@ -505,4 +526,3 @@ export function levelBounds(level: Level) {
   return bounds(pts)
 }
 
-export { angleDeg, sub }
