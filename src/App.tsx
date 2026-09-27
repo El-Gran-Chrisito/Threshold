@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
 import { BriefForm } from './ui/BriefForm'
+import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
 import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/Inspector'
@@ -316,6 +317,7 @@ function View3DBar() {
   const lowQuality = useStore((s) => s.lowQuality)
   const hiddenParts = useStore((s) => s.hiddenParts)
   const section = useStore((s) => s.section)
+  const surroundings = useStore((s) => (s.project.site.showGround ? s.project.site.surroundings ?? 'suburb' : 'plain'))
   const set = useStore.getState().set
   const hour = Math.floor(sunHour)
   const mins = Math.round((sunHour - hour) * 60)
@@ -350,7 +352,8 @@ function View3DBar() {
             value=""
             onChange={(e) => {
               const dir = e.target.value as 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'
-              if (dir) set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 } })
+              if (dir === 'street') set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 }, cutaway: false, showRoof: true, wallCut: false, explode: 0 })
+              else if (dir) set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 } })
             }}
             aria-label="View from"
           >
@@ -362,6 +365,24 @@ function View3DBar() {
             <option value="N">North</option>
             <option value="E">East</option>
             <option value="W">West</option>
+          </select>
+        </label>
+        <label className="pill pill-select" htmlFor="surroundings">
+          <Icon name="roof" size={16} />
+          <select
+            id="surroundings"
+            value={surroundings}
+            onChange={(e) => {
+              const v = e.target.value as Surroundings
+              useStore.getState().apply((p) => ({ ...p, site: { ...p.site, surroundings: v, showGround: true } }))
+            }}
+            aria-label="Surroundings"
+          >
+            {SURROUNDINGS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
           </select>
         </label>
         <button type="button" className="pill" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} title="Reset camera">

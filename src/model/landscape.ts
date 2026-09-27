@@ -142,6 +142,9 @@ export function buildLandscape(p: Project): Landscape | null {
   const lot = p.site.lot ?? defaultLot(p)
   const front = lot.y + lot.d
   const house = (g && levelBounds(g)) || { minX: lot.x + lot.w / 2 - 500, maxX: lot.x + lot.w / 2 + 500, minY: lot.y + lot.d / 2 - 500, maxY: lot.y + lot.d / 2 + 500 }
+  // A clear line of sight from the street to the front of the house, for the eye-level view.
+  const hcx = (house.minX + house.maxX) / 2
+  const inView = (q: Vec2) => Math.abs(q.x - hcx) < (house.maxX - house.minX) / 2 + 2500 && q.y > front - 100 && q.y < front + 14000
   const seed = Math.round(lot.w * 7 + lot.d * 13 + house.minX * 3 + house.maxY)
   const rand = rng(seed)
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length) % xs.length]
@@ -312,8 +315,9 @@ export function buildLandscape(p: Project): Landscape | null {
       driveways.push(facing > 0 ? { minX: dx - 290, maxX: dx + 290, minY: edge, maxY: street.road[0] } : { minX: dx - 290, maxX: dx + 290, minY: street.road[1], maxY: edge })
       if (rand() < 0.65) cars.push({ x: dx, y: edge + facing * 380, rotation: facing > 0 ? 180 : 0, color: pick(CARS) })
       const ty = facing > 0 ? (edge + front) / 2 : (edge + street.far[3]) / 2
-      trees.push({ x: n.x - facing * n.w * 0.2, y: ty, h: 600 + rand() * 300, r: 220 + rand() * 80, kind: rand() < 0.25 ? 'conifer' : 'round', v: rand(), shadow: false })
-      trees.push({ x: n.x + (rand() - 0.5) * n.w, y: n.y - facing * (n.d / 2 + 700 + rand() * 500), h: 700 + rand() * 400, r: 250 + rand() * 100, kind: rand() < 0.4 ? 'conifer' : 'round', v: rand(), shadow: false })
+      const t1: Tree = { x: n.x - facing * n.w * 0.2, y: ty, h: 600 + rand() * 300, r: 220 + rand() * 80, kind: rand() < 0.25 ? 'conifer' : 'round', v: rand(), shadow: false }
+      const t2: Tree = { x: n.x + (rand() - 0.5) * n.w, y: n.y - facing * (n.d / 2 + 700 + rand() * 500), h: 700 + rand() * 400, r: 250 + rand() * 100, kind: rand() < 0.4 ? 'conifer' : 'round', v: rand(), shadow: false }
+      for (const t of [t1, t2]) if (!inView(t)) trees.push(t)
     }
   }
 
@@ -335,6 +339,7 @@ export function buildLandscape(p: Project): Landscape | null {
     const a = rand() * Math.PI * 2
     const r = inner + Math.pow(rand(), 0.7) * 22000
     const q = { x: centre.x + Math.cos(a) * r, y: centre.y + Math.sin(a) * r }
+    if (inView(q)) continue
     if (street && q.y > street.sidewalk[0] - 300 && q.y < street.far[3] + 300) continue
     if (lane && q.y > lane[0] - 300 && q.y < lane[1] + 300) continue
     if (neighbours.some((n) => Math.abs(q.x - n.x) < n.w / 2 + 600 && Math.abs(q.y - n.y) < n.d / 2 + 600)) continue

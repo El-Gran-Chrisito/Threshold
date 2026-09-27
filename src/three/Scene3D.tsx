@@ -741,6 +741,11 @@ function CameraRig({ center, radius, zoomRequest, walk, street }: { center: THRE
   const viewFrom = useStore((s) => s.viewFrom)
   const frame = () => {
     const cam = camera as THREE.PerspectiveCamera
+    if (viewFrom.dir !== 'street' && cam.fov !== 42) {
+      // The street view may have widened the lens; every other view uses the standard one.
+      cam.fov = 42
+      cam.updateProjectionMatrix()
+    }
     const vfov = ((cam.fov || 42) * Math.PI) / 180
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect)
     const r = Math.max(4, radius)
@@ -748,8 +753,17 @@ function CameraRig({ center, radius, zoomRequest, walk, street }: { center: THRE
     // Plan north is -z. "From the south" means the camera stands south looking north.
     if (viewFrom.dir === 'street') {
       // Standing across the street at eye height, looking at the house.
-      const eye = street?.eye ?? center.clone().add(new THREE.Vector3(0, 0, d * 0.9)).setY(1.65)
       const target = street?.target ?? center.clone().setY(2.4)
+      const baseZ = street?.eye.z ?? center.z + 20
+      const halfW = Math.max(8, radius)
+      // In narrow panes, widen the lens a little first, then step back until the front fits.
+      const wantH = 2 * Math.atan(halfW / Math.max(1, baseZ - target.z))
+      const fov = Math.min(62, Math.max(42, ((2 * Math.atan(Math.tan(wantH / 2) / aspect)) * 180) / Math.PI))
+      cam.fov = fov
+      cam.updateProjectionMatrix()
+      const h2 = 2 * Math.atan(Math.tan(((fov * Math.PI) / 180) / 2) * aspect)
+      const need = target.z + (halfW / Math.tan(h2 / 2)) * 0.95
+      const eye = (street?.eye.clone() ?? center.clone().setY(1.65)).setZ(Math.max(baseZ, need))
       camera.position.copy(eye)
       camera.lookAt(target)
       if (controls.current) {
@@ -869,7 +883,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
     const hx = ((houseBounds.minX + houseBounds.maxX) / 2) * M
     const hz = ((houseBounds.minY + houseBounds.maxY) / 2) * M
     const z = land.street ? ((land.street.far[2] + land.street.far[3]) / 2) * M : land.lane ? land.lane[1] * M + 2 : land.front * M + 6
-    return { eye: new THREE.Vector3(hx + 3, 1.65, z), target: new THREE.Vector3(hx, 2.6, hz) }
+    return { eye: new THREE.Vector3(hx, 1.65, z), target: new THREE.Vector3(hx, 2.6, hz) }
   }, [land, houseBounds])
   const nightNow = nightFactor(sunHour)
   const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
