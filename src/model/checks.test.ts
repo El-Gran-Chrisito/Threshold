@@ -6,7 +6,7 @@ import { makeItem, makeLevel, makeOpening } from './factory'
 
 describe('design checks', () => {
   it('reports the example homes as clean', () => {
-    for (const id of ['family', 'studio']) {
+    for (const id of ['family', 'studio', 'ranch']) {
       const p = buildTemplate(id)
       for (const l of p.levels) {
         const problems = checkLevel(l).filter((i) => i.level === 'problem')

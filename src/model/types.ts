@@ -139,6 +139,9 @@ export interface Project {
     wallHeight: number
     wallColor: string
     exteriorColor: string
+    /** Baseboards on interior wall faces in 3D. */
+    baseboards?: boolean
+    trimColor?: string
   }
   /** Price overrides keyed by catalog id or material id. */
   prices: Record<string, number>

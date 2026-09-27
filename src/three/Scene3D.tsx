@@ -6,7 +6,7 @@ import type { Item, Level, Opening, Project, Room, Vec2, Wall } from '../model/t
 import { activeLevel, useStore } from '../store/store'
 import { catalogEntry } from '../model/catalog'
 import { dist, pointInPolygon, rectCorners, sub } from '../model/geometry'
-import { levelBounds, paintRoomWalls, updateWall } from '../model/ops'
+import { exteriorSides, levelBounds, paintRoomWalls, updateWall } from '../model/ops'
 import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
 import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
@@ -65,7 +65,7 @@ function wallPieces(w: Wall, openings: Opening[], height: number, joints: Set<st
   return out.filter((p) => p.x1 - p.x0 > 0.1 && p.y1 - p.y0 > 0.1)
 }
 
-const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, center }: { w: Wall; openings: Opening[]; joints: Set<string>; cut: number | null; selected: boolean; center: Vec2 }) {
+const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, center, outside, trim }: { w: Wall; openings: Opening[]; joints: Set<string>; cut: number | null; selected: boolean; center: Vec2; outside: 'A' | 'B' | null; trim: string | null }) {
   const height = cut ? Math.min(cut, w.height) : w.height
   const pieces = wallPieces(w, openings, height, joints)
   const d = sub(w.b, w.a)
@@ -95,6 +95,23 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
           userData={{ hit: `wall:${w.id}` }}
         />
       ))}
+      {trim &&
+        pieces
+          .filter((p) => p.y0 === 0)
+          .flatMap((p, i) =>
+            (['A', 'B'] as const)
+              .filter((side) => side !== outside)
+              .map((side) => (
+                <mesh
+                  key={`bb${i}${side}`}
+                  geometry={unitBox}
+                  material={stdMat(trim, { rough: 0.5 })}
+                  position={[((p.x0 + p.x1) / 2) * M, 0.05, (side === 'A' ? 1 : -1) * (w.thickness / 2 + 0.7) * M]}
+                  scale={[(p.x1 - p.x0) * M, 0.1, 0.014]}
+                  userData={{ hit: `wall:${w.id}` }}
+                />
+              )),
+          )}
       {hovered &&
         !selected &&
         pieces.map((p, i) => (
@@ -461,13 +478,18 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
   const cx = b ? Math.round((b.minX + b.maxX) / 2) : 0
   const cy = b ? Math.round((b.minY + b.maxY) / 2) : 0
   const center = useMemo(() => ({ x: cx, y: cy }), [cx, cy])
+  const outsideKey = exteriorSides(level)
+    .map((s) => `${s.wall.id}:${s.side}`)
+    .join('|')
+  const outside = useMemo(() => new Map(outsideKey ? outsideKey.split('|').map((x) => x.split(':') as [string, 'A' | 'B']) : []), [outsideKey])
+  const trim = project.defaults.baseboards === false ? null : project.defaults.trimColor ?? '#F7F7F4'
   return (
     <Exploding base={[0, level.elevation * M, 0]} offset={[0, index * 3.4, 0]}>
       {level.rooms.map((r) => (
         <FloorMesh key={r.id} room={r} holes={holes} slab={level.slab} showCeiling={showCeiling && !cut} ceilingY={level.height} selected={active && selectionId === r.id} />
       ))}
       {level.walls.map((w) => (
-        <WallMesh key={w.id} w={w} openings={level.openings} joints={joints} cut={cut} selected={active && selectionId === w.id} center={center} />
+        <WallMesh key={w.id} w={w} openings={level.openings} joints={joints} cut={cut} selected={active && selectionId === w.id} center={center} outside={outside.get(w.id) ?? null} trim={trim} />
       ))}
       {level.items.map((i) => {
         const c = catalogEntry(i.type)

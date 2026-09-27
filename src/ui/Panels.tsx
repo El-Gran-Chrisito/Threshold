@@ -566,6 +566,12 @@ export function ProjectPanel() {
         />
         {err && <p className="error">{err}</p>}
       </Field>
+      <Field label="Trim">
+        <Toggle id="baseboards" checked={project.defaults.baseboards !== false} onChange={(v) => useStore.getState().apply((p) => ({ ...p, defaults: { ...p.defaults, baseboards: v } }))} label="Baseboards on inside walls" />
+        {project.defaults.baseboards !== false && (
+          <Swatches label="Trim colour" swatches={[...PAINTS.slice(0, 8), { name: 'Oak', hex: '#C29A6B' }, { name: 'Walnut', hex: '#6A4630' }]} value={project.defaults.trimColor ?? '#F7F7F4'} onChange={(c) => useStore.getState().apply((p) => ({ ...p, defaults: { ...p.defaults, trimColor: c } }))} />
+        )}
+      </Field>
       <Field label="Site">
         <Toggle id="site-ground" checked={project.site.showGround} onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, showGround: v } }))} label="Show ground in 3D" />
         <Swatches label="Ground colour" swatches={[{ name: 'Lawn', hex: '#8DA870' }, { name: 'Dry grass', hex: '#B6AE7A' }, { name: 'Gravel', hex: '#B9B4AA' }, { name: 'Snow', hex: '#EEF1F3' }, { name: 'Soil', hex: '#8A6E55' }]} value={project.site.groundColor} onChange={(c) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, groundColor: c } }))} />

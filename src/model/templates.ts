@@ -2,7 +2,7 @@
  * Starter homes. Built with the same operations the editor uses, so every
  * template is fully editable. Coordinates below are feet; converted to cm.
  */
-import type { Item, Level, OpeningKind, Project, Room, Vec2, WallFinish } from './types'
+import type { Item, Level, Opening, OpeningKind, Project, Room, Vec2, WallFinish } from './types'
 import { CM_PER_FT } from './units'
 import { addRoom, clampOpening, findWallAt, paintExterior, paintRoomWalls, wallLength } from './ops'
 import { makeItem, makeLevel, makeOpening, makeProject } from './factory'
@@ -38,7 +38,7 @@ class Builder {
   }
 
   /** Put an opening on the wall passing through (x, y), centred there. */
-  opening(kind: OpeningKind, x: number, y: number, opts: { width?: number; hinge?: 'start' | 'end'; swing?: 'A' | 'B'; height?: number; sill?: number } = {}): this {
+  opening(kind: OpeningKind, x: number, y: number, opts: { width?: number; hinge?: 'start' | 'end'; swing?: 'A' | 'B'; height?: number; sill?: number; style?: Opening['style'] } = {}): this {
     const at = P(x, y)
     const wall = findWallAt(this.level, at, 4)
     if (!wall) return this
@@ -49,6 +49,7 @@ class Builder {
       ...(opts.sill !== undefined ? { sill: ft(opts.sill) } : {}),
       ...(opts.hinge ? { hinge: opts.hinge } : {}),
       ...(opts.swing ? { swing: opts.swing } : {}),
+      ...(opts.style ? { style: opts.style } : {}),
     })
     this.level = { ...this.level, openings: [...this.level.openings, clampOpening(o, wall)] }
     return this
@@ -340,6 +341,109 @@ function familyHome(): Project {
   return finish(p, [g.level, up.level])
 }
 
+function ranch(): Project {
+  const p = makeProject('Single-storey ranch')
+  const b = new Builder({ ...p.levels[0], name: 'Main floor', roof: { style: 'gable', pitch: 0.42, overhang: 50, color: '#4A4E52', ridgeAlongLong: true } })
+  b.room('Bedroom 2', 0, 0, 13, 16, 'carpet-oat')
+    .room('Living room', 13, 0, 31, 16, 'walnut')
+    .room('Kitchen & dining', 31, 0, 54, 16, 'walnut')
+    .room('Bedroom 3', 0, 16, 13, 30, 'carpet-grey')
+    .room('Hall', 13, 16, 29, 20, 'walnut')
+    .room('Bath', 13, 20, 21, 30, 'tile-white')
+    .room('Entry', 21, 20, 29, 30, 'tile-black')
+    .room('Primary bath', 29, 16, 37, 24, 'marble')
+    .room('Closet', 29, 24, 37, 30, 'oak')
+    .room('Primary bedroom', 37, 16, 54, 30, 'carpet-oat')
+    .exterior('#9A7556', 20, 'shingle')
+    .paint('Living room', '#EDE6D8')
+    .paint('Kitchen & dining', '#F4F2EC')
+    .paint('Bedroom 2', '#B3BFA6')
+    .paint('Bedroom 3', '#C9D6DE')
+    .paint('Primary bedroom', '#CFC8BB')
+    .finish('Bath', '#C9D6DE', 'tile')
+    .finish('Primary bath', '#F1F0EB', 'tile')
+    // Openings
+    .opening('door', 13, 13, { swing: 'A' })
+    .opening('opening', 22, 16, { width: 6 })
+    .opening('opening', 31, 8, { width: 8 })
+    .opening('door', 13, 18, { swing: 'B' })
+    .opening('door', 17, 20, { swing: 'B' })
+    .opening('opening', 25, 20, { width: 4 })
+    .opening('door', 25, 30, { style: 'glass' })
+    .opening('door', 40, 16, { swing: 'B' })
+    .opening('door', 37, 20, { swing: 'A' })
+    .opening('door', 37, 27, { swing: 'A' })
+    .opening('slider', 46, 0, { width: 8 })
+    .opening('window', 22, 0, { width: 6 })
+    .opening('window', 6.5, 0, { width: 4 })
+    .opening('window', 0, 8, { width: 3 })
+    .opening('window', 0, 23, { width: 4 })
+    .opening('window', 6.5, 30, { width: 4 })
+    .opening('window', 17, 30, { width: 2.5, sill: 4, height: 2.5 })
+    .opening('window', 45.5, 30, { width: 5 })
+    .opening('window', 54, 23, { width: 4 })
+    .opening('window', 54, 8, { width: 4 })
+    .opening('window', 22.5, 30, { width: 1.8 })
+    // Living
+    .against('Living room', 'N', 9, 'fireplace')
+    .put('rug-large', 22, 8, 0)
+    .put('sofa-3', 22, 12.3, 180)
+    .put('coffee-table', 22, 8.2, 0)
+    .put('armchair', 16.6, 7, 270)
+    .put('armchair', 27.4, 7, 90)
+    .put('floor-lamp', 14.4, 1.6)
+    .against('Living room', 'N', 16.8, 'plant')
+    // Kitchen & dining
+    .against('Kitchen & dining', 'N', 1.7, 'fridge')
+    .against('Kitchen & dining', 'N', 4.2, 'base-60')
+    .against('Kitchen & dining', 'N', 6.45, 'range')
+    .against('Kitchen & dining', 'N', 6.45, 'hood')
+    .against('Kitchen & dining', 'N', 8.7, 'base-60')
+    .against('Kitchen & dining', 'N', 4.2, 'wall-cab')
+    .against('Kitchen & dining', 'N', 8.7, 'wall-cab')
+    .against('Kitchen & dining', 'E', 3, 'sink-cab')
+    .against('Kitchen & dining', 'E', 5.5, 'dishwasher')
+    .put('island', 40, 8.5, 0)
+    .put('stool', 38.5, 10.6, 180)
+    .put('stool', 40, 10.6, 180)
+    .put('stool', 41.5, 10.6, 180)
+    .put('table-round', 48.5, 11.5)
+    .put('chair', 48.5, 9.6, 0)
+    .put('chair', 48.5, 13.4, 180)
+    .put('chair', 46.6, 11.5, 270)
+    .put('chair', 50.4, 11.5, 90)
+    .put('pendant', 38.5, 8.5, 0, { elevation: 200 })
+    .put('pendant', 41.5, 8.5, 0, { elevation: 200 })
+    .put('chandelier', 48.5, 11.5, 0, { elevation: 200 })
+    // Primary suite
+    .against('Primary bedroom', 'E', 7, 'bed-king', { rotation: 90 })
+    .against('Primary bedroom', 'E', 2.8, 'nightstand')
+    .against('Primary bedroom', 'E', 11.2, 'nightstand')
+    .against('Primary bedroom', 'S', 8, 'dresser')
+    .put('rug', 48.5, 23, 90)
+    .against('Primary bath', 'N', 2, 'shower')
+    .against('Primary bath', 'N', 5.8, 'vanity')
+    .against('Primary bath', 'W', 5.5, 'toilet')
+    .against('Closet', 'W', 3, 'wardrobe', { width: ft(5), depth: ft(2) })
+    // Bedrooms
+    .against('Bedroom 2', 'W', 8, 'bed-queen', { rotation: 270 })
+    .against('Bedroom 2', 'W', 4.5, 'nightstand')
+    .against('Bedroom 2', 'W', 11.5, 'nightstand')
+    .against('Bedroom 2', 'E', 5, 'dresser')
+    .against('Bedroom 3', 'W', 7, 'bed-twin', { rotation: 270 })
+    .against('Bedroom 3', 'W', 3.5, 'nightstand')
+    .against('Bedroom 3', 'N', 6, 'desk')
+    .against('Bedroom 3', 'S', 11, 'wardrobe')
+    // Bath and entry
+    .against('Bath', 'S', 4, 'bathtub', { width: ft(5), depth: ft(2.5) })
+    .against('Bath', 'W', 3, 'toilet')
+    .against('Bath', 'E', 3, 'vanity')
+    .against('Entry', 'W', 5, 'bench')
+    .against('Entry', 'E', 5, 'console')
+    .put('rug', 25, 26, 90, { width: ft(5), depth: ft(3), color: '#8C5A45', color2: '#5E3A2C' })
+  return finish(p, [b.level])
+}
+
 function blank(): Project {
   return makeProject('Untitled home')
 }
@@ -353,6 +457,7 @@ export interface TemplateInfo {
 
 export const TEMPLATES: TemplateInfo[] = [
   { id: 'family', name: 'Two-storey family home', blurb: '3 bed · 2.5 bath · garage · 2,800 sq ft', build: familyHome },
+  { id: 'ranch', name: 'Single-storey ranch', blurb: '3 bed · 2 bath · open kitchen · 1,600 sq ft', build: ranch },
   { id: 'studio', name: 'Studio apartment', blurb: '1 room · bath · galley kitchen · 660 sq ft', build: studio },
   { id: 'blank', name: 'Blank plot', blurb: 'Start from nothing', build: blank },
 ]

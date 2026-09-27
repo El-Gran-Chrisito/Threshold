@@ -391,6 +391,17 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
           setMarquee({ a: p, b: p })
           return
         }
+        if (hit?.startsWith('dim:')) {
+          // Clicking a dimension selects its wall and puts the cursor in its length box.
+          s.select({ kind: 'wall', id: hit.slice(4) })
+          s.set({ panel: 'inspector' })
+          setTimeout(() => {
+            const el = document.getElementById('wall-length') as HTMLInputElement | null
+            el?.focus()
+            el?.select()
+          }, 60)
+          return
+        }
         if (hit) {
           const [kind, id] = hit.split(':') as [string, string]
           if (kind === 'item' && e.shiftKey) {
@@ -970,7 +981,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
-        {showDims && !minimap && <WallDims level={level} px={px} units={units} />}
+        {showDims && !minimap && <WallDims level={level} px={px} units={units} interactive={tool === 'select'} />}
         {tool === 'select' && !minimap && multi.length < 2 && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
         {minimap && walker && <WalkerMarker x={walker.x} y={walker.y} yaw={walker.yaw} px={px} />}
 

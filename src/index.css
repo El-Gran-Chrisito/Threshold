@@ -2053,3 +2053,12 @@ kbd {
 .check-item.is-tip .check-dot {
   background: var(--ink-3);
 }
+
+.dim-text.is-editable {
+  cursor: text;
+}
+
+.dim-text.is-editable:hover {
+  text-decoration: underline;
+  font-weight: 700;
+}

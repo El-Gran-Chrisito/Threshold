@@ -266,10 +266,10 @@ export const LabelsLayer = memo(function LabelsLayer({ labels, px, selection }: 
 // ---------------------------------------------------------------------------
 // Dimensions
 
-export const WallDims = memo(function WallDims({ level, px, units }: { level: Level; px: number; units: UnitSystem }) {
+export const WallDims = memo(function WallDims({ level, px, units, interactive = false }: { level: Level; px: number; units: UnitSystem; interactive?: boolean }) {
   const ext = new Map(exteriorSides(level).map((s) => [s.wall.id, s.side]))
   return (
-    <g pointerEvents="none">
+    <g pointerEvents={interactive ? undefined : 'none'}>
       {level.walls.map((w) => {
         const L = dist(w.a, w.b)
         if (L < 40 * px) return null
@@ -282,7 +282,7 @@ export const WallDims = memo(function WallDims({ level, px, units }: { level: Le
         if (ang > 90) ang -= 180
         if (ang <= -90) ang += 180
         return (
-          <text key={w.id} x={m.x} y={m.y} fontSize={10.5 * px} className="dim-text" textAnchor="middle" dominantBaseline="middle" transform={`rotate(${ang} ${m.x} ${m.y})`} strokeWidth={px * 3}>
+          <text key={w.id} x={m.x} y={m.y} fontSize={10.5 * px} className={`dim-text${interactive ? ' is-editable' : ''}`} textAnchor="middle" dominantBaseline="middle" transform={`rotate(${ang} ${m.x} ${m.y})`} strokeWidth={px * 3} data-hit={interactive ? `dim:${w.id}` : undefined}>
             {formatLength(L, units)}
           </text>
         )
