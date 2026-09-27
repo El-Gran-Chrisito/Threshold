@@ -28,8 +28,26 @@ export interface TakeoffLine {
 
 const SWATCH_NAMES = new Map([...PAINTS, ...FINISHES, ...ROOF_SWATCHES].map((s) => [s.hex.toUpperCase(), s.name]))
 
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+
+/** The swatch name, or the hex code with the closest named colour for a custom colour. */
 export function colorName(hex: string): string {
-  return SWATCH_NAMES.get(hex.toUpperCase()) ?? hex.toUpperCase()
+  const h = hex.toUpperCase()
+  const exact = SWATCH_NAMES.get(h)
+  if (exact) return exact
+  if (!/^#[0-9A-F]{6}$/.test(h)) return h
+  const [r, g, b] = rgb(h)
+  let best = ''
+  let bestD = Infinity
+  for (const [k, name] of SWATCH_NAMES) {
+    const [r2, g2, b2] = rgb(k)
+    const d = (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2
+    if (d < bestD) {
+      bestD = d
+      best = name
+    }
+  }
+  return bestD < 40 ** 2 ? `${h} (close to ${best})` : h
 }
 
 /** Two coats. About 350 sq ft per US gallon, or 10 m² per litre, per coat. */

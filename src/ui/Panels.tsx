@@ -474,6 +474,28 @@ function ShoppingList() {
   )
 }
 
+/** Free plan: how many of the free designs are in use. */
+function DesignAllowance({ count }: { count: number }) {
+  const plan = useEntitlements((s) => s.plan)
+  if (allows(plan, 'unlimited-designs')) return null
+  const n = Math.min(count, FREE_LIMITS.designs)
+  return (
+    <div className="allowance">
+      <div className="allowance-row">
+        <span>
+          Free plan: <strong>{n} of {FREE_LIMITS.designs}</strong> designs used
+        </span>
+        <button type="button" className="linklike" onClick={() => requireFeature('unlimited-designs')}>
+          Unlimited with Pro
+        </button>
+      </div>
+      <span className="allowance-bar" aria-hidden>
+        <span style={{ width: `${(n / FREE_LIMITS.designs) * 100}%` }} />
+      </span>
+    </div>
+  )
+}
+
 /** Studio: the studio's name, contact and logo on plan sheets and presentations. */
 function BrandingSettings() {
   const plan = useEntitlements((s) => s.plan)
@@ -622,7 +644,7 @@ export function ProjectPanel() {
     const out = can('clean-exports') ? canvas : watermarked(canvas)
     track('export', { kind: '3d-image' })
     const r = await saveFile(`${slug(project.name)}-3d.png`, dataUrlToBlob(out.toDataURL('image/png')), 'image/png')
-    s.notify(r === 'saved' ? 'Image saved' : 'Image not saved')
+    s.notify(r === 'saved' ? (can('clean-exports') ? 'Image saved' : 'Image saved with the free watermark. Pro removes it.') : 'Image not saved')
   }
   const exportPlan = async () => {
     const st = useStore.getState()
@@ -631,7 +653,7 @@ export function ProjectPanel() {
       const blob = await planPng(st.project, level, can('hd-exports') ? 4800 : 2400, { watermark: !can('clean-exports'), brand: can('branding') ? useBrand.getState() : null })
       track('export', { kind: 'plan' })
       const r = await saveFile(`${slug(project.name)}-${slug(level.name)}-plan.png`, blob, 'image/png')
-      s.notify(r === 'saved' ? 'Floor plan saved' : 'Floor plan not saved')
+      s.notify(r === 'saved' ? (can('clean-exports') ? 'Floor plan saved' : 'Floor plan saved with the free watermark. Pro removes it.') : 'Floor plan not saved')
     } catch {
       s.notify('Could not draw the floor plan image')
     }
@@ -699,6 +721,7 @@ export function ProjectPanel() {
           <Icon name="copy" size={16} /> Duplicate this design
         </button>
       </div>
+      <DesignAllowance count={saved.length} />
       <Field label="Plan from your needs">
         {showBrief ? (
           <BriefForm
