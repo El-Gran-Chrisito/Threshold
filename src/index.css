@@ -2297,3 +2297,7 @@ kbd {
 .brief-summary strong {
   color: var(--ink);
 }
+
+.font-lexend {
+  --font: 'Lexend', 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

@@ -28,7 +28,7 @@ bun run build:single # one self-contained HTML file in dist-single/
 | Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude, via the artifact `sample` capability) |
 | Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
 | Files | Autosave to the browser and, inside Claude, to the viewer's account; several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
-| Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing), light and dark themes, phone layout |
+| Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing, Lexend or Atkinson Hyperlegible font), light and dark themes, phone layout |
 
 All lengths are stored in centimetres; the UI accepts `12' 6"`, `12-6`, `6 1/2"`, `3.5m`, `350cm` and plain numbers.
 

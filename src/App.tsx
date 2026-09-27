@@ -512,7 +512,7 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
 }
 
 // Reading comfort: remembered per device (a personal preference, not part of the design).
-type Comfort = { size: 1 | 1.12 | 1.25; spacing: boolean }
+type Comfort = { size: 1 | 1.12 | 1.25; spacing: boolean; font?: 'hyperlegible' | 'lexend' }
 
 function loadComfort(): Comfort {
   try {
@@ -528,6 +528,15 @@ function applyComfort(c: Comfort) {
   const root = document.documentElement
   root.style.setProperty('--ui-zoom', String(c.size))
   root.classList.toggle('comfort-spacing', c.spacing)
+  root.classList.toggle('font-lexend', c.font === 'lexend')
+  if (c.font === 'lexend' && !document.getElementById('font-lexend')) {
+    // Loaded only when chosen. Falls back to the standard font when offline.
+    const link = document.createElement('link')
+    link.id = 'font-lexend'
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap'
+    document.head.appendChild(link)
+  }
 }
 
 applyComfort(loadComfort())
@@ -554,6 +563,16 @@ function ComfortSettings() {
           [1.25, 'Larger'],
         ] as const).map(([v, label]) => (
           <button key={v} type="button" role="radio" aria-checked={c.size === v} className={c.size === v ? 'is-on' : ''} onClick={() => update({ size: v })}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="segmented" role="radiogroup" aria-label="Font">
+        {([
+          ['hyperlegible', 'Font: Hyperlegible'],
+          ['lexend', 'Lexend'],
+        ] as const).map(([v, label]) => (
+          <button key={v} type="button" role="radio" aria-checked={(c.font ?? 'hyperlegible') === v} className={(c.font ?? 'hyperlegible') === v ? 'is-on' : ''} onClick={() => update({ font: v })}>
             {label}
           </button>
         ))}
