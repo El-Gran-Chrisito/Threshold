@@ -10,7 +10,6 @@ import { Builder, ft } from './templates'
 import { makeLevel, makeProject } from './factory'
 import { furnishRoom } from './furnish'
 import { roomArea } from './ops'
-import { CM2_PER_FT2 } from './units'
 
 export interface Brief {
   bedrooms: number
@@ -242,8 +241,7 @@ export function planFromBrief(brief: Brief): Project {
   return { ...p, levels: [ground, upper] }
 }
 
-/** Indoor floor area, garage excluded, in sq ft. */
+/** Indoor floor area in cm², garage excluded. */
 export function briefArea(p: Project): number {
-  const cm2 = p.levels.flatMap((l) => l.rooms).filter((r) => !/garage/i.test(r.name)).reduce((s, r) => s + roomArea(r), 0)
-  return Math.round(cm2 / CM2_PER_FT2)
+  return p.levels.flatMap((l) => l.rooms).filter((r) => !/garage/i.test(r.name)).reduce((s, r) => s + roomArea(r), 0)
 }

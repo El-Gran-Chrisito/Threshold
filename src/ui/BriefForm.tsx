@@ -2,9 +2,12 @@ import { useMemo, useState } from 'react'
 import { briefArea, DEFAULT_BRIEF, planFromBrief, type Brief } from '../model/brief'
 import type { Project } from '../model/types'
 import { Field, Segmented, Toggle } from './controls'
+import { formatArea } from '../model/units'
+import { useStore } from '../store/store'
 
 /** Pick bedrooms, bathrooms, floors and garage; get a furnished starting plan. */
 export function BriefForm({ onMake, submitLabel = 'Make my plan' }: { onMake: (p: Project) => void; submitLabel?: string }) {
+  const units = useStore((s) => s.project.units)
   const [b, setB] = useState<Brief>(DEFAULT_BRIEF)
   const set = (patch: Partial<Brief>) => setB((x) => ({ ...x, ...patch }))
   const preview = useMemo(() => planFromBrief(b), [b])
@@ -34,7 +37,7 @@ export function BriefForm({ onMake, submitLabel = 'Make my plan' }: { onMake: (p
       <Toggle id="brief-office" checked={b.office} onChange={(v) => set({ office: v })} label="Home office" />
       <Toggle id="brief-open" checked={b.openPlan} onChange={(v) => set({ openPlan: v })} label="Open-plan kitchen, dining and living" />
       <p className="brief-summary">
-        <strong>{briefArea(preview).toLocaleString()} sq ft</strong> · {rooms} rooms · furnished · every wall, door and item editable
+        <strong>{formatArea(briefArea(preview), units)}</strong> · {rooms} rooms · furnished · every wall, door and item editable
       </p>
       <button type="submit" className="btn btn-primary">
         {submitLabel}
