@@ -23,6 +23,7 @@ import {
 } from '../model/ops'
 import { makeItem, makeOpening, OPENING_PRESETS, uid } from '../model/factory'
 import { cabinetsAlongWall, checkLevel } from '../model/checks'
+import { furnishRoom } from '../model/furnish'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
 
@@ -229,6 +230,22 @@ function uniqueRoomName(level: Level, base: string, selfId: string): string {
   return `${base} ${n}`
 }
 
+/** Add a starter set of furniture to rooms (one undo step). */
+function furnish(rooms: Room[]) {
+  const s = useStore.getState()
+  let level = activeLevel(s)
+  const added: Item[] = []
+  for (const r of rooms) {
+    const items = furnishRoom(level, r)
+    added.push(...items)
+    level = { ...level, items: [...level.items, ...items] }
+  }
+  if (!added.length) return s.notify('No free space found for furniture')
+  s.applyLevel((l) => ({ ...l, items: [...l.items, ...added] }))
+  useStore.setState({ selection: { kind: 'item', id: added[0].id }, multi: added.length > 1 ? added.map((i) => i.id) : [] })
+  s.notify(`Added ${added.length} pieces. Move or swap any of them.`)
+}
+
 function isAxisRect(r: Room) {
   if (r.points.length !== 4) return false
   const [a, b, c, d] = r.points
@@ -311,6 +328,11 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
       <Field label="Ceiling colour">
         <Swatches label="Ceiling colour" swatches={PAINTS.slice(0, 10)} value={r.ceilingColor} onChange={(c) => upd({ ceilingColor: c })} />
       </Field>
+      <div className="btn-row">
+        <button type="button" className="btn btn-primary" onClick={() => furnish([r])}>
+          <Icon name="item" size={16} /> Furnish this room
+        </button>
+      </div>
       <div className="btn-row">
         <ConfirmButton className="btn btn-danger" onConfirm={() => deleteSelection()} confirmText="Confirm: delete room">
           <Icon name="trash" size={16} /> Delete room
@@ -705,6 +727,11 @@ function LevelSummary({ level }: { level: Level }) {
         </Field>
       )}
       <div className="btn-row">
+        {level.rooms.some((r) => !level.items.some((i) => pointInPolygon(i, r.points))) && (
+          <button type="button" className="btn" onClick={() => furnish(level.rooms.filter((r) => !level.items.some((i) => pointInPolygon(i, r.points))))}>
+            <Icon name="item" size={16} /> Furnish empty rooms
+          </button>
+        )}
         <button
           type="button"
           className="btn"

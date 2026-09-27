@@ -12,6 +12,7 @@ import { FLOORS, WALL_FINISHES, PAINTS } from '../model/materials'
 import { addRoom, clampOpening, deleteRoom, edgeOnSide, exteriorSides, moveRoom, moveRoomEdge, paintExterior, paintRoomWalls, rectPoints, roomArea, roomWallSides, snapItemToWall, wallLength } from '../model/ops'
 import { bounds, lerp, pointInPolygon } from '../model/geometry'
 import { makeItem, makeOpening } from '../model/factory'
+import { furnishRoom } from '../model/furnish'
 import { CM_PER_FT } from '../model/units'
 
 type Side = 'N' | 'S' | 'E' | 'W'
@@ -29,6 +30,7 @@ export type Action =
   | { op: 'add_window'; room: string; side?: Side; width?: number; count?: number }
   | { op: 'add_item'; type: string; room: string; place?: Side | 'center'; along?: number; rotation?: number; color?: string; width?: number; depth?: number }
   | { op: 'remove_items'; room: string; type?: string }
+  | { op: 'furnish_room'; room: string }
   | { op: 'exterior'; color: string; finish?: string }
   | { op: 'set_roof'; style: RoofStyle; pitch?: number }
 
@@ -86,6 +88,7 @@ Each action is one of:
 - {"op":"add_item","type":catalogId,"room":name,"place"?:"N"|"S"|"E"|"W"|"center","along"?:0..1,"rotation"?:degrees,"color"?:"#RRGGBB"}
    place = which wall the item backs onto; along = position along that wall (0 = west/north end, 1 = east/south end); "center" floats it mid-room.
 - {"op":"remove_items","room":name,"type"?:catalogId}
+- {"op":"furnish_room","room":name}   (adds a sensible starter set for the room's type; prefer this over many add_item actions when asked to furnish a room)
 - {"op":"exterior","color":"#RRGGBB","finish"?:finishId}
 - {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12}
 Order matters: create rooms before adding doors, windows or items to them. Give every new room at least one door. Keep furniture sizes realistic for the room.
@@ -341,6 +344,15 @@ export function runActions(project: Project, levelId: string, actions: Action[])
           const before = level.items.length
           level = { ...level, items: level.items.filter((i) => !(pointInPolygon(i, r.points) && (!id || i.type === id))) }
           applied.push(`${r.name}: removed ${before - level.items.length} item(s)`)
+          break
+        }
+        case 'furnish_room': {
+          const r = findRoom(level, a.room)
+          if (!r) throw new Error(`no room “${a.room}”`)
+          const items = furnishRoom(level, r)
+          if (!items.length) throw new Error(`no free space in ${r.name}`)
+          level = { ...level, items: [...level.items, ...items] }
+          applied.push(`${r.name}: furnished (${items.length} pieces)`)
           break
         }
         case 'exterior': {

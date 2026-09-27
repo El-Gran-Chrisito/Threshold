@@ -54,6 +54,25 @@ const tucks = (a: Item, b: Item) => {
   return (under.includes(sa) && over.includes(sb)) || (under.includes(sb) && over.includes(sa)) || sa === 'pergola' || sb === 'pergola' || sa === 'umbrella' || sb === 'umbrella'
 }
 
+/** The floor area each hinged door sweeps as it opens. */
+export function doorZones(level: Level): Vec2[][] {
+  const wallById = new Map(level.walls.map((w) => [w.id, w]))
+  const zones: Vec2[][] = []
+  for (const o of level.openings) {
+    if (o.kind !== 'door' && o.kind !== 'double-door') continue
+    if (o.style === 'barn') continue
+    const w = wallById.get(o.wallId)
+    if (!w) continue
+    const d = norm(sub(w.b, w.a))
+    const n = scale(normalOf(w.a, w.b), o.swing === 'A' ? 1 : -1)
+    const s0 = add(w.a, scale(d, o.offset - o.width / 2))
+    const s1 = add(w.a, scale(d, o.offset + o.width / 2))
+    const reach = (o.kind === 'double-door' ? o.width / 2 : o.width) * 0.9
+    zones.push([add(s0, scale(n, w.thickness / 2)), add(s1, scale(n, w.thickness / 2)), add(s1, scale(n, w.thickness / 2 + reach)), add(s0, scale(n, w.thickness / 2 + reach))])
+  }
+  return zones
+}
+
 export function checkLevel(level: Level): Issue[] {
   const issues: Issue[] = []
   const footprints = new Map(level.items.map((i) => [i.id, rectCorners(i, i.width, i.depth, i.rotation)]))
@@ -88,18 +107,7 @@ export function checkLevel(level: Level): Issue[] {
   }
 
   // Furniture in a door's swing.
-  const wallById = new Map(level.walls.map((w) => [w.id, w]))
-  for (const o of level.openings) {
-    if (o.kind !== 'door' && o.kind !== 'double-door') continue
-    if (o.style === 'barn') continue
-    const w = wallById.get(o.wallId)
-    if (!w) continue
-    const d = norm(sub(w.b, w.a))
-    const n = scale(normalOf(w.a, w.b), o.swing === 'A' ? 1 : -1)
-    const s0 = add(w.a, scale(d, o.offset - o.width / 2))
-    const s1 = add(w.a, scale(d, o.offset + o.width / 2))
-    const reach = (o.kind === 'double-door' ? o.width / 2 : o.width) * 0.9
-    const zone = [add(s0, scale(n, w.thickness / 2)), add(s1, scale(n, w.thickness / 2)), add(s1, scale(n, w.thickness / 2 + reach)), add(s0, scale(n, w.thickness / 2 + reach))]
+  for (const zone of doorZones(level)) {
     for (const i of level.items) {
       const c = catalogEntry(i.type)
       if (c.mount === 'ceiling' || c.shape === 'rug' || i.elevation > 150) continue
