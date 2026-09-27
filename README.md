@@ -22,10 +22,10 @@ bun run build:single # one self-contained HTML file in dist-single/
 | Furniture | 99 parametric items in 12 categories (living, bedroom, dining, kitchen, bath, office, laundry, lighting, electrical, decor, outdoor, structure); auto-backs onto walls; any size, two colours, mirror, lock, swap; one-click kitchen cabinet runs |
 | Finishes | Nine wall finishes per wall side (paint, wallpaper, tile, wood, brick, stone, siding, shingle, concrete), 18 floor finishes with real-scale textures and pattern direction, ceilings, trim and baseboards, door and window styles, exterior and roof colour |
 | Levels | Multiple floors, basement, stair openings cut through floors, flat / gable / hip / shed roofs with pitch and overhang |
-| 3D | Orbit view with inside and outside presets, exploded view with layer tags, low walls, sun by time of day, night lighting from lamps, click to select, click to paint, drag furniture, double-click to focus |
+| 3D | Orbit view with inside and outside presets, views from top and each compass side, exploded view with layer tags and show/hide for roof, walls, floors and furniture, low walls, sun by time of day, night lighting from lamps, click to select, click to paint, drag furniture, double-click to focus, Fast 3D mode for slower devices |
 | Walk | First-person walk-through with wall collision, open doors, mini-map with position and heading |
 | Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude, via the artifact `sample` capability) |
-| Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices |
+| Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
 | Files | Autosave to the browser and, inside Claude, to the viewer's account; several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
 | Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing), light and dark themes, phone layout |
 
