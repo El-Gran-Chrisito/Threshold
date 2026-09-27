@@ -136,6 +136,21 @@ export function OpeningSymbol({ o, w, px, selected, preview }: { o: Opening; w: 
   const sideSign = o.swing === 'A' ? 1 : -1
   switch (o.kind) {
     case 'door':
+      if (o.style === 'barn') {
+        const lw = o.width + 10
+        const xs = o.hinge === 'start' ? s0 - lw + 12 : s1 - 12
+        const off = sideSign * (t / 2 + 4)
+        const p1 = at(xs, off)
+        const p2 = at(xs + lw, off)
+        const r1 = at(Math.min(xs, s0) - 5, off + sideSign * 3)
+        const r2 = at(Math.max(xs + lw, s1) + 5, off + sideSign * 3)
+        body.push(
+          <path key="rail" d={`M ${r1.x} ${r1.y} L ${r2.x} ${r2.y}`} className="op-arc" strokeWidth={sw} />,
+          <path key="leaf" d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`} className="op-leaf" strokeWidth={sw * 3} />,
+        )
+        body.push(<g key="j">{jamb(s0)}{jamb(s1)}</g>)
+        break
+      }
       body.push(o.hinge === 'start' ? leaf(s0, s1, o.width, sideSign, 'l') : leaf(s1, s0, o.width, sideSign, 'l'))
       body.push(<g key="j">{jamb(s0)}{jamb(s1)}</g>)
       break

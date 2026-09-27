@@ -1,6 +1,6 @@
 import type { Item, Level, Opening, OpeningKind, Room, Wall } from '../model/types'
 import { activeLevel, useStore } from '../store/store'
-import { ConfirmButton, Field, LengthInput, NumberInput, Swatches, Toggle } from './controls'
+import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Swatches, Toggle } from './controls'
 import { FINISHES, FLOORS, PAINTS, floorMaterial } from '../model/materials'
 import { CATALOG, catalogEntry } from '../model/catalog'
 import { add, dist, lerp, norm, normalOf, pointInPolygon, polygonPerimeter, scale, sub } from '../model/geometry'
@@ -9,6 +9,7 @@ import {
   clampOpening,
   deleteRoom,
   deleteWalls,
+  exteriorSides,
   moveRoomEdge,
   moveVertex,
   paintExterior,
@@ -141,10 +142,12 @@ function WallInspector({ w, level, units }: { w: Wall; level: Level; units: 'imp
           <LengthInput id="wall-thick" value={w.thickness} units={units} bare={units === 'imperial' ? 'in' : 'cm'} onChange={(v) => applyLevel((l) => updateWall(l, w.id, { thickness: v }))} min={2} />
         </Field>
       </div>
-      <Field label={`Colour facing ${sideName(level, w, 'A')}`}>
+      <Field label={`Side facing ${sideName(level, w, 'A')}`}>
+        <FinishChips label="Side A finish" value={w.finishA} onChange={(f, c) => applyLevel((l) => updateWall(l, w.id, { finishA: f, colorA: f === 'paint' ? w.colorA : c }))} />
         <Swatches label="Side A colour" swatches={PAINTS} value={w.colorA} onChange={(c) => applyLevel((l) => updateWall(l, w.id, { colorA: c }))} />
       </Field>
-      <Field label={`Colour facing ${sideName(level, w, 'B')}`}>
+      <Field label={`Side facing ${sideName(level, w, 'B')}`}>
+        <FinishChips label="Side B finish" value={w.finishB} onChange={(f, c) => applyLevel((l) => updateWall(l, w.id, { finishB: f, colorB: f === 'paint' ? w.colorB : c }))} />
         <Swatches label="Side B colour" swatches={PAINTS} value={w.colorB} onChange={(c) => applyLevel((l) => updateWall(l, w.id, { colorB: c }))} />
       </Field>
       <div className="btn-row">
@@ -181,6 +184,7 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
   const depth = rect ? dist(r.points[1], r.points[2]) : 0
   const sides = roomWallSides(level, r)
   const wallColor = sides.length ? (sides[0].side === 'A' ? sides[0].wall.colorA : sides[0].wall.colorB) : '#F4F2EC'
+  const wallFinish = sides.length ? (sides[0].side === 'A' ? sides[0].wall.finishA : sides[0].wall.finishB) : 'paint'
   const fm = floorMaterial(r.floor)
   return (
     <section className="inspector">
@@ -223,8 +227,9 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
           <Swatches label="Floor colour" swatches={PAINTS} value={r.floorColor ?? fm.base} onChange={(c) => upd({ floorColor: c })} />
         </Field>
       ) : null}
-      <Field label="Paint all walls in this room">
-        <Swatches label="Room wall colour" swatches={PAINTS} value={wallColor} onChange={(c) => applyLevel((l) => paintRoomWalls(l, r.id, c))} />
+      <Field label="All walls in this room">
+        <FinishChips label="Room wall finish" value={wallFinish} onChange={(f, c) => applyLevel((l) => paintRoomWalls(l, r.id, f === 'paint' ? wallColor : c, f))} />
+        <Swatches label="Room wall colour" swatches={PAINTS} value={wallColor} onChange={(c) => applyLevel((l) => paintRoomWalls(l, r.id, c, wallFinish ?? 'paint'))} />
       </Field>
       <Field label="Ceiling colour">
         <Swatches label="Ceiling colour" swatches={PAINTS.slice(0, 10)} value={r.ceilingColor} onChange={(c) => upd({ ceilingColor: c })} />
@@ -310,9 +315,38 @@ function OpeningInspector({ o, w, units }: { o: Opening; w: Wall; units: 'imperi
           </button>
         </div>
       )}
+      {(isDoor || o.kind === 'window') && (
+        <Field label={isDoor ? 'Door style' : 'Window style'}>
+          <div className="chip-wrap">
+            {(isDoor
+              ? [
+                  ['panel', 'Panel'],
+                  ['flush', 'Flush'],
+                  ['glass', 'Glass'],
+                  ...(o.kind === 'door' ? [['barn', 'Sliding barn']] : []),
+                ]
+              : [
+                  ['casement', 'Casement'],
+                  ['picture', 'Picture'],
+                  ['grid', 'Grid'],
+                  ['awning', 'Awning'],
+                ]
+            ).map(([v, label]) => (
+              <button key={v} type="button" className={`chip${(o.style ?? (isDoor ? 'panel' : 'casement')) === v ? ' is-on' : ''}`} onClick={() => upd({ style: v as Opening['style'] })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+      )}
       <Field label="Frame colour">
         <Swatches label="Frame colour" swatches={[...PAINTS.slice(0, 8), ...FINISHES.slice(0, 6)]} value={o.frameColor} onChange={(c) => upd({ frameColor: c })} />
       </Field>
+      {isDoor && (
+        <Field label="Door colour">
+          <Swatches label="Door colour" swatches={[...FINISHES.slice(0, 6), ...PAINTS.slice(6, 18)]} value={o.leafColor ?? o.frameColor} onChange={(c) => upd({ leafColor: c })} />
+        </Field>
+      )}
       <div className="btn-row">
         <button type="button" className="btn btn-danger" onClick={deleteSelection}>
           <Icon name="trash" size={16} /> Delete
@@ -428,6 +462,16 @@ function ItemInspector({ item, units }: { item: Item; units: 'imperial' | 'metri
 
 // ---------------------------------------------------------------------------
 
+function exteriorFinish(level: Level) {
+  const s = exteriorSides(level)[0]
+  return s ? (s.side === 'A' ? s.wall.finishA : s.wall.finishB) ?? 'paint' : 'paint'
+}
+
+function exteriorColor(level: Level) {
+  const s = exteriorSides(level)[0]
+  return s ? (s.side === 'A' ? s.wall.colorA : s.wall.colorB) : undefined
+}
+
 function LevelSummary({ level }: { level: Level }) {
   const project = useStore((s) => s.project)
   const units = project.units
@@ -484,10 +528,9 @@ function LevelSummary({ level }: { level: Level }) {
           <Icon name="magic" size={16} /> Find rooms from walls
         </button>
       </div>
-      <Field label="Paint the outside of the house">
-        <Swatches label="Exterior colour" swatches={PAINTS} value={project.defaults.exteriorColor} onChange={(c) => {
-          useStore.getState().apply((p) => ({ ...p, defaults: { ...p.defaults, exteriorColor: c }, levels: p.levels.map((l) => paintExterior(l, c)) }))
-        }} />
+      <Field label="Outside of the house (this floor)">
+        <FinishChips label="Exterior finish" value={exteriorFinish(level)} onChange={(f, c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, f))} />
+        <Swatches label="Exterior colour" swatches={PAINTS} value={exteriorColor(level) ?? project.defaults.exteriorColor} onChange={(c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, exteriorFinish(l)))} />
       </Field>
       <p className="tip">Select anything in the plan or 3D view to edit it here.</p>
     </section>

@@ -1,6 +1,6 @@
 import type { OpeningKind, Project } from './types'
 import { catalogEntry } from './catalog'
-import { floorMaterial, PAINT_PRICE_PER_SQFT, WALL_BUILD_PRICE_PER_SQFT } from './materials'
+import { floorMaterial, PAINT_PRICE_PER_SQFT, WALL_BUILD_PRICE_PER_SQFT, WALL_FINISH_BY_ID } from './materials'
 import { roomArea, wallLength } from './ops'
 import { CM2_PER_FT2 } from './units'
 
@@ -30,16 +30,22 @@ export function budget(p: Project): { lines: BudgetLine[]; total: number; byGrou
       lines.push({ group: 'Flooring', label: `${r.name} · ${fm.name}`, qty: `${Math.round(sqft)} sq ft × $${price}`, cost: sqft * price })
     }
     let wallSqft = 0
+    const finishSqft = new Map<string, number>()
     for (const w of l.walls) {
       const a = (wallLength(w) * w.height) / CM2_PER_FT2
       const holes = l.openings.filter((o) => o.wallId === w.id).reduce((s, o) => s + (o.width * o.height) / CM2_PER_FT2, 0)
-      wallSqft += Math.max(0, a - holes)
+      const net = Math.max(0, a - holes)
+      wallSqft += net
+      for (const f of [w.finishA ?? 'paint', w.finishB ?? 'paint']) finishSqft.set(f, (finishSqft.get(f) ?? 0) + net)
     }
     if (wallSqft > 0) {
       const build = p.prices['wall-build'] ?? WALL_BUILD_PRICE_PER_SQFT
-      const paint = p.prices['paint'] ?? PAINT_PRICE_PER_SQFT
       lines.push({ group: 'Walls & paint', label: `${l.name} · framing & drywall`, qty: `${Math.round(wallSqft)} sq ft × $${build}`, cost: wallSqft * build })
-      lines.push({ group: 'Walls & paint', label: `${l.name} · paint, both sides`, qty: `${Math.round(wallSqft * 2)} sq ft × $${paint}`, cost: wallSqft * 2 * paint })
+      for (const [f, sqft] of finishSqft) {
+        const info = WALL_FINISH_BY_ID[f]
+        const price = p.prices[`finish-${f}`] ?? (f === 'paint' ? PAINT_PRICE_PER_SQFT : info?.pricePerSqFt ?? PAINT_PRICE_PER_SQFT)
+        lines.push({ group: 'Walls & paint', label: `${l.name} · ${info?.name ?? f}`, qty: `${Math.round(sqft)} sq ft × $${price}`, cost: sqft * price })
+      }
     }
     const openingCounts = new Map<OpeningKind, number>()
     for (const o of l.openings) openingCounts.set(o.kind, (openingCounts.get(o.kind) ?? 0) + 1)

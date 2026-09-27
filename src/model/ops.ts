@@ -2,7 +2,7 @@
  * Pure editing operations. Every function takes a Level (or Project) and
  * returns a new one; inputs are never mutated.
  */
-import type { Item, Level, Opening, Room, Vec2, Wall } from './types'
+import type { Item, Level, Opening, Room, Vec2, Wall, WallFinish } from './types'
 import {
   add,
   angleDeg,
@@ -196,7 +196,7 @@ export function roomWallSides(level: Level, room: Room): Array<{ wall: Wall; sid
   return out
 }
 
-export function paintRoomWalls(level: Level, roomId: string, color: string): Level {
+export function paintRoomWalls(level: Level, roomId: string, color: string, finish?: WallFinish): Level {
   const room = level.rooms.find((r) => r.id === roomId)
   if (!room) return level
   const sides = new Map(roomWallSides(level, room).map((s) => [s.wall.id, s.side]))
@@ -205,7 +205,8 @@ export function paintRoomWalls(level: Level, roomId: string, color: string): Lev
     walls: level.walls.map((w) => {
       const s = sides.get(w.id)
       if (!s) return w
-      return s === 'A' ? { ...w, colorA: color } : { ...w, colorB: color }
+      if (s === 'A') return { ...w, colorA: color, ...(finish ? { finishA: finish } : {}) }
+      return { ...w, colorB: color, ...(finish ? { finishB: finish } : {}) }
     }),
   }
 }
@@ -225,7 +226,7 @@ export function exteriorSides(level: Level): Array<{ wall: Wall; side: 'A' | 'B'
   return out
 }
 
-export function paintExterior(level: Level, color: string, thickness?: number): Level {
+export function paintExterior(level: Level, color: string, thickness?: number, finish?: WallFinish): Level {
   const sides = new Map(exteriorSides(level).map((s) => [s.wall.id, s.side]))
   return {
     ...level,
@@ -233,7 +234,8 @@ export function paintExterior(level: Level, color: string, thickness?: number): 
       const s = sides.get(w.id)
       if (!s) return w
       const t = thickness ?? w.thickness
-      return s === 'A' ? { ...w, colorA: color, thickness: t } : { ...w, colorB: color, thickness: t }
+      if (s === 'A') return { ...w, colorA: color, thickness: t, ...(finish ? { finishA: finish } : {}) }
+      return { ...w, colorB: color, thickness: t, ...(finish ? { finishB: finish } : {}) }
     }),
   }
 }

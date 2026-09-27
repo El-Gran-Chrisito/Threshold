@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode } from '../model/types'
+import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode, WallFinish } from '../model/types'
 import { buildTemplate } from '../model/templates'
 import { makeLevel, uid } from '../model/factory'
 import { loadLastProject, saveProject } from './persistence'
@@ -10,6 +10,7 @@ export interface PaintState {
   target: 'wall' | 'floor'
   color: string
   floor: string
+  finish: WallFinish
 }
 
 export interface State {
@@ -81,7 +82,7 @@ export const useStore = create<State>((set, get) => ({
   tool: 'select',
   placeType: null,
   openingKind: 'door',
-  paint: { target: 'wall', color: '#B3BFA6', floor: 'oak' },
+  paint: { target: 'wall', color: '#B3BFA6', floor: 'oak', finish: 'paint' },
   view: 'split',
   showDims: true,
   showGrid: true,

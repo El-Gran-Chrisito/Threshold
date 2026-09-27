@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { floorMaterial } from '../model/materials'
-import { floorTexture } from './textures'
+import { floorTexture, wallTexture } from './textures'
 
 const matCache = new Map<string, THREE.MeshStandardMaterial>()
 
@@ -46,3 +46,41 @@ export const unitBox = new THREE.BoxGeometry(1, 1, 1)
 export const unitCyl = new THREE.CylinderGeometry(0.5, 0.5, 1, 28)
 export const unitSph = new THREE.SphereGeometry(0.5, 24, 16)
 export const unitCone = new THREE.CylinderGeometry(0.28, 0.5, 1, 28, 1, true)
+
+/** Material for one face of a wall. Geometry UVs are in metres. */
+export function wallMat(finish: string | undefined, color: string, highlight = false): THREE.MeshStandardMaterial {
+  if (highlight) return stdMat('#7FC8C1', { rough: 0.9 })
+  if (!finish || finish === 'paint') return stdMat(color, { rough: 0.92 })
+  const key = `wallfin|${finish}|${color}`
+  let m = matCache.get(key)
+  if (!m) {
+    const t = wallTexture(finish, color)
+    if (!t) return stdMat(color, { rough: 0.92 })
+    const tex = t.tex.clone()
+    tex.needsUpdate = true
+    tex.repeat.set(1 / t.sx, 1 / t.sy)
+    m = new THREE.MeshStandardMaterial({ map: tex, roughness: finish === 'tile' ? 0.3 : 0.9 })
+    matCache.set(key, m)
+  }
+  return m
+}
+
+/** Box centred on the origin whose UVs are in metres, offset by (u0, v0) on the long faces. */
+export function worldUVBox(w: number, h: number, d: number, u0: number, v0: number): THREE.BoxGeometry {
+  const g = new THREE.BoxGeometry(w, h, d)
+  const pos = g.attributes.position
+  const nor = g.attributes.normal
+  const uv = g.attributes.uv
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const y = pos.getY(i)
+    const z = pos.getZ(i)
+    const nx = Math.abs(nor.getX(i))
+    const ny = Math.abs(nor.getY(i))
+    if (ny > 0.5) uv.setXY(i, u0 + x + w / 2, z + d / 2)
+    else if (nx > 0.5) uv.setXY(i, z + d / 2, v0 + y + h / 2)
+    else uv.setXY(i, u0 + x + w / 2, v0 + y + h / 2)
+  }
+  uv.needsUpdate = true
+  return g
+}

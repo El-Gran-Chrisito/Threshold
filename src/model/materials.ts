@@ -106,3 +106,25 @@ export const FINISHES: Swatch[] = [
 export const PAINT_PRICE_PER_SQFT = 2.5
 /** Drywall/framing estimate per sq ft of wall (one face). */
 export const WALL_BUILD_PRICE_PER_SQFT = 9
+
+export interface WallFinishInfo {
+  id: import('./types').WallFinish
+  name: string
+  /** Suggested colour when the finish is first chosen. */
+  base: string
+  pricePerSqFt: number
+}
+
+export const WALL_FINISHES: WallFinishInfo[] = [
+  { id: 'paint', name: 'Paint', base: '#F4F2EC', pricePerSqFt: 2.5 },
+  { id: 'wallpaper', name: 'Wallpaper', base: '#D9CFBE', pricePerSqFt: 6 },
+  { id: 'tile', name: 'Subway tile', base: '#F1F0EB', pricePerSqFt: 18 },
+  { id: 'wood', name: 'Wood panel', base: '#B8895E', pricePerSqFt: 14 },
+  { id: 'brick', name: 'Brick', base: '#9C5540', pricePerSqFt: 22 },
+  { id: 'stone', name: 'Stone', base: '#A8A197', pricePerSqFt: 35 },
+  { id: 'siding', name: 'Lap siding', base: '#C9D6DE', pricePerSqFt: 9 },
+  { id: 'shingle', name: 'Cedar shingle', base: '#9A7556', pricePerSqFt: 12 },
+  { id: 'concrete', name: 'Concrete', base: '#B4B2AD', pricePerSqFt: 8 },
+]
+
+export const WALL_FINISH_BY_ID = Object.fromEntries(WALL_FINISHES.map((f) => [f.id, f])) as Record<string, WallFinishInfo>

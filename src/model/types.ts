@@ -15,6 +15,11 @@ export type UnitSystem = 'imperial' | 'metric'
 
 export type ID = string
 
+export type WallFinish = 'paint' | 'brick' | 'stone' | 'siding' | 'shingle' | 'wood' | 'tile' | 'concrete' | 'wallpaper'
+
+export type DoorStyle = 'flush' | 'panel' | 'glass' | 'barn'
+export type WindowStyle = 'casement' | 'picture' | 'grid' | 'awning'
+
 export interface Wall {
   id: ID
   a: Vec2
@@ -25,6 +30,8 @@ export interface Wall {
   colorA: string
   /** Paint on the opposite side. */
   colorB: string
+  finishA?: WallFinish
+  finishB?: WallFinish
 }
 
 export type OpeningKind = 'door' | 'window' | 'opening' | 'slider' | 'double-door' | 'garage'
@@ -43,6 +50,10 @@ export interface Opening {
   hinge: 'start' | 'end'
   swing: 'A' | 'B'
   frameColor: string
+  /** Door leaf or window glazing style. */
+  style?: DoorStyle | WindowStyle
+  /** Door leaf colour (defaults to the frame colour). */
+  leafColor?: string
 }
 
 export interface Room {

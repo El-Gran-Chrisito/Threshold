@@ -4,7 +4,7 @@ import { CATEGORIES, catalogEntry, searchCatalog, type Category } from '../model
 import { FLOORS, PAINTS } from '../model/materials'
 import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
-import { ConfirmButton, Field, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
+import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
 import { Icon } from './Icon'
 import type { Level, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
@@ -90,9 +90,14 @@ export function PaintPanel() {
         ]}
       />
       {paint.target === 'wall' ? (
-        <Field label="Colour" hint="Click a wall side, a whole room, or a piece of furniture (in 3D).">
-          <Swatches label="Paint colour" swatches={PAINTS} value={paint.color} onChange={(c) => set({ color: c })} />
-        </Field>
+        <>
+          <Field label="Finish">
+            <FinishChips label="Wall finish" value={paint.finish} onChange={(f, c) => set({ finish: f, color: f === 'paint' ? paint.color : c })} />
+          </Field>
+          <Field label="Colour" hint="Click a wall side, a whole room, or a piece of furniture (in 3D).">
+            <Swatches label="Paint colour" swatches={PAINTS} value={paint.color} onChange={(c) => set({ color: c })} />
+          </Field>
+        </>
       ) : (
         <Field label="Floor finish" hint="Click any room to apply.">
           <div className="floor-grid" role="radiogroup" aria-label="Floor finish">

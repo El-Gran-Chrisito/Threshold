@@ -9,7 +9,7 @@ import { dist, norm, pointInPolygon, rectCorners, sub } from '../model/geometry'
 import { levelBounds, paintRoomWalls, updateWall } from '../model/ops'
 import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
-import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph } from './materials3d'
+import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
 import { Walker } from './Walker'
 import { explodeState, useExplodeOffset } from './explode'
 import { useFrame as useFrameR3F } from '@react-three/fiber'
@@ -70,7 +70,9 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
   const ang = Math.atan2(d.y, d.x)
   const top = stdMat(cut ? '#3A3F42' : '#D9D6D0')
   const edge = stdMat('#D9D6D0')
-  const mats = [edge, edge, top, edge, stdMat(selected ? '#7FC8C1' : w.colorA, { rough: 0.9 }), stdMat(selected ? '#7FC8C1' : w.colorB, { rough: 0.9 })]
+  const mats = [edge, edge, top, edge, wallMat(w.finishA, w.colorA, selected), wallMat(w.finishB, w.colorB, selected)]
+  const geos = useMemo(() => pieces.map((p) => worldUVBox((p.x1 - p.x0) * M, (p.y1 - p.y0) * M, w.thickness * M, p.x0 * M, p.y0 * M)), [JSON.stringify(pieces), w.thickness])
+  useEffect(() => () => geos.forEach((g) => g.dispose()), [geos])
   const mx = (w.a.x + w.b.x) / 2 - center.x
   const my = (w.a.y + w.b.y) / 2 - center.y
   return (
@@ -79,10 +81,9 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
       {pieces.map((p, i) => (
         <mesh
           key={i}
-          geometry={unitBox}
+          geometry={geos[i]}
           material={mats}
           position={[((p.x0 + p.x1) / 2) * M, ((p.y0 + p.y1) / 2) * M, 0]}
-          scale={[(p.x1 - p.x0) * M, (p.y1 - p.y0) * M, w.thickness * M]}
           castShadow
           receiveShadow
           userData={{ hit: `wall:${w.id}` }}
@@ -123,9 +124,25 @@ function OpeningMesh({ o, w, cut }: { o: Opening; w: Wall; cut: number | null })
     box('t', s0, s1, y1 - ft, y1, -fd / 2, fd / 2, frame)
     box('b', s0, s1, y0, y0 + ft, -fd / 2, fd / 2, frame)
     if (o.kind === 'window') {
+      const style = o.style ?? 'casement'
       box('g', s0 + ft, s1 - ft, y0 + ft, y1 - ft, -0.6, 0.6, glass)
-      if (o.width > 100) box('m', o.offset - 2, o.offset + 2, y0 + ft, y1 - ft, -2, 2, frame)
-      if (o.height > 100) box('h', s0 + ft, s1 - ft, y0 + o.height * 0.55 - 2, y0 + o.height * 0.55 + 2, -2, 2, frame)
+      if (style === 'casement') {
+        if (o.width > 100) box('m', o.offset - 2, o.offset + 2, y0 + ft, y1 - ft, -2, 2, frame)
+        if (o.height > 100) box('h', s0 + ft, s1 - ft, y0 + o.height * 0.55 - 2, y0 + o.height * 0.55 + 2, -2, 2, frame)
+      } else if (style === 'awning') {
+        box('h', s0 + ft, s1 - ft, y0 + o.height * 0.68 - 2.5, y0 + o.height * 0.68 + 2.5, -2.5, 2.5, frame)
+      } else if (style === 'grid') {
+        const cols = Math.max(2, Math.round(o.width / 30))
+        const rows = Math.max(2, Math.round(o.height / 30))
+        for (let c = 1; c < cols; c++) {
+          const x = s0 + ft + ((o.width - 2 * ft) * c) / cols
+          box(`gc${c}`, x - 1.2, x + 1.2, y0 + ft, y1 - ft, -1.5, 1.5, frame)
+        }
+        for (let r = 1; r < rows; r++) {
+          const y = y0 + ft + ((o.height - 2 * ft) * r) / rows
+          box(`gr${r}`, s0 + ft, s1 - ft, y - 1.2, y + 1.2, -1.5, 1.5, frame)
+        }
+      }
       box('sill', s0 - 4, s1 + 4, y0 - 3, y0, -t / 2 - 5, -t / 2 + 2, frame)
     } else {
       const mid = o.offset
@@ -137,8 +154,19 @@ function OpeningMesh({ o, w, cut }: { o: Opening; w: Wall; cut: number | null })
     box('l', s0, s0 + 3, 0, y1, -t / 2 - 1, t / 2 + 1, frame)
     box('r', s1 - 3, s1, 0, y1, -t / 2 - 1, t / 2 + 1, frame)
     box('t', s0, s1, y1 - 3, y1, -t / 2 - 1, t / 2 + 1, frame)
-    const leafMat = stdMat(o.frameColor, { rough: 0.55 })
+    const leafMat = stdMat(o.leafColor ?? o.frameColor, { rough: 0.55 })
+    const style = o.style ?? 'panel'
     const openAng = (65 * Math.PI) / 180
+    if (style === 'barn' && o.kind === 'door') {
+      // Sliding barn door: leaf hangs on the wall face beside the opening, on a rail.
+      const zf = sideSign * (t / 2 + 3)
+      const lw = o.width + 10
+      const xs = o.hinge === 'start' ? s0 - lw + 12 : s1 - 12
+      box('rail', Math.min(xs, s0) - 5, Math.max(xs + lw, s1) + 5, y1 + 4, y1 + 8, zf - 1.5, zf + 1.5, stdMat('#2A2B2D', { metal: 0.7 }))
+      box('leaf', xs, xs + lw, 1, y1 + 4, zf - 2, zf + 2, leafMat)
+      box('brace1', xs + 6, xs + lw - 6, y1 * 0.5 - 4, y1 * 0.5 + 4, zf + sideSign * 2, zf + sideSign * 3.2, leafMat)
+      return <>{parts}</>
+    }
     const leaves: Array<{ hingeX: number; width: number; dir: 1 | -1 }> =
       o.kind === 'door' ? [o.hinge === 'start' ? { hingeX: s0 + 3, width: o.width - 6, dir: 1 } : { hingeX: s1 - 3, width: o.width - 6, dir: -1 }] : [
             { hingeX: s0 + 3, width: o.width / 2 - 3, dir: 1 },
@@ -151,6 +179,22 @@ function OpeningMesh({ o, w, cut }: { o: Opening; w: Wall; cut: number | null })
       parts.push(
         <group key={`leaf${i}`} position={[lf.hingeX * M, 0, ((sideSign * t) / 2) * M]} rotation={[0, phi, 0]}>
           <mesh geometry={unitBox} material={leafMat} position={[((lf.dir * lf.width) / 2) * M, (hLeaf / 2) * M, sideSign * -2 * M]} scale={[lf.width * M, hLeaf * M, 4 * M]} castShadow userData={{ hit: `opening:${o.id}` }} />
+          {style === 'panel' &&
+            [0.28, 0.72].flatMap((fy) =>
+              [-1, 1].map((face) => (
+                <mesh
+                  key={`${fy}${face}`}
+                  geometry={unitBox}
+                  material={leafMat}
+                  position={[((lf.dir * lf.width) / 2) * M, hLeaf * fy * M, (sideSign * -2 + face * 2.3) * M]}
+                  scale={[lf.width * 0.7 * M, hLeaf * 0.34 * M, 1 * M]}
+                  userData={{ hit: `opening:${o.id}` }}
+                />
+              )),
+            )}
+          {style === 'glass' && (
+            <mesh geometry={unitBox} material={glass} position={[((lf.dir * lf.width) / 2) * M, hLeaf * 0.55 * M, sideSign * -2 * M]} scale={[lf.width * 0.72 * M, hLeaf * 0.7 * M, 4.4 * M]} userData={{ hit: `opening:${o.id}` }} />
+          )}
           {hLeaf > 100 && (
             <mesh geometry={unitSph} material={stdMat('#B89457', { metal: 0.8, rough: 0.3 })} position={[lf.dir * (lf.width - 7) * M, 100 * M, sideSign * 1 * M]} scale={[0.05, 0.05, 0.05]} />
           )}
@@ -524,16 +568,16 @@ export function Scene3D({ walk }: { walk: boolean }) {
     }
     if (owner.id !== s.levelId) useStore.setState({ levelId: owner.id })
     if (s.tool === 'paint') {
-      const { target, color, floor } = s.paint
+      const { target, color, floor, finish } = s.paint
       if (kind === 'wall') {
         const n = e.face?.normal
         if (!n || Math.abs(n.z) < 0.5) return
         const side = n.z > 0 ? 'A' : 'B'
-        s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? updateWall(l, id, side === 'A' ? { colorA: color } : { colorB: color }) : l)) }))
+        s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? updateWall(l, id, side === 'A' ? { colorA: color, finishA: finish } : { colorB: color, finishB: finish }) : l)) }))
         s.notify('Wall side painted')
       } else if (kind === 'room') {
         if (target === 'floor') s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? { ...l, rooms: l.rooms.map((r) => (r.id === id ? { ...r, floor, floorColor: undefined } : r)) } : l)) }))
-        else s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? paintRoomWalls(l, id, color) : l)) }))
+        else s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? paintRoomWalls(l, id, color, finish) : l)) }))
         s.notify(target === 'floor' ? 'Floor changed' : 'Room walls painted')
       } else if (kind === 'item') {
         s.apply((p) => ({ ...p, levels: p.levels.map((l) => (l.id === owner.id ? { ...l, items: l.items.map((i) => (i.id === id ? { ...i, color } : i)) } : l)) }))

@@ -1674,3 +1674,40 @@ kbd {
     grid-template-rows: repeat(2, 44px);
   }
 }
+
+.finish-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.finish-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex: none;
+}
+
+.fin-brick,
+.fin-tile {
+  background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.7) 1px, transparent 1px) !important;
+  background-size: 100% 4px !important;
+}
+
+.fin-siding,
+.fin-shingle {
+  background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.35) 1px, transparent 1px) !important;
+  background-size: 100% 4px !important;
+}
+
+.fin-wood {
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.3) 1px, transparent 1px) !important;
+  background-size: 4px 100% !important;
+}
+
+.field-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
-import type { UnitSystem } from '../model/types'
+import type { UnitSystem, WallFinish } from '../model/types'
 import { formatLength, parseLength } from '../model/units'
-import type { Swatch } from '../model/materials'
+import { WALL_FINISHES, type Swatch } from '../model/materials'
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
@@ -169,5 +169,20 @@ export function ConfirmButton({ onConfirm, children, confirmText = 'Click again 
     >
       {armed ? confirmText : children}
     </button>
+  )
+}
+
+/** Wall finish chips. Picking a finish also suggests that finish's typical colour. */
+export function FinishChips({ value, onChange, label }: { value: WallFinish | undefined; onChange: (f: WallFinish, suggested: string) => void; label: string }) {
+  const v = value ?? 'paint'
+  return (
+    <div className="chip-wrap" role="radiogroup" aria-label={label}>
+      {WALL_FINISHES.map((f) => (
+        <button key={f.id} type="button" role="radio" aria-checked={v === f.id} className={`chip finish-chip${v === f.id ? ' is-on' : ''}`} onClick={() => onChange(f.id, f.base)}>
+          <span className={`finish-dot fin-${f.id}`} style={{ background: f.base }} aria-hidden />
+          {f.name}
+        </button>
+      ))}
+    </div>
   )
 }

@@ -517,13 +517,13 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
 
   const doPaint = (p: Vec2, hit: string | null) => {
     const s = useStore.getState()
-    const { target, color, floor } = s.paint
+    const { target, color, floor, finish } = s.paint
     if (hit?.startsWith('wall:')) {
       const id = hit.split(':')[1]
       const w = level.walls.find((x) => x.id === id)
       if (!w) return
       const side = sideOf(p, w.a, w.b) >= 0 ? 'A' : 'B'
-      s.applyLevel((l) => updateWall(l, id, side === 'A' ? { colorA: color } : { colorB: color }))
+      s.applyLevel((l) => updateWall(l, id, side === 'A' ? { colorA: color, finishA: finish } : { colorB: color, finishB: finish }))
       s.notify('Wall side painted')
       return
     }
@@ -533,7 +533,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       s.applyLevel((l) => ({ ...l, rooms: l.rooms.map((r) => (r.id === room.id ? { ...r, floor, floorColor: undefined } : r)) }))
       s.notify(`Floor changed in ${room.name}`)
     } else {
-      s.applyLevel((l) => paintRoomWalls(l, room.id, color))
+      s.applyLevel((l) => paintRoomWalls(l, room.id, color, finish))
       s.notify(`Walls painted in ${room.name}`)
     }
   }

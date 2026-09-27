@@ -2,7 +2,7 @@
  * Starter homes. Built with the same operations the editor uses, so every
  * template is fully editable. Coordinates below are feet; converted to cm.
  */
-import type { Item, Level, OpeningKind, Project, Room, Vec2 } from './types'
+import type { Item, Level, OpeningKind, Project, Room, Vec2, WallFinish } from './types'
 import { CM_PER_FT } from './units'
 import { addRoom, clampOpening, findWallAt, paintExterior, paintRoomWalls, wallLength } from './ops'
 import { makeItem, makeLevel, makeOpening, makeProject } from './factory'
@@ -104,8 +104,14 @@ class Builder {
     return this
   }
 
-  exterior(color: string, thickness = 20): this {
-    this.level = paintExterior(this.level, color, thickness)
+  exterior(color: string, thickness = 20, finish?: WallFinish): this {
+    this.level = paintExterior(this.level, color, thickness, finish)
+    return this
+  }
+
+  finish(roomName: string, color: string, finish: WallFinish): this {
+    const room = this.level.rooms.find((r) => r.name === roomName)
+    if (room) this.level = paintRoomWalls(this.level, room.id, color, finish)
     return this
   }
 }
@@ -122,9 +128,9 @@ function studio(): Project {
   b.room('Bath', 0, 0, 8, 10, 'hex')
     .room('Kitchen', 0, 10, 8, 22, 'tile-grey')
     .room('Living', 8, 0, 30, 22, 'oak')
-    .exterior('#E4DFD6')
+    .exterior('#B4B2AD', 20, 'concrete')
     .paint('Living', '#EDE6D8')
-    .paint('Bath', '#C9D6DE')
+    .finish('Bath', '#F1F0EB', 'tile')
     .opening('door', 4, 22, { hinge: 'end' })
     .opening('door', 8, 5, { swing: 'B' })
     .opening('opening', 8, 16, { width: 8 })
@@ -174,10 +180,11 @@ function familyHome(): Project {
     .room('Den', 20, 18, 36, 32, 'carpet-oat')
     .room('Mudroom', 36, 18, 44, 32, 'tile-grey')
     .room('Garage', 44, 6, 68, 32, 'concrete')
-    .exterior('#CFC8BB')
+    .exterior('#9C5540', 20, 'brick')
     .paint('Living room', '#EDE6D8')
     .paint('Den', '#B3BFA6')
     .paint('Powder room', '#27394F')
+    .finish('Den', '#8A6444', 'wood')
     .paint('Garage', '#E4E1DA')
     // Openings
     .opening('double-door', 9, 32)
@@ -270,7 +277,9 @@ function familyHome(): Project {
     .room('Bath', 14, 22, 22, 32, 'hex')
     .room('Office', 22, 22, 30, 32, 'oak')
     .room('Bedroom 3', 30, 16, 44, 32, 'carpet-oat')
-    .exterior('#CFC8BB')
+    .exterior('#DCE3E6', 20, 'siding')
+    .finish('Primary bath', '#F1F0EB', 'tile')
+    .finish('Bath', '#C9D6DE', 'tile')
     .paint('Primary bedroom', '#C9D6DE')
     .paint('Bedroom 2', '#E9D2C9')
     .paint('Bedroom 3', '#F1E3A9')
