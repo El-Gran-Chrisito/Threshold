@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { activeLevel, useStore } from './store/store'
+import { activeLevel, selectedItemIds, useStore } from './store/store'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
-import { Inspector, deleteSelection, duplicateItem } from './ui/Inspector'
+import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/Inspector'
 import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from './ui/Panels'
 import { Icon } from './ui/Icon'
 import { AssistantPanel } from './assistant/AssistantPanel'
@@ -413,6 +413,8 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
     ['T', 'Text label'],
     ['Q / E', 'Rotate selected item 15° (Shift: 90°)'],
     ['Arrows', 'Nudge selected item (Shift: further)'],
+    ['Shift+click / Shift+drag', 'Select several pieces of furniture'],
+    ['Ctrl+A', 'Select all furniture on this floor'],
     ['Ctrl+D', 'Duplicate'],
     ['Ctrl+C / Ctrl+V', 'Copy / paste furniture'],
     ['Delete', 'Delete selected'],
@@ -487,42 +489,50 @@ function useShortcuts(toggleHelp: () => void) {
       }
       const sel = s.selection
       const level = activeLevel(s)
-      const item = sel?.kind === 'item' ? level.items.find((i) => i.id === sel.id) : undefined
-      if (mod && key === 'd' && item) {
+      const ids = selectedItemIds(s)
+      const items = level.items.filter((i) => ids.includes(i.id))
+      if (mod && key === 'd' && items.length) {
         e.preventDefault()
-        duplicateItem(item)
+        duplicateItems(items)
         return
       }
-      if (mod && key === 'c' && item) {
-        useStore.setState({ clipboard: item })
-        s.notify('Copied')
+      if (mod && key === 'a' && s.tool === 'select') {
+        e.preventDefault()
+        const all = level.items.map((i) => i.id)
+        if (all.length) useStore.setState({ selection: { kind: 'item', id: all[0] }, multi: all.length > 1 ? all : [], panel: 'inspector' })
         return
       }
-      if (mod && key === 'v' && s.clipboard) {
-        const c = { ...s.clipboard, id: uid('i'), x: s.clipboard.x + 40, y: s.clipboard.y + 40 }
-        s.applyLevel((l) => ({ ...l, items: [...l.items, c] }))
-        s.select({ kind: 'item', id: c.id })
-        useStore.setState({ clipboard: c })
+      if (mod && key === 'c' && items.length) {
+        useStore.setState({ clipboard: items })
+        s.notify(items.length > 1 ? `Copied ${items.length} items` : 'Copied')
+        return
+      }
+      if (mod && key === 'v' && s.clipboard?.length) {
+        const copies = s.clipboard.map((c) => ({ ...c, id: uid('i'), x: c.x + 40, y: c.y + 40, locked: false }))
+        s.applyLevel((l) => ({ ...l, items: [...l.items, ...copies] }))
+        if (copies.length === 1) s.select({ kind: 'item', id: copies[0].id })
+        else useStore.setState({ selection: { kind: 'item', id: copies[0].id }, multi: copies.map((c) => c.id) })
+        useStore.setState({ clipboard: copies })
         return
       }
       if (mod) return
-      if ((key === 'delete' || key === 'backspace') && sel) {
+      if ((key === 'delete' || key === 'backspace') && (sel || ids.length)) {
         e.preventDefault()
-        deleteSelection()
+        if (ids.length > 1) deleteItems(ids)
+        else deleteSelection()
         return
       }
-      if (item && (key === 'q' || key === 'e')) {
-        const step = e.shiftKey ? 90 : 15
-        const rot = (item.rotation + (key === 'e' ? step : -step) + 360) % 360
-        s.applyLevel((l) => ({ ...l, items: l.items.map((i) => (i.id === item.id ? { ...i, rotation: rot } : i)) }))
+      if (items.length && (key === 'q' || key === 'e')) {
+        const step = (e.shiftKey ? 90 : 15) * (key === 'e' ? 1 : -1)
+        s.applyLevel((l) => ({ ...l, items: l.items.map((i) => (ids.includes(i.id) ? { ...i, rotation: (i.rotation + step + 360) % 360 } : i)) }))
         return
       }
-      if (item && key.startsWith('arrow') && s.view !== 'walk') {
+      if (items.length && key.startsWith('arrow') && s.view !== 'walk') {
         e.preventDefault()
         const d = e.shiftKey ? 30 : 2.54
         const dx = key === 'arrowleft' ? -d : key === 'arrowright' ? d : 0
         const dy = key === 'arrowup' ? -d : key === 'arrowdown' ? d : 0
-        s.applyLevel((l) => ({ ...l, items: l.items.map((i) => (i.id === item.id ? { ...i, x: i.x + dx, y: i.y + dy } : i)) }))
+        s.applyLevel((l) => ({ ...l, items: l.items.map((i) => (ids.includes(i.id) && !i.locked ? { ...i, x: i.x + dx, y: i.y + dy } : i)) }))
         return
       }
       const toolKeys: Record<string, Tool> = { v: 'select', r: 'room', o: 'polyroom', w: 'wall', d: 'door', n: 'window', f: 'item', p: 'paint', m: 'measure', t: 'label' }

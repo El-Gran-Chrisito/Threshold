@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Item, Level, Opening, Vec2 } from '../model/types'
-import { activeLevel, useStore } from '../store/store'
+import { activeLevel, selectedItemIds, useStore } from '../store/store'
 import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, rotate, scale, sideOf, snapToGrid, sub } from '../model/geometry'
 import {
   addRoom,
@@ -34,6 +34,8 @@ interface Camera {
 type Drag =
   | { kind: 'pan'; sx: number; sy: number; cam: Camera; moved: boolean; click?: () => void }
   | { kind: 'item'; id: string; start: Vec2; orig: Item; moved: boolean }
+  | { kind: 'group'; start: Vec2; origs: Item[]; moved: boolean }
+  | { kind: 'marquee'; start: Vec2 }
   | { kind: 'item-rot'; id: string; orig: Item }
   | { kind: 'item-size'; id: string; axis: 'w' | 'd'; sign: number; orig: Item }
   | { kind: 'wall'; id: string; start: Vec2; moved: boolean }
@@ -87,6 +89,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const [rawHover, setRawHover] = useState<Vec2 | null>(null)
   const [draft, setDraft] = useState<Draft>(null)
   const [measure, setMeasure] = useState<{ a: Vec2; b: Vec2 } | null>(null)
+  const [marquee, setMarquee] = useState<{ a: Vec2; b: Vec2 } | null>(null)
+  const marqueeRef = useRef<{ a: Vec2; b: Vec2 } | null>(null)
+  marqueeRef.current = marquee
+  const multi = useStore((s) => s.multi)
   const [lengthInput, setLengthInput] = useState<string | null>(null)
   const [altKey, setAltKey] = useState(false)
   const drag = useRef<Drag | null>(null)
@@ -342,8 +348,27 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
           }
           return
         }
+        if (e.shiftKey && !hit?.startsWith('item:')) {
+          drag.current = { kind: 'marquee', start: p }
+          setMarquee({ a: p, b: p })
+          return
+        }
         if (hit) {
           const [kind, id] = hit.split(':') as [string, string]
+          if (kind === 'item' && e.shiftKey) {
+            // Shift-click toggles furniture in the multi-selection.
+            const current = selectedItemIds(s)
+            const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+            if (next.length === 0) s.select(null)
+            else if (next.length === 1) s.select({ kind: 'item', id: next[0] })
+            else useStore.setState({ selection: { kind: 'item', id: next[next.length - 1] }, multi: next, panel: 'inspector' })
+            return
+          }
+          if (kind === 'item' && s.multi.length > 1 && s.multi.includes(id)) {
+            s.begin()
+            drag.current = { kind: 'group', start: p, origs: level.items.filter((i) => s.multi.includes(i.id) && !i.locked), moved: false }
+            return
+          }
           if (kind === 'item') {
             const it = level.items.find((x) => x.id === id)!
             s.select({ kind: 'item', id })
@@ -598,6 +623,19 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         s.previewLevel((base) => ({ ...base, items: base.items.map((i) => (i.id === dr.id ? { ...i, x: pos.x, y: pos.y, rotation: rot } : i)) }))
         return
       }
+      case 'group': {
+        let delta = sub(p, dr.start)
+        if (!dr.moved && Math.hypot(delta.x, delta.y) * scaleNow < 3) return
+        dr.moved = true
+        if (s.snap) delta = snapToGrid(delta, grid / 2)
+        const byId = new Map(dr.origs.map((i) => [i.id, i]))
+        s.previewLevel((base) => ({ ...base, items: base.items.map((i) => (byId.has(i.id) ? { ...i, x: byId.get(i.id)!.x + delta.x, y: byId.get(i.id)!.y + delta.y } : i)) }))
+        return
+      }
+      case 'marquee': {
+        setMarquee({ a: dr.start, b: p })
+        return
+      }
       case 'item-rot': {
         let ang = angleDeg(dr.orig, p) + 90
         if (!e.altKey) ang = Math.round(ang / 15) * 15
@@ -739,6 +777,20 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         return
       case 'measure':
         return
+      case 'marquee': {
+        const m = marqueeRef.current
+        setMarquee(null)
+        if (!m) return
+        const x0 = Math.min(m.a.x, m.b.x)
+        const x1 = Math.max(m.a.x, m.b.x)
+        const y0 = Math.min(m.a.y, m.b.y)
+        const y1 = Math.max(m.a.y, m.b.y)
+        const ids = level.items.filter((i) => i.x >= x0 && i.x <= x1 && i.y >= y0 && i.y <= y1).map((i) => i.id)
+        const merged = [...new Set([...selectedItemIds(s), ...ids])]
+        if (merged.length === 1) s.select({ kind: 'item', id: merged[0] })
+        else if (merged.length > 1) useStore.setState({ selection: { kind: 'item', id: merged[merged.length - 1] }, multi: merged, panel: 'inspector' })
+        return
+      }
       case 'vertex':
         setHover(null)
         s.commit()
@@ -833,7 +885,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
         {showDims && !minimap && <WallDims level={level} px={px} units={units} />}
-        {tool === 'select' && !minimap && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
+        {tool === 'select' && !minimap && multi.length < 2 && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
         {minimap && walker && <WalkerMarker x={walker.x} y={walker.y} yaw={walker.yaw} px={px} />}
 
         {/* Tool previews */}
@@ -864,6 +916,23 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
             <DimLine a={{ x: Math.max(draft.start.x, hover.p.x), y: Math.min(draft.start.y, hover.p.y) }} b={{ x: Math.max(draft.start.x, hover.p.x), y: Math.max(draft.start.y, hover.p.y) }} px={px} units={units} offset={-18 * px} />
           </g>
         )}
+        {multi.length > 1 &&
+          level.items
+            .filter((i) => multi.includes(i.id))
+            .map((i) => (
+              <rect
+                key={`m${i.id}`}
+                x={-i.width / 2 - 3 * px}
+                y={-i.depth / 2 - 3 * px}
+                width={i.width + 6 * px}
+                height={i.depth + 6 * px}
+                transform={`translate(${i.x} ${i.y}) rotate(${i.rotation})`}
+                className="sel-box"
+                strokeWidth={px * 1.5}
+                pointerEvents="none"
+              />
+            ))}
+        {marquee && <path d={polyPath(rectPoints(marquee.a, marquee.b))} className="marquee" strokeWidth={px} pointerEvents="none" />}
         {measure && dist(measure.a, measure.b) > 1 && (
           <g pointerEvents="none" className="measure">
             <DimLine a={measure.a} b={measure.b} px={px} units={units} />
@@ -944,7 +1013,7 @@ function ToolHint({ drawing }: { drawing: Draft }) {
   let text = ''
   switch (tool) {
     case 'select':
-      text = 'Click to select · drag to move · drag empty space to pan · scroll to zoom'
+      text = 'Click to select · Shift+click or Shift+drag to pick several · drag empty space to pan · scroll to zoom'
       break
     case 'wall':
       text = drawing ? 'Click to add corners · type a number for exact length · double-click or Enter to finish' : 'Click to start a wall'

@@ -33,7 +33,9 @@ export function Inspector() {
   const selection = useStore((s) => s.selection)
   const level = activeLevel({ project, levelId })
   const units = project.units
+  const multi = useStore((s) => s.multi)
 
+  if (multi.length > 1) return <MultiInspector ids={multi} />
   if (!selection) return <LevelSummary level={level} />
   switch (selection.kind) {
     case 'wall': {
@@ -362,10 +364,97 @@ function OpeningInspector({ o, w, units }: { o: Opening; w: Wall; units: 'imperi
 // ---------------------------------------------------------------------------
 
 export function duplicateItem(item: Item) {
+  duplicateItems([item])
+}
+
+export function duplicateItems(items: Item[]) {
   const s = useStore.getState()
-  const copy: Item = { ...item, id: uid('i'), x: item.x + 30, y: item.y + 30, locked: false }
-  s.applyLevel((l) => ({ ...l, items: [...l.items, copy] }))
-  s.select({ kind: 'item', id: copy.id })
+  const copies: Item[] = items.map((item) => ({ ...item, id: uid('i'), x: item.x + 30, y: item.y + 30, locked: false }))
+  s.applyLevel((l) => ({ ...l, items: [...l.items, ...copies] }))
+  if (copies.length === 1) s.select({ kind: 'item', id: copies[0].id })
+  else useStore.setState({ selection: { kind: 'item', id: copies[0].id }, multi: copies.map((c) => c.id) })
+}
+
+export function deleteItems(ids: string[]) {
+  const s = useStore.getState()
+  s.applyLevel((l) => ({ ...l, items: l.items.filter((i) => !ids.includes(i.id)) }))
+  s.select(null)
+  s.notify(`Deleted ${ids.length} items`)
+}
+
+type Align = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom' | 'hspace' | 'vspace'
+
+function alignItems(ids: string[], how: Align) {
+  useStore.getState().applyLevel((l) => {
+    const sel = l.items.filter((i) => ids.includes(i.id))
+    if (sel.length < 2) return l
+    const minX = Math.min(...sel.map((i) => i.x))
+    const maxX = Math.max(...sel.map((i) => i.x))
+    const minY = Math.min(...sel.map((i) => i.y))
+    const maxY = Math.max(...sel.map((i) => i.y))
+    const pos = new Map<string, { x: number; y: number }>()
+    if (how === 'hspace' || how === 'vspace') {
+      const key = how === 'hspace' ? 'x' : 'y'
+      const sorted = [...sel].sort((a, b) => a[key] - b[key])
+      const lo = sorted[0][key]
+      const step = (sorted[sorted.length - 1][key] - lo) / (sorted.length - 1)
+      sorted.forEach((i, k) => pos.set(i.id, key === 'x' ? { x: lo + k * step, y: i.y } : { x: i.x, y: lo + k * step }))
+    } else {
+      for (const i of sel) {
+        const x = how === 'left' ? minX : how === 'right' ? maxX : how === 'hcenter' ? (minX + maxX) / 2 : i.x
+        const y = how === 'top' ? minY : how === 'bottom' ? maxY : how === 'vcenter' ? (minY + maxY) / 2 : i.y
+        pos.set(i.id, { x, y })
+      }
+    }
+    return { ...l, items: l.items.map((i) => (pos.has(i.id) && !i.locked ? { ...i, ...pos.get(i.id)! } : i)) }
+  })
+}
+
+function MultiInspector({ ids }: { ids: string[] }) {
+  const level = useStore((s) => activeLevel(s))
+  const items = level.items.filter((i) => ids.includes(i.id))
+  const prices = useStore((s) => s.project.prices)
+  const total = items.reduce((sum, i) => sum + (prices[i.type] ?? catalogEntry(i.type).price), 0)
+  const recolor = (patch: Partial<Item>) => applyLevel((l) => ({ ...l, items: l.items.map((i) => (ids.includes(i.id) ? { ...i, ...patch } : i)) }))
+  const btn = (how: Align, label: string) => (
+    <button type="button" className="btn" onClick={() => alignItems(ids, how)}>
+      {label}
+    </button>
+  )
+  return (
+    <section className="inspector">
+      <InspectorHead kind="Several items" title={`${items.length} items selected`} />
+      <p className="muted">{items.map((i) => i.name || catalogEntry(i.type).name).join(', ')}</p>
+      <Field label="Line up">
+        <div className="btn-row">
+          {btn('left', 'Left edges')}
+          {btn('hcenter', 'Centres ↔')}
+          {btn('right', 'Right edges')}
+          {btn('top', 'Tops')}
+          {btn('vcenter', 'Centres ↕')}
+          {btn('bottom', 'Bottoms')}
+        </div>
+      </Field>
+      <Field label="Space evenly">
+        <div className="btn-row">
+          {btn('hspace', 'Left to right')}
+          {btn('vspace', 'Top to bottom')}
+        </div>
+      </Field>
+      <Field label="Main colour for all">
+        <Swatches label="Main colour for all" swatches={[...FINISHES, ...PAINTS.slice(8)]} value={items[0]?.color ?? '#ffffff'} onChange={(c) => recolor({ color: c })} />
+      </Field>
+      <div className="btn-row">
+        <button type="button" className="btn" onClick={() => duplicateItems(items)}>
+          <Icon name="copy" size={16} /> Duplicate all
+        </button>
+        <button type="button" className="btn btn-danger" onClick={() => deleteItems(ids)}>
+          <Icon name="trash" size={16} /> Delete all
+        </button>
+      </div>
+      <p className="tip">Drag any selected item to move them together. Q / E rotate each one. Combined estimate: {formatMoney(total)}.</p>
+    </section>
+  )
 }
 
 function ItemInspector({ item, units }: { item: Item; units: 'imperial' | 'metric' }) {

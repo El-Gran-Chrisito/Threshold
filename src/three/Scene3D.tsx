@@ -410,7 +410,7 @@ function stairHoles(project: Project, level: Level): Vec2[][] {
   return below.items.filter((i) => catalogEntry(i.type).shape === 'stairs').map((i) => rectCorners(i, i.width + 4, i.depth + 4, i.rotation))
 }
 
-const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number }) {
+const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index, multi }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number; multi: string[] }) {
   const joints = useMemo(() => jointKeys(level), [level])
   const holes = useMemo(() => stairHoles(project, level), [project, level])
   const center = useMemo(() => {
@@ -429,7 +429,7 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
         const c = catalogEntry(i.type)
         if (cut && c.mount === 'ceiling') return null
         if (cut && c.mount === 'wall' && i.elevation > cut) return null
-        return <ItemMesh key={i.id} item={i} selected={active && selectionId === i.id} center={center} />
+        return <ItemMesh key={i.id} item={i} selected={active && (selectionId === i.id || multi.includes(i.id))} center={center} />
       })}
       {showRoof && !cut && (
         <Exploding offset={[0, 3.2, 0]}>
@@ -532,6 +532,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const project = useStore((s) => s.project)
   const levelId = useStore((s) => s.levelId)
   const selection = useStore((s) => s.selection)
+  const multi = useStore((s) => s.multi)
   const cutaway = useStore((s) => s.cutaway)
   const showRoof = useStore((s) => s.showRoof)
   const wallCut = useStore((s) => s.wallCut)
@@ -636,6 +637,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
             selectionId={selection?.id ?? null}
             active={l.id === levelId}
             index={visible.indexOf(l)}
+            multi={multi}
           />
         ))}
         </DraggableHome>

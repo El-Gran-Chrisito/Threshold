@@ -45,7 +45,9 @@ export interface State {
   past: Project[]
   future: Project[]
   txBase: Project | null
-  clipboard: Item | null
+  clipboard: Item[] | null
+  /** Extra selected furniture (multi-select). Empty for a single selection. */
+  multi: string[]
   zoomRequest: number
 
   // History-aware mutation
@@ -109,6 +111,7 @@ export const useStore = create<State>((set, get) => ({
   future: [],
   txBase: null,
   clipboard: null,
+  multi: [],
   zoomRequest: 0,
 
   apply: (fn) => {
@@ -166,7 +169,7 @@ export const useStore = create<State>((set, get) => ({
     set({ project: p, levelId: p.levels[0].id, selection: null, past: [], future: [], txBase: null, zoomRequest: get().zoomRequest + 1 })
   },
 
-  select: (selection) => set({ selection, panel: selection ? 'inspector' : get().panel }),
+  select: (selection) => set({ selection, multi: [], panel: selection ? 'inspector' : get().panel }),
   setTool: (tool) => {
     get().cancel()
     set({ tool, selection: tool === 'select' ? get().selection : null, placeType: tool === 'item' ? get().placeType : null })
@@ -256,4 +259,10 @@ export function addLevelBelow() {
   s.apply((p) => ({ ...p, levels: [lvl, ...p.levels] }))
   useStore.setState({ levelId: lvl.id, selection: null })
   s.notify(`Added ${lvl.name}`)
+}
+
+/** Ids of all selected furniture (multi-select or the single selected item). */
+export function selectedItemIds(s: Pick<State, 'multi' | 'selection'>): string[] {
+  if (s.multi.length) return s.multi
+  return s.selection?.kind === 'item' ? [s.selection.id] : []
 }
