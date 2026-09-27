@@ -975,8 +975,38 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
           <span className="length-hint">Enter to place</span>
         </form>
       )}
+      {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
       {!minimap && <ToolHint drawing={draft} />}
+    </div>
+  )
+}
+
+const THICKNESSES: Array<{ cm: number; label: string; metric: string }> = [
+  { cm: 10, label: 'Thin 4″', metric: 'Thin 10 cm' },
+  { cm: 12, label: 'Interior 4½″', metric: 'Interior 12 cm' },
+  { cm: 20, label: 'Exterior 8″', metric: 'Exterior 20 cm' },
+  { cm: 30, label: 'Thick 12″', metric: 'Thick 30 cm' },
+]
+
+function WallOptions() {
+  const thickness = useStore((s) => s.project.defaults.wallThickness)
+  const units = useStore((s) => s.project.units)
+  return (
+    <div className="tool-options" role="radiogroup" aria-label="New wall thickness">
+      <span>New walls</span>
+      {THICKNESSES.map((t) => (
+        <button
+          key={t.cm}
+          type="button"
+          role="radio"
+          aria-checked={Math.abs(thickness - t.cm) < 0.5}
+          className={`chip${Math.abs(thickness - t.cm) < 0.5 ? ' is-on' : ''}`}
+          onClick={() => useStore.getState().apply((p) => ({ ...p, defaults: { ...p.defaults, wallThickness: t.cm } }))}
+        >
+          {units === 'metric' ? t.metric : t.label}
+        </button>
+      ))}
     </div>
   )
 }

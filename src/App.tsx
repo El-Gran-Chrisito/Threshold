@@ -420,6 +420,8 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
     ['Delete', 'Delete selected'],
     ['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo'],
     ['1 2 3 4', '2D · Split · 3D · Walk'],
+    ['Double-click (3D)', 'Zoom in on that spot'],
+    ['Drag furniture (3D)', 'Move it across the floor'],
     ['Esc', 'Stop drawing / clear selection'],
   ]
   return (

@@ -38,6 +38,8 @@ export interface State {
   explode: number
   walker: { x: number; y: number; yaw: number } | null
   cloudStatus: CloudStatus
+  /** 3D camera focus request (double-click on an object). */
+  focus: { x: number; y: number; z: number; seq: number } | null
   /** An account design was opened at start-up. */
   cloudLoaded: boolean
   panel: 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
@@ -104,6 +106,7 @@ export const useStore = create<State>((set, get) => ({
   explode: 0,
   walker: null,
   cloudStatus: 'off',
+  focus: null,
   cloudLoaded: false,
   panel: 'inspector',
   toast: null,

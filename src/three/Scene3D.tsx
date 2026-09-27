@@ -1,4 +1,4 @@
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -14,7 +14,6 @@ import { Walker } from './Walker'
 import { DraggableHome } from './ItemDrag'
 import { useHover } from './hover'
 import { explodeState, useExplodeOffset } from './explode'
-import { useFrame as useFrameR3F } from '@react-three/fiber'
 
 const M = 0.01 // cm → m
 
@@ -28,7 +27,7 @@ function Exploding({ base = [0, 0, 0], offset, children }: { base?: [number, num
 }
 
 function ExplodeDriver({ walk }: { walk: boolean }) {
-  useFrameR3F((_, dt) => {
+  useFrame((_, dt) => {
     const target = walk ? 0 : useStore.getState().explode
     const k = 1 - Math.exp(-dt * 5)
     explodeState.current += (target - explodeState.current) * k
@@ -541,6 +540,27 @@ function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector
       controls.current.update()
     }
   }
+  // Double-click: glide the orbit centre to the clicked point and move in.
+  const focus = useStore((s) => s.focus)
+  const anim = useRef<{ t: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromP: THREE.Vector3; toP: THREE.Vector3 } | null>(null)
+  useEffect(() => {
+    if (!focus || !controls.current) return
+    const target = new THREE.Vector3(focus.x, focus.y, focus.z)
+    const fromT = controls.current.target.clone()
+    const dir = camera.position.clone().sub(fromT).normalize()
+    const dist = Math.min(camera.position.distanceTo(fromT), 5.5)
+    anim.current = { t: 0, fromT, toT: target, fromP: camera.position.clone(), toP: target.clone().addScaledVector(dir, dist) }
+  }, [focus, camera])
+  useFrame((_, dt) => {
+    const a = anim.current
+    if (!a || !controls.current) return
+    a.t = Math.min(1, a.t + dt / 0.6)
+    const k = 1 - Math.pow(1 - a.t, 3)
+    controls.current.target.lerpVectors(a.fromT, a.toT, k)
+    camera.position.lerpVectors(a.fromP, a.toP, k)
+    controls.current.update()
+    if (a.t >= 1) anim.current = null
+  })
   // Frame on first show, on "Reset", and when the pane changes shape a lot.
   const key = `${zoomRequest}|${walk}|${Math.round(aspect * 4)}`
   useEffect(() => {

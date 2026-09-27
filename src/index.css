@@ -1477,7 +1477,7 @@ hr {
 .toast {
   position: fixed;
   left: 50%;
-  top: calc(66px + env(safe-area-inset-top, 0px));
+  top: calc(118px + env(safe-area-inset-top, 0px));
   transform: translate(-50%, -12px);
   padding: 9px 16px;
   border-radius: 10px;
@@ -1892,4 +1892,34 @@ kbd {
   fill-opacity: 0.08;
   stroke: var(--accent);
   stroke-dasharray: 4 3;
+}
+
+.chip-small {
+  padding: 3px 9px;
+  font-size: 12.5px;
+}
+
+.tool-options {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 600;
+  max-width: calc(100% - 140px);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tool-options .chip {
+  padding: 3px 10px;
+  font-size: 12.5px;
 }

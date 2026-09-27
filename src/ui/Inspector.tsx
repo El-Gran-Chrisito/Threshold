@@ -174,6 +174,17 @@ function WallInspector({ w, level, units }: { w: Wall; level: Level; units: 'imp
 
 // ---------------------------------------------------------------------------
 
+const ROOM_NAMES = ['Living room', 'Kitchen', 'Dining', 'Bedroom', 'Primary bedroom', 'Bathroom', 'Office', 'Closet', 'Hallway', 'Laundry', 'Entry', 'Garage']
+
+/** "Bedroom" → "Bedroom 2" when another room already has that name. */
+function uniqueRoomName(level: Level, base: string, selfId: string): string {
+  const taken = new Set(level.rooms.filter((x) => x.id !== selfId).map((x) => x.name))
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base} ${n}`)) n++
+  return `${base} ${n}`
+}
+
 function isAxisRect(r: Room) {
   if (r.points.length !== 4) return false
   const [a, b, c, d] = r.points
@@ -195,6 +206,13 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
       <InspectorHead kind="Room" title={r.name} />
       <Field label="Name">
         <input id="room-name" value={r.name} onChange={(e) => upd({ name: e.target.value })} />
+        <div className="chip-wrap">
+          {ROOM_NAMES.map((n) => (
+            <button key={n} type="button" className={`chip chip-small${r.name === n ? ' is-on' : ''}`} onClick={() => upd({ name: uniqueRoomName(level, n, r.id) })}>
+              {n}
+            </button>
+          ))}
+        </div>
       </Field>
       <div className="stat-row">
         <div className="stat">

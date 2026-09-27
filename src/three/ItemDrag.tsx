@@ -129,8 +129,15 @@ export function DraggableHome({ children, disabled }: { children: ReactNode; dis
     if (!drag.current) gl.domElement.style.cursor = ''
   }
 
+  const onDoubleClick = (e: ThreeEvent<MouseEvent>) => {
+    if (disabled) return
+    e.stopPropagation()
+    const prev = useStore.getState().focus
+    useStore.setState({ focus: { x: e.point.x, y: e.point.y, z: e.point.z, seq: (prev?.seq ?? 0) + 1 } })
+  }
+
   return (
-    <group onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+    <group onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onDoubleClick={onDoubleClick}>
       {children}
     </group>
   )
