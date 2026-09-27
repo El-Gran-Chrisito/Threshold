@@ -61,7 +61,7 @@ function useSize(ref: React.RefObject<HTMLElement | null>) {
   return size
 }
 
-export function PlanView() {
+export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const size = useSize(wrapRef)
@@ -80,6 +80,7 @@ export function PlanView() {
   const snapOn = useStore((s) => s.snap)
   const showOther = useStore((s) => s.showOtherLevels)
   const zoomRequest = useStore((s) => s.zoomRequest)
+  const walker = useStore((s) => s.walker)
   const units = project.units
 
   const [hover, setHover] = useState<SnapResult | null>(null)
@@ -89,6 +90,7 @@ export function PlanView() {
   const [lengthInput, setLengthInput] = useState<string | null>(null)
   const [altKey, setAltKey] = useState(false)
   const drag = useRef<Drag | null>(null)
+  const applyTypedRef = useRef<(t: string) => void>(() => {})
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const pinch = useRef<{ d: number; cam: Camera; mid: { x: number; y: number } } | null>(null)
 
@@ -223,6 +225,7 @@ export function PlanView() {
 
   // ---- keyboard --------------------------------------------------------------
   useEffect(() => {
+    if (minimap) return
     const onKey = (e: KeyboardEvent) => {
       setAltKey(e.altKey)
       const target = e.target as HTMLElement
@@ -239,13 +242,14 @@ export function PlanView() {
         return
       }
       if (e.key === 'Enter') {
+        if (lengthInput !== null) return applyTypedRef.current(lengthInput)
         if (draft?.kind === 'chain') finishChain()
         if (draft?.kind === 'poly') finishPoly()
         return
       }
-      // Type a length while drawing walls.
-      if (draft?.kind === 'chain' && /^[0-9.]$/.test(e.key) && lengthInput === null) {
-        setLengthInput(e.key)
+      // Type a length while drawing walls. Keys that arrive before the box has focus are appended.
+      if (draft?.kind === 'chain' && /^[0-9.'"\- ]$/.test(e.key) && (lengthInput !== null || /^[0-9.]$/.test(e.key))) {
+        setLengthInput((prev) => (prev ?? '') + e.key)
         e.preventDefault()
       }
     }
@@ -255,8 +259,12 @@ export function PlanView() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKey)
     }
-  }, [draft, finishChain, finishPoly, lengthInput])
+  }, [draft, finishChain, finishPoly, lengthInput, minimap])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    applyTypedRef.current = applyTypedLength
+  })
   const applyTypedLength = (text: string) => {
     if (draft?.kind !== 'chain' || !hover) return setLengthInput(null)
     const L = parseLength(text, units, units === 'metric' ? 'cm' : 'ft')
@@ -297,6 +305,10 @@ export function PlanView() {
     }
     const s = useStore.getState()
     const p = toPlan(e.clientX, e.clientY)
+    if (minimap) {
+      useStore.setState({ walker: { x: p.x, y: p.y, yaw: s.walker?.yaw ?? 0 } })
+      return
+    }
     const hit = hitOf(e)
     const panDrag = (click?: () => void): Drag => ({ kind: 'pan', sx: e.clientX, sy: e.clientY, cam: camRef.current, moved: false, click })
 
@@ -541,6 +553,7 @@ export function PlanView() {
       return
     }
 
+    if (minimap) return
     const p = toPlan(e.clientX, e.clientY)
     setRawHover(p)
     setAltKey(e.altKey)
@@ -819,8 +832,9 @@ export function PlanView() {
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
-        {showDims && <WallDims level={level} px={px} units={units} />}
-        {tool === 'select' && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
+        {showDims && !minimap && <WallDims level={level} px={px} units={units} />}
+        {tool === 'select' && !minimap && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
+        {minimap && walker && <WalkerMarker x={walker.x} y={walker.y} yaw={walker.yaw} px={px} />}
 
         {/* Tool previews */}
         {ghostItem && <ItemGlyph item={ghostItem} px={px} ghost />}
@@ -891,9 +905,24 @@ export function PlanView() {
           <span className="length-hint">Enter to place</span>
         </form>
       )}
-      <ScaleBar scale={cam.scale} units={units} />
-      <ToolHint drawing={draft} />
+      {!minimap && <ScaleBar scale={cam.scale} units={units} />}
+      {!minimap && <ToolHint drawing={draft} />}
     </div>
+  )
+}
+
+function WalkerMarker({ x, y, yaw, px }: { x: number; y: number; yaw: number; px: number }) {
+  const fx = -Math.sin(yaw)
+  const fy = -Math.cos(yaw)
+  const R = 150
+  const spread = 0.6
+  const a1 = { x: x + (fx * Math.cos(spread) - fy * Math.sin(spread)) * R, y: y + (fx * Math.sin(spread) + fy * Math.cos(spread)) * R }
+  const a2 = { x: x + (fx * Math.cos(-spread) - fy * Math.sin(-spread)) * R, y: y + (fx * Math.sin(-spread) + fy * Math.cos(-spread)) * R }
+  return (
+    <g pointerEvents="none">
+      <path d={`M ${x} ${y} L ${a1.x} ${a1.y} A ${R} ${R} 0 0 0 ${a2.x} ${a2.y} Z`} className="walker-cone" />
+      <circle cx={x} cy={y} r={7 * px} className="walker-marker" strokeWidth={2 * px} />
+    </g>
   )
 }
 

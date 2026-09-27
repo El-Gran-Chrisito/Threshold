@@ -65,6 +65,7 @@ export default function App() {
   // On phones, split view stacks; start in plan to keep things roomy.
   useEffect(() => {
     if (narrow && useStore.getState().view === 'split') useStore.setState({ view: 'plan' })
+    if (narrow) useStore.setState({ panel: null })
   }, [narrow])
 
   const selectTool = (t: Tool) => {
@@ -132,6 +133,11 @@ export default function App() {
               <Scene3D walk={view === 'walk'} />
             </Suspense>
             {view === 'walk' ? <WalkPad /> : <View3DBar />}
+            {view === 'walk' && (
+              <div className="minimap" aria-label="Map: tap to jump there">
+                <PlanView minimap />
+              </div>
+            )}
             {view !== 'walk' && view !== 'split' && <LevelChips />}
           </div>
         )}

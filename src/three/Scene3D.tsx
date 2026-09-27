@@ -490,6 +490,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   }, [])
 
   const active = activeLevel({ project, levelId })
+  const isEmpty = project.levels.every((l) => l.walls.length === 0 && l.rooms.length === 0 && l.items.length === 0)
   const { center, radius } = useMemo(() => {
     const all = project.levels.map(levelBounds).filter(Boolean) as NonNullable<ReturnType<typeof levelBounds>>[]
     if (!all.length) return { center: new THREE.Vector3(4, 0, 4), radius: 8 }
@@ -500,7 +501,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
     const cy = walk ? 0 : active.elevation * M + 1
     return { center: new THREE.Vector3(((minX + maxX) / 2) * M, cy, ((minY + maxY) / 2) * M), radius: (Math.hypot(maxX - minX, maxY - minY) / 2) * M }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.levels.length, zoomRequest, active.id, walk])
+  }, [project.levels.length, zoomRequest, active.id, walk, isEmpty])
 
   const levels = [...project.levels].sort((a, b) => a.elevation - b.elevation)
   const visible = walk ? levels : cutaway ? levels.filter((l) => l.elevation <= active.elevation) : levels
@@ -576,7 +577,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
         ))}
       </group>
       <ExplodeDriver walk={walk} />
-      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest} walk={walk} />
+      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0)} walk={walk} />
       {walk && <Walker />}
     </Canvas>
   )

@@ -75,6 +75,17 @@ export function Walker() {
   )
 
   useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera
+    const prev = cam.fov
+    cam.fov = 70
+    cam.updateProjectionMatrix()
+    return () => {
+      cam.fov = prev
+      cam.updateProjectionMatrix()
+    }
+  }, [camera])
+
+  useEffect(() => {
     const el = gl.domElement
     const down = (e: PointerEvent) => {
       dragging.current = { x: e.clientX, y: e.clientY }
