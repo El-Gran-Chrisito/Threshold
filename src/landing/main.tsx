@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './landing.css'
 import { PLANS, type PlanId } from '../product/plans'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
+import { registerServiceWorker } from '../product/pwa'
 
 const env = import.meta.env as Record<string, string | undefined>
 /** Where the app lives. With host rewrites set up (see docs/MONETIZATION.md) this can be "/app". */
@@ -280,6 +281,8 @@ function Landing() {
     </>
   )
 }
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

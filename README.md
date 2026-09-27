@@ -36,7 +36,7 @@ bun run license init # create license signing keys (once; see docs/MONETIZATION.
 | Electrical | One click per room or per floor: ceiling lights on a grid, a switch on the latch side of each doorway, outlets no more than 12 ft apart, smoke alarms in bedrooms, halls and entries; standard plan symbols; show or hide on the plan |
 | Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors, walls past the property line or inside a setback); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
 | Files | Autosave to the browser and, inside Claude, to the viewer's account; several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
-| Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing, Lexend or Atkinson Hyperlegible font), light and dark themes, phone layout |
+| Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing, Lexend or Atkinson Hyperlegible font), light and dark themes, phone layout; installable, works offline once opened |
 
 All lengths are stored in centimetres; the UI accepts `12' 6"`, `12-6`, `6 1/2"`, `3.5m`, `350cm` and plain numbers.
 
