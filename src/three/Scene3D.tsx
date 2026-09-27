@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Html, OrbitControls } from '@react-three/drei'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Item, Level, Opening, Project, Room, Vec2, Wall } from '../model/types'
@@ -292,6 +292,20 @@ const ItemMesh = memo(function ItemMesh({ item, selected, center }: { item: Item
 })
 
 // ---------------------------------------------------------------------------
+// Name tags shown while the house is pulled apart, so each layer is identifiable.
+
+function PartTag({ at, bounds, text }: { at: [number, number, number]; bounds: ReturnType<typeof levelBounds>; text: string }) {
+  const exploded = useStore((s) => s.explode > 0.05)
+  if (!exploded) return null
+  const pos: [number, number, number] = bounds ? [bounds.minX * M - 0.4, at[1], bounds.minY * M - 0.4] : at
+  return (
+    <Html position={pos} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+      <span className="part-tag">{text}</span>
+    </Html>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Lamps: real point lights that fade in after dark. The number of lights only
 // changes when lamps are added or removed, so moving the time slider never
 // forces shaders to recompile.
@@ -458,9 +472,11 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
         return <ItemMesh key={i.id} item={i} selected={active && (selectionId === i.id || multi.includes(i.id))} center={center} />
       })}
       <LampLights items={level.items} />
+      <PartTag at={[(center.x - 0) * M, 0.3, center.y * M]} bounds={levelBounds(level)} text={level.name} />
       {showRoof && !cut && (
         <Exploding offset={[0, 3.2, 0]}>
           <RoofMesh level={level} wallColor={project.defaults.exteriorColor} />
+          {level.roof.style !== 'none' && <PartTag at={[center.x * M, (level.height + 60) / 100, center.y * M]} bounds={null} text={`Roof (${level.roof.style})`} />}
         </Exploding>
       )}
     </Exploding>
@@ -596,6 +612,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const wallCut = useStore((s) => s.wallCut)
   const sunHour = useStore((s) => s.sunHour)
   const zoomRequest = useStore((s) => s.zoomRequest)
+  const explode = useStore((s) => (s.explode > 0 ? 1 : 0))
   const [bg, setBg] = useState(bgColor)
 
   useEffect(() => {
@@ -619,10 +636,11 @@ export function Scene3D({ walk }: { walk: boolean }) {
     const maxX = Math.max(...all.map((b) => b.maxX))
     const minY = Math.min(...all.map((b) => b.minY))
     const maxY = Math.max(...all.map((b) => b.maxY))
-    const cy = walk ? 0 : active.elevation * M + 1
-    return { center: new THREE.Vector3(((minX + maxX) / 2) * M, cy, ((minY + maxY) / 2) * M), radius: (Math.hypot(maxX - minX, maxY - minY) / 2) * M }
+    const lift = walk ? 0 : explode * Math.max(1, project.levels.length) * 1.7
+    const cy = walk ? 0 : active.elevation * M + 1 + lift
+    return { center: new THREE.Vector3(((minX + maxX) / 2) * M, cy, ((minY + maxY) / 2) * M), radius: (Math.hypot(maxX - minX, maxY - minY) / 2) * M + lift * 1.2 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.levels.length, zoomRequest, active.id, walk, isEmpty])
+  }, [project.levels.length, zoomRequest, active.id, walk, isEmpty, explode])
 
   const nightNow = nightFactor(sunHour)
   const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
@@ -703,7 +721,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
         </DraggableHome>
       </group>
       <ExplodeDriver walk={walk} />
-      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0)} walk={walk} />
+      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0) + explode * 0.25} walk={walk} />
       {walk && <Walker />}
     </Canvas>
   )

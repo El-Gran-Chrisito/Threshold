@@ -9,7 +9,8 @@ import { Icon } from './Icon'
 import type { Level, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
 import { TEMPLATES, buildTemplate } from '../model/templates'
-import { deleteSaved, listSaved, loadSaved, normalizeProject } from '../store/persistence'
+import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
+import { uid } from '../model/factory'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
@@ -444,6 +445,22 @@ export function ProjectPanel() {
           ]}
         />
       </Field>
+      <div className="btn-row">
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            const cur = useStore.getState().project
+            const copy = { ...structuredClone(cur), id: uid('prj'), name: `${cur.name} (copy)`, createdAt: Date.now(), updatedAt: Date.now() }
+            useStore.getState().loadProject(copy)
+            saveProject(copy)
+            setSaved(listSaved())
+            useStore.getState().notify('Working on a copy. The original is saved.')
+          }}
+        >
+          <Icon name="copy" size={16} /> Duplicate this design
+        </button>
+      </div>
       <Field label="New design from a starting point">
         <div className="template-list">
           {TEMPLATES.map((t) => (

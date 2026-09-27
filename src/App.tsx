@@ -6,6 +6,7 @@ import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/In
 import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from './ui/Panels'
 import { Icon } from './ui/Icon'
 import { AssistantPanel } from './assistant/AssistantPanel'
+import { Toggle } from './ui/controls'
 import { walkKeys } from './three/Walker'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
@@ -250,10 +251,35 @@ function LevelChips() {
   )
 }
 
+function ViewOptions() {
+  const showDims = useStore((s) => s.showDims)
+  const showGrid = useStore((s) => s.showGrid)
+  const snap = useStore((s) => s.snap)
+  const showOther = useStore((s) => s.showOtherLevels)
+  const [open, setOpen] = useState(false)
+  const set = useStore.getState().set
+  return (
+    <div className="view-options">
+      <button type="button" className={`icon-btn${open ? ' is-on' : ''}`} onClick={() => setOpen((o) => !o)} aria-label="Plan display options" aria-expanded={open}>
+        <Icon name="eye" />
+      </button>
+      {open && (
+        <div className="view-options-pop" role="group" aria-label="Plan display options">
+          <Toggle id="opt-dims" checked={showDims} onChange={(v) => set({ showDims: v })} label="Dimensions" />
+          <Toggle id="opt-grid" checked={showGrid} onChange={(v) => set({ showGrid: v })} label="Grid" />
+          <Toggle id="opt-snap" checked={snap} onChange={(v) => set({ snap: v })} label="Snap to grid and corners" />
+          <Toggle id="opt-other" checked={showOther} onChange={(v) => set({ showOtherLevels: v })} label="Show floor below" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ZoomButtons() {
   const z = (k: string) => window.dispatchEvent(new CustomEvent('plan-zoom', { detail: k }))
   return (
     <div className="zoom-btns">
+      <ViewOptions />
       <button type="button" className="icon-btn" onClick={() => z('in')} aria-label="Zoom in">
         <Icon name="plus" />
       </button>
@@ -422,6 +448,8 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
     ['1 2 3 4', '2D · Split · 3D · Walk'],
     ['Double-click (3D)', 'Zoom in on that spot'],
     ['Drag furniture (3D)', 'Move it across the floor'],
+    ['G', 'Grid on / off'],
+    ['Alt (while dragging)', 'No snapping / no wall backing'],
     ['Esc', 'Stop drawing / clear selection'],
   ]
   return (
@@ -546,6 +574,7 @@ function useShortcuts(toggleHelp: () => void) {
       }
       const views: Record<string, ViewMode> = { '1': 'plan', '2': 'split', '3': '3d', '4': 'walk' }
       if (views[key]) return s.setView(views[key])
+      if (key === 'g') return s.set({ showGrid: !s.showGrid })
       if (key === '?') toggleHelp()
     }
     window.addEventListener('keydown', onKey)
