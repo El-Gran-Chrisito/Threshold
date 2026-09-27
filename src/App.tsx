@@ -5,6 +5,7 @@ import { PlanView } from './plan/PlanView'
 import { Inspector, deleteSelection, duplicateItem } from './ui/Inspector'
 import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from './ui/Panels'
 import { Icon } from './ui/Icon'
+import { AssistantPanel } from './assistant/AssistantPanel'
 import { walkKeys } from './three/Walker'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
@@ -33,9 +34,10 @@ const VIEWS: Array<{ id: ViewMode; label: string; icon: string }> = [
   { id: 'walk', label: 'Walk', icon: 'walk' },
 ]
 
-type PanelId = 'inspector' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project'
+type PanelId = 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project'
 const PANELS: Array<{ id: PanelId; label: string; icon: string }> = [
   { id: 'inspector', label: 'Edit', icon: 'select' },
+  { id: 'assistant', label: 'Ask', icon: 'magic' },
   { id: 'catalog', label: 'Catalog', icon: 'catalog' },
   { id: 'paint', label: 'Paint', icon: 'paint' },
   { id: 'levels', label: 'Levels', icon: 'levels' },
@@ -163,6 +165,7 @@ export default function App() {
         {panel && (
           <div className="panel-scroll">
             {panel === 'inspector' && <Inspector />}
+            {panel === 'assistant' && <AssistantPanel />}
             {panel === 'catalog' && <CatalogPanel />}
             {panel === 'paint' && <PaintPanel />}
             {panel === 'levels' && <LevelsPanel />}

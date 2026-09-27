@@ -12,6 +12,7 @@ import { buildParts } from './items3d'
 import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
 import { Walker } from './Walker'
 import { DraggableHome } from './ItemDrag'
+import { useHover } from './hover'
 import { explodeState, useExplodeOffset } from './explode'
 import { useFrame as useFrameR3F } from '@react-three/fiber'
 
@@ -71,6 +72,7 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
   const ang = Math.atan2(d.y, d.x)
   const top = stdMat(cut ? '#3A3F42' : '#D9D6D0')
   const edge = stdMat('#D9D6D0')
+  const hovered = useHover((s) => s.id === `wall:${w.id}`)
   const mats = [edge, edge, top, edge, wallMat(w.finishA, w.colorA, selected), wallMat(w.finishB, w.colorB, selected)]
   const geos = useMemo(() => pieces.map((p) => worldUVBox((p.x1 - p.x0) * M, (p.y1 - p.y0) * M, w.thickness * M, p.x0 * M, p.y0 * M)), [JSON.stringify(pieces), w.thickness])
   useEffect(() => () => geos.forEach((g) => g.dispose()), [geos])
@@ -90,6 +92,19 @@ const WallMesh = memo(function WallMesh({ w, openings, joints, cut, selected, ce
           userData={{ hit: `wall:${w.id}` }}
         />
       ))}
+      {hovered &&
+        !selected &&
+        pieces.map((p, i) => (
+          <mesh
+            key={`h${i}`}
+            geometry={unitBox}
+            position={[((p.x0 + p.x1) / 2) * M, ((p.y0 + p.y1) / 2) * M, 0]}
+            scale={[(p.x1 - p.x0) * M + 0.02, (p.y1 - p.y0) * M + 0.02, w.thickness * M + 0.02]}
+            raycast={() => null}
+          >
+            <meshBasicMaterial color="#2BB3A9" transparent opacity={0.22} depthWrite={false} />
+          </mesh>
+        ))}
       {openings
         .filter((o) => o.wallId === w.id)
         .map((o) => (
@@ -245,6 +260,7 @@ const FloorMesh = memo(function FloorMesh({ room, holes, slab, showCeiling, ceil
 const ItemMesh = memo(function ItemMesh({ item, selected, center }: { item: Item; selected: boolean; center: Vec2 }) {
   const c = catalogEntry(item.type)
   const parts = useMemo(() => buildParts(c.shape, item.width * M, item.depth * M, item.height * M, item.color, item.color2), [c.shape, item.width, item.depth, item.height, item.color, item.color2])
+  const hovered = useHover((s) => s.id === `item:${item.id}`)
   return (
     <Exploding offset={[(item.x - center.x) * M * 0.12, 1.1 + (c.mount === 'ceiling' ? 0.6 : 0), (item.y - center.y) * M * 0.12]}>
     <group position={[item.x * M, item.elevation * M, item.y * M]} rotation={[0, (-item.rotation * Math.PI) / 180, 0]} scale={[item.mirrored ? -1 : 1, 1, 1]}>
@@ -261,9 +277,9 @@ const ItemMesh = memo(function ItemMesh({ item, selected, center }: { item: Item
           userData={{ hit: `item:${item.id}` }}
         />
       ))}
-      {selected && (
-        <mesh position={[0, (item.height * M) / 2, 0]} scale={[item.width * M + 0.04, item.height * M + 0.04, item.depth * M + 0.04]} geometry={unitBox}>
-          <meshBasicMaterial color="#2BB3A9" wireframe transparent opacity={0.9} />
+      {(selected || hovered) && (
+        <mesh position={[0, (item.height * M) / 2, 0]} scale={[item.width * M + 0.04, item.height * M + 0.04, item.depth * M + 0.04]} geometry={unitBox} raycast={() => null}>
+          <meshBasicMaterial color="#2BB3A9" wireframe transparent opacity={selected ? 0.95 : 0.5} />
         </mesh>
       )}
     </group>

@@ -12,6 +12,7 @@ import { snapToGrid } from '../model/geometry'
 import { gridStep } from '../model/units'
 import { catalogEntry } from '../model/catalog'
 import type { Item } from '../model/types'
+import { useHover } from './hover'
 
 interface DragState {
   itemId: string
@@ -115,5 +116,22 @@ export function DraggableHome({ children, disabled }: { children: ReactNode; dis
     gl.domElement.style.cursor = 'grabbing'
   }
 
-  return <group onPointerDown={onPointerDown}>{children}</group>
+  const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (disabled || drag.current) return
+    e.stopPropagation()
+    const hit = (e.object.userData?.hit as string | undefined) ?? null
+    const target = hit && /^(item|wall|opening|room):/.test(hit) ? hit : null
+    if (useHover.getState().id !== target) useHover.getState().set(target)
+    gl.domElement.style.cursor = target && !target.startsWith('room:') ? 'pointer' : ''
+  }
+  const onPointerLeave = () => {
+    useHover.getState().set(null)
+    if (!drag.current) gl.domElement.style.cursor = ''
+  }
+
+  return (
+    <group onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+      {children}
+    </group>
+  )
 }

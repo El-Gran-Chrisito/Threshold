@@ -325,6 +325,24 @@ export function moveRoomEdge(base: Level, roomId: string, edgeIndex: number, dis
   return next
 }
 
+/** Index of the room edge lying on a side of its bounding box (N/E/S/W), or -1. */
+export function edgeOnSide(room: Room, side: 'N' | 'E' | 'S' | 'W'): number {
+  const b = bounds(room.points)
+  let best = -1
+  let bestLen = 0
+  room.points.forEach((p, i) => {
+    const q = room.points[(i + 1) % room.points.length]
+    const on =
+      side === 'N' ? Math.abs(p.y - b.minY) < 1 && Math.abs(q.y - b.minY) < 1 : side === 'S' ? Math.abs(p.y - b.maxY) < 1 && Math.abs(q.y - b.maxY) < 1 : side === 'W' ? Math.abs(p.x - b.minX) < 1 && Math.abs(q.x - b.minX) < 1 : Math.abs(p.x - b.maxX) < 1 && Math.abs(q.x - b.maxX) < 1
+    const len = dist(p, q)
+    if (on && len > bestLen) {
+      best = i
+      bestLen = len
+    }
+  })
+  return best
+}
+
 // ---------------------------------------------------------------------------
 // Room detection from free-drawn walls
 

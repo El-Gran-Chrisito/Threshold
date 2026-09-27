@@ -36,7 +36,7 @@ export interface State {
   /** 0 = assembled, 1 = fully exploded (3D). */
   explode: number
   walker: { x: number; y: number; yaw: number } | null
-  panel: 'inspector' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
+  panel: 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
   toast: { text: string; at: number } | null
   past: Project[]
   future: Project[]

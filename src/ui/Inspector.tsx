@@ -3,12 +3,13 @@ import { activeLevel, useStore } from '../store/store'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Swatches, Toggle } from './controls'
 import { FINISHES, FLOORS, PAINTS, floorMaterial } from '../model/materials'
 import { CATALOG, catalogEntry } from '../model/catalog'
-import { add, dist, lerp, norm, normalOf, pointInPolygon, polygonPerimeter, scale, sub } from '../model/geometry'
+import { add, bounds, lerp, norm, normalOf, pointInPolygon, polygonPerimeter, scale, sub } from '../model/geometry'
 import {
   autoRooms,
   clampOpening,
   deleteRoom,
   deleteWalls,
+  edgeOnSide,
   exteriorSides,
   moveRoomEdge,
   moveVertex,
@@ -180,8 +181,9 @@ function isAxisRect(r: Room) {
 function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imperial' | 'metric' }) {
   const upd = (patch: Partial<Room>) => applyLevel((l) => ({ ...l, rooms: l.rooms.map((x) => (x.id === r.id ? { ...x, ...patch } : x)) }))
   const rect = isAxisRect(r)
-  const width = rect ? dist(r.points[0], r.points[1]) : 0
-  const depth = rect ? dist(r.points[1], r.points[2]) : 0
+  const rb = bounds(r.points)
+  const width = rect ? rb.maxX - rb.minX : 0
+  const depth = rect ? rb.maxY - rb.minY : 0
   const sides = roomWallSides(level, r)
   const wallColor = sides.length ? (sides[0].side === 'A' ? sides[0].wall.colorA : sides[0].wall.colorB) : '#F4F2EC'
   const wallFinish = sides.length ? (sides[0].side === 'A' ? sides[0].wall.finishA : sides[0].wall.finishB) : 'paint'
@@ -205,10 +207,10 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
       {rect && (
         <div className="grid-2">
           <Field label="Width (east edge moves)">
-            <LengthInput id="room-w" value={width} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, 1, v - width))} />
+            <LengthInput id="room-w" value={width} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'E'), v - width))} />
           </Field>
           <Field label="Depth (south edge moves)">
-            <LengthInput id="room-d" value={depth} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, 2, v - depth))} />
+            <LengthInput id="room-d" value={depth} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'S'), v - depth))} />
           </Field>
         </div>
       )}
