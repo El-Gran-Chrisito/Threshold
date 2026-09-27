@@ -26,6 +26,8 @@ import { cabinetsAlongWall, checkLevel } from '../model/checks'
 import { lotIssues } from '../model/site'
 import { furnishRoom } from '../model/furnish'
 import { wireRoom, wiringSummary } from '../model/electrical'
+import { requireFeature } from '../product/entitlements'
+import { PlanTag } from './Paywall'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
 
@@ -250,6 +252,7 @@ function furnish(rooms: Room[]) {
 
 /** Add a first electrical layout to rooms (one undo step). */
 function wire(rooms: Room[]) {
+  if (!requireFeature('electrical')) return
   const s = useStore.getState()
   let level = activeLevel(s)
   const added: Item[] = []
@@ -350,7 +353,7 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
           <Icon name="item" size={16} /> Furnish this room
         </button>
         <button type="button" className="btn" onClick={() => wire([r])}>
-          Add lights, switches, outlets
+          Add lights, switches, outlets <PlanTag plan="pro" />
         </button>
       </div>
       <div className="btn-row">
@@ -755,7 +758,7 @@ function LevelSummary({ level }: { level: Level }) {
         )}
         {level.rooms.length > 0 && (
           <button type="button" className="btn" onClick={() => wire(level.rooms)}>
-            Wire all rooms (lights, switches, outlets, alarms)
+            Wire all rooms (lights, switches, outlets, alarms) <PlanTag plan="pro" />
           </button>
         )}
         <button

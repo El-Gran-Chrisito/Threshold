@@ -2408,3 +2408,208 @@ kbd {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent) inset;
 }
+
+/* ---- Plans and upgrade ---- */
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.plan-badge.is-pro,
+.plan-badge.is-studio {
+  background: var(--panel);
+  color: var(--accent);
+}
+
+.plan-badge.is-trial {
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.sheet.paywall {
+  width: min(880px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paywall h2 {
+  text-wrap: balance;
+}
+
+.paywall-lede {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.plan-card.is-recommended {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.plan-card.is-current {
+  background: var(--panel-2);
+}
+
+.plan-card h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.plan-flag {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.plan-price {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-price strong {
+  font-size: 26px;
+}
+
+.plan-price span,
+.plan-bill,
+.plan-tag {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.plan-bill,
+.plan-tag {
+  margin: 0;
+}
+
+.plan-card ul {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13.5px;
+  flex: 1;
+}
+
+.plan-card li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.plan-card li svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.plan-card .btn {
+  justify-content: center;
+  text-decoration: none;
+}
+
+.plan-current,
+.plan-soon {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-align: center;
+  padding: 6px;
+}
+
+.paywall-trial {
+  align-self: flex-start;
+}
+
+.paywall-key form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paywall-key label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.paywall-key-row {
+  display: flex;
+  gap: 6px;
+}
+
+.paywall-key-row input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+}
+
+.paywall-fine {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.linklike {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.plan-tag-chip {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--accent);
+  color: var(--on-accent);
+  vertical-align: middle;
+}
+
+.plan-tag-chip.is-studio {
+  background: var(--ink);
+  color: var(--panel);
+}

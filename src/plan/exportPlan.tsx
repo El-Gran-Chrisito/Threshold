@@ -8,6 +8,7 @@ import type { Level, Project } from '../model/types'
 import { levelBounds, roomArea } from '../model/ops'
 import { formatArea, formatLength, CM_PER_FT } from '../model/units'
 import { catalogEntry } from '../model/catalog'
+import { hasBrand, type Brand } from '../product/brand'
 import { ItemsLayer, KeptDims, LabelsLayer, LotLayer, OpeningsLayer, RoomLabelsLayer, RoomsLayer, WallDims, WallsLayer } from './PlanLayers'
 
 // Fixed light-theme colours: the sheet is a document, not a themed UI.
@@ -41,12 +42,20 @@ text{font-family:'Atkinson Hyperlegible Next',system-ui,-apple-system,'Segoe UI'
 .lot-line{fill:none;stroke:#56626a}
 .setback-line{fill:none;stroke:#0b7a75}
 .lot-label{fill:#56626a;font-weight:600}
+.sheet-watermark{fill:#0b7a75;fill-opacity:.07;font-weight:700;letter-spacing:.04em}
 .sym-elec{stroke:#9a3412}
 .sym-elec-fill{fill:#ffffff}
 .sym-elec-text{fill:#9a3412;font-weight:700}
 `
 
-function PlanSheet({ project, level, width }: { project: Project; level: Level; width: number }) {
+export interface SheetOptions {
+  /** Free plan: a faint mark across the sheet and a line in the title block. */
+  watermark?: boolean
+  /** Studio plan: the studio's name, contact and logo in the title block. */
+  brand?: Brand | null
+}
+
+function PlanSheet({ project, level, width, opts = {} }: { project: Project; level: Level; width: number; opts?: SheetOptions }) {
   const lb = levelBounds(level) ?? { minX: 0, minY: 0, maxX: 1000, maxY: 800 }
   const lot = project.site.lot
   const b = lot ? { minX: Math.min(lb.minX, lot.x), minY: Math.min(lb.minY, lot.y), maxX: Math.max(lb.maxX, lot.x + lot.w), maxY: Math.max(lb.maxY, lot.y + lot.d) } : lb
@@ -86,8 +95,15 @@ function PlanSheet({ project, level, width }: { project: Project; level: Level; 
         {level.name} · {formatArea(area, units)} · {level.rooms.length} rooms · ceiling {formatLength(level.height, units)}
       </text>
       <text x={tx} y={ty + 100 * px} fontSize={16 * px} className="sheet-sub">
-        Drawn with Threshold · {new Date().toLocaleDateString()}
+        {opts.brand && hasBrand(opts.brand) ? [opts.brand.company, opts.brand.contact].filter(Boolean).join(' · ') : 'Drawn with Threshold'} · {new Date().toLocaleDateString()}
+        {opts.watermark ? ' · Made with Threshold Free' : ''}
       </text>
+      {opts.brand?.logo && <image href={opts.brand.logo} x={x0 + w * 0.5 - 90 * px} y={ty + 8 * px} height={80 * px} width={240 * px} preserveAspectRatio="xMidYMid meet" />}
+      {opts.watermark && (
+        <text x={x0 + w / 2} y={y0 + planH / 2} fontSize={Math.min(w, planH) * 0.09} textAnchor="middle" dominantBaseline="middle" className="sheet-watermark" transform={`rotate(-24 ${x0 + w / 2} ${y0 + planH / 2})`}>
+          Threshold · Free
+        </text>
+      )}
       {/* Scale bar */}
       <g transform={`translate(${x0 + w - 40 * px - bar} ${ty + 30 * px})`}>
         <rect x={0} y={0} width={bar / 2} height={10 * px} fill="#1c2226" />
@@ -111,10 +127,10 @@ function PlanSheet({ project, level, width }: { project: Project; level: Level; 
   )
 }
 
-export async function planPng(project: Project, level: Level, width = 2400): Promise<Blob> {
+export async function planPng(project: Project, level: Level, width = 2400, opts: SheetOptions = {}): Promise<Blob> {
   const host = document.createElement('div')
   const root = createRoot(host)
-  flushSync(() => root.render(<PlanSheet project={project} level={level} width={width} />))
+  flushSync(() => root.render(<PlanSheet project={project} level={level} width={width} opts={opts} />))
   const svgText = host.innerHTML
   root.unmount()
   const svgEl = new DOMParser().parseFromString(svgText, 'image/svg+xml').documentElement

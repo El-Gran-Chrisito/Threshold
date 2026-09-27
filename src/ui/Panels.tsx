@@ -11,6 +11,12 @@ import type { Level, Lot, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { BriefForm } from './BriefForm'
+import { PlanTag } from './Paywall'
+import { can, requireFeature } from '../product/entitlements'
+import { canStartNewDesign, watermarked } from '../product/gates'
+import { FREE_LIMITS } from '../product/plans'
+import { track } from '../product/analytics'
+import { useBrand } from '../product/brand'
 import { defaultLot } from '../model/site'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
@@ -125,12 +131,13 @@ export function PaintPanel() {
       <hr />
       <Field label="Whole-home style" hint="Restyles walls, floors, trim, doors, windows, outside, roof, cabinets and furniture colours. Layout stays. Undo to go back.">
         <div className="style-list">
-          {HOME_STYLES.map((st) => (
+          {HOME_STYLES.map((st, k) => (
             <button
               key={st.id}
               type="button"
               className="style-card"
               onClick={() => {
+                if (k >= FREE_LIMITS.styles && !requireFeature('all-styles')) return
                 useStore.getState().apply((p) => applyHomeStyle(p, st.id))
                 useStore.getState().notify(`Style applied: ${st.name}. Press Undo to go back.`)
               }}
@@ -140,7 +147,10 @@ export function PaintPanel() {
                   <span key={k} style={{ background: c }} />
                 ))}
               </span>
-              <strong>{st.name}</strong>
+              <strong>
+                {st.name}
+                {k >= FREE_LIMITS.styles && <PlanTag plan="pro" />}
+              </strong>
               <span className="muted">{st.blurb}</span>
             </button>
           ))}
@@ -413,10 +423,12 @@ function ShoppingList() {
   const lines = useMemo(() => takeoff(project), [project])
   const notify = useStore.getState().notify
   const saveCsv = async () => {
+    if (!requireFeature('shopping-export')) return
     const r = await saveFile(`${slug(project.name)}-shopping-list.csv`, takeoffCsv(lines), 'text/csv')
     notify(r === 'saved' ? 'Shopping list saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')
   }
   const copy = async () => {
+    if (!requireFeature('shopping-export')) return
     try {
       await navigator.clipboard.writeText(takeoffText(project.name, lines))
       notify('Shopping list copied')
@@ -432,7 +444,7 @@ function ShoppingList() {
       </header>
       <div className="btn-row">
         <button type="button" className="btn" onClick={saveCsv}>
-          <Icon name="download" size={16} /> Save as spreadsheet
+          <Icon name="download" size={16} /> Save as spreadsheet <PlanTag plan="pro" />
         </button>
         <button type="button" className="btn" onClick={copy}>
           Copy as text
@@ -555,14 +567,17 @@ export function ProjectPanel() {
   const exportImage = async () => {
     const canvas = document.querySelector('.view-3d canvas') as HTMLCanvasElement | null
     if (!canvas) return s.notify('Open the 3D view first')
-    const r = await saveFile(`${slug(project.name)}-3d.png`, dataUrlToBlob(canvas.toDataURL('image/png')), 'image/png')
+    const out = can('clean-exports') ? canvas : watermarked(canvas)
+    track('export', { kind: '3d-image' })
+    const r = await saveFile(`${slug(project.name)}-3d.png`, dataUrlToBlob(out.toDataURL('image/png')), 'image/png')
     s.notify(r === 'saved' ? 'Image saved' : 'Image not saved')
   }
   const exportPlan = async () => {
     const st = useStore.getState()
     const level = activeLevel(st)
     try {
-      const blob = await planPng(st.project, level)
+      const blob = await planPng(st.project, level, can('hd-exports') ? 4800 : 2400, { watermark: !can('clean-exports'), brand: can('branding') ? useBrand.getState() : null })
+      track('export', { kind: 'plan' })
       const r = await saveFile(`${slug(project.name)}-${slug(level.name)}-plan.png`, blob, 'image/png')
       s.notify(r === 'saved' ? 'Floor plan saved' : 'Floor plan not saved')
     } catch {
@@ -570,6 +585,7 @@ export function ProjectPanel() {
     }
   }
   const exportModel = async () => {
+    if (!requireFeature('model-export')) return
     const st = useStore.getState()
     if (st.view === 'plan') {
       st.setView('split')
@@ -619,6 +635,7 @@ export function ProjectPanel() {
           type="button"
           className="btn"
           onClick={() => {
+            if (!canStartNewDesign()) return
             const cur = useStore.getState().project
             const copy = { ...structuredClone(cur), id: uid('prj'), name: `${cur.name} (copy)`, createdAt: Date.now(), updatedAt: Date.now() }
             useStore.getState().loadProject(copy)
@@ -635,6 +652,7 @@ export function ProjectPanel() {
           <BriefForm
             submitLabel="Make this plan (current design stays saved)"
             onMake={(p) => {
+              if (!canStartNewDesign()) return
               useStore.getState().loadProject({ ...p, units: project.units })
               setSaved(listSaved())
               setShowBrief(false)
@@ -656,6 +674,7 @@ export function ProjectPanel() {
               className="template-card"
               confirmText="Click again: your current design stays saved"
               onConfirm={() => {
+                if (!canStartNewDesign()) return
                 const p = buildTemplate(t.id)
                 useStore.getState().loadProject({ ...p, units: project.units })
                 setSaved(listSaved())
@@ -718,7 +737,7 @@ export function ProjectPanel() {
             <Icon name="plan" size={16} /> Save floor plan image
           </button>
           <button type="button" className="btn" onClick={exportModel}>
-            <Icon name="cube" size={16} /> Save 3D model (.glb)
+            <Icon name="cube" size={16} /> Save 3D model (.glb) <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportImage}>
             <Icon name="image" size={16} /> Save 3D image
@@ -740,6 +759,7 @@ export function ProjectPanel() {
             reader.onload = () => {
               try {
                 const p = normalizeProject(JSON.parse(String(reader.result)))
+                if (!listSaved().some((m) => m.id === p.id) && !canStartNewDesign()) return
                 useStore.getState().loadProject(p)
                 setErr(null)
                 useStore.getState().notify(`Opened ${p.name}`)
@@ -767,9 +787,15 @@ export function ProjectPanel() {
               type="button"
               className={`style-card${(project.site.surroundings ?? 'suburb') === o.id ? ' is-on' : ''}`}
               aria-pressed={(project.site.surroundings ?? 'suburb') === o.id}
-              onClick={() => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, surroundings: o.id, showGround: true } }))}
+              onClick={() => {
+                if ((o.id === 'garden' || o.id === 'country') && !requireFeature('surroundings')) return
+                useStore.getState().apply((p) => ({ ...p, site: { ...p.site, surroundings: o.id, showGround: true } }))
+              }}
             >
-              <strong>{o.name}</strong>
+              <strong>
+                {o.name}
+                {(o.id === 'garden' || o.id === 'country') && <PlanTag plan="pro" />}
+              </strong>
               <span className="muted">{o.blurb}</span>
             </button>
           ))}

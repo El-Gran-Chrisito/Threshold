@@ -1,6 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
 import { BriefForm } from './ui/BriefForm'
+import { PaywallSheet, PlanBadge } from './ui/Paywall'
+import { requireFeature, useEntitlements } from './product/entitlements'
+import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
@@ -65,6 +68,9 @@ export default function App() {
   const panel = useStore((s) => s.panel)
   const narrow = useNarrow()
   const [help, setHelp] = useState(false)
+  useEffect(() => {
+    void useEntitlements.getState().init()
+  }, [])
   const [welcome, setWelcome] = useState(() => {
     try {
       return !localStorage.getItem('threshold:welcomed') && !localStorage.getItem('threshold:last')
@@ -121,6 +127,7 @@ export default function App() {
           ))}
         </nav>
         <BudgetChip />
+        <PlanBadge />
         <button type="button" className="icon-btn help-btn" onClick={() => setHelp(true)} aria-label="Help and shortcuts">
           <Icon name="help" />
         </button>
@@ -184,6 +191,7 @@ export default function App() {
 
       <Toast />
       {help && <HelpSheet onClose={() => setHelp(false)} />}
+      <PaywallSheet />
       {welcome && (
         <WelcomeSheet
           onClose={() => {
@@ -318,6 +326,7 @@ function View3DBar() {
   const hiddenParts = useStore((s) => s.hiddenParts)
   const section = useStore((s) => s.section)
   const surroundings = useStore((s) => (s.project.site.showGround ? s.project.site.surroundings ?? 'suburb' : 'plain'))
+  const plan = useEntitlements((s) => s.plan)
   const set = useStore.getState().set
   const hour = Math.floor(sunHour)
   const mins = Math.round((sunHour - hour) * 60)
@@ -374,6 +383,7 @@ function View3DBar() {
             value={surroundings}
             onChange={(e) => {
               const v = e.target.value as Surroundings
+              if ((v === 'garden' || v === 'country') && !requireFeature('surroundings')) return
               useStore.getState().apply((p) => ({ ...p, site: { ...p.site, surroundings: v, showGround: true } }))
             }}
             aria-label="Surroundings"
@@ -381,6 +391,7 @@ function View3DBar() {
             {SURROUNDINGS.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.name}
+                {(o.id === 'garden' || o.id === 'country') && !allows(plan, 'surroundings') ? ' (Pro)' : ''}
               </option>
             ))}
           </select>

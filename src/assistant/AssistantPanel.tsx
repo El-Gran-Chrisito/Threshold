@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { activeLevel, useStore } from '../store/store'
 import { buildPrompt, runActions, type Action } from './actions'
 import { Icon } from '../ui/Icon'
+import { useEntitlements } from '../product/entitlements'
+import { allows } from '../product/plans'
+import { LockedFeature } from '../ui/Paywall'
 
 interface SampleError {
   code: string
@@ -45,6 +48,12 @@ function copyFor(code: string): string {
 }
 
 export function AssistantPanel() {
+  const plan = useEntitlements((s) => s.plan)
+  if (!allows(plan, 'assistant')) return <LockedFeature feature="assistant" />
+  return <AssistantWorkspace />
+}
+
+function AssistantWorkspace() {
   const [sample, setSample] = useState<SampleFn | null | undefined>(undefined)
   const [imagesOk, setImagesOk] = useState(false)
   const [text, setText] = useState('')
