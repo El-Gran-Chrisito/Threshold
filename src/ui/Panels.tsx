@@ -8,6 +8,7 @@ import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented,
 import { Icon } from './Icon'
 import type { Level, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
+import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
@@ -308,13 +309,31 @@ function TracingImage({ levelId }: { levelId: string }) {
 // Budget
 
 export function BudgetPanel() {
+  const [tab, setTab] = useState<'cost' | 'list'>('cost')
+  return (
+    <section className="panel-body">
+      <Segmented
+        label="Budget view"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'cost', label: 'Cost' },
+          { value: 'list', label: 'Shopping list' },
+        ]}
+      />
+      {tab === 'cost' ? <CostView /> : <ShoppingList />}
+    </section>
+  )
+}
+
+function CostView() {
   const project = useStore((s) => s.project)
   const { lines, total, byGroup } = useMemo(() => budget(project), [project])
   const groups = ['Flooring', 'Walls & paint', 'Doors & windows', 'Furniture & fixtures']
   const max = Math.max(1, ...groups.map((g) => byGroup[g] ?? 0))
   const [open, setOpen] = useState<string | null>(null)
   return (
-    <section className="panel-body">
+    <>
       <header className="insp-head">
         <span className="eyebrow">Rough cost estimate</span>
         <h2>{formatMoney(total)}</h2>
@@ -347,7 +366,61 @@ export function BudgetPanel() {
         ))}
       </ul>
       <p className="tip">US ballpark prices for materials and installation. Change any furniture price in its inspector. Tap a group to see every line.</p>
-    </section>
+    </>
+  )
+}
+
+function ShoppingList() {
+  const project = useStore((s) => s.project)
+  const lines = useMemo(() => takeoff(project), [project])
+  const notify = useStore.getState().notify
+  const saveCsv = async () => {
+    const r = await saveFile(`${slug(project.name)}-shopping-list.csv`, takeoffCsv(lines), 'text/csv')
+    notify(r === 'saved' ? 'Shopping list saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')
+  }
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(takeoffText(project.name, lines))
+      notify('Shopping list copied')
+    } catch {
+      notify('Clipboard not available here')
+    }
+  }
+  return (
+    <>
+      <header className="insp-head">
+        <span className="eyebrow">What to buy</span>
+        <h2>Shopping list</h2>
+      </header>
+      <div className="btn-row">
+        <button type="button" className="btn" onClick={saveCsv}>
+          <Icon name="download" size={16} /> Save as spreadsheet
+        </button>
+        <button type="button" className="btn" onClick={copy}>
+          Copy as text
+        </button>
+      </div>
+      {TAKEOFF_GROUPS.map((g) => {
+        const ls = lines.filter((l) => l.group === g)
+        if (!ls.length) return null
+        return (
+          <div key={g} className="takeoff-group">
+            <h3 className="field-label">{g}</h3>
+            <ul className="takeoff">
+              {ls.map((l, i) => (
+                <li key={i}>
+                  <span className="takeoff-item">{l.item}</span>
+                  <span className="takeoff-qty num">{l.qty}</span>
+                  <span className="takeoff-detail muted">{l.detail}</span>
+                  <span className="takeoff-where muted">{l.where}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+      <p className="tip">Paint is 2 coats. Flooring and wall finishes include cutting waste. Check amounts with your supplier before you buy.</p>
+    </>
   )
 }
 
