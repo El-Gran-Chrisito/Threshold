@@ -9,6 +9,7 @@ import { walkKeys } from './three/Walker'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
 import { uid } from './model/factory'
+import { buildTemplate } from './model/templates'
 
 const Scene3D = lazy(() => import('./three/Scene3D').then((m) => ({ default: m.Scene3D })))
 
@@ -59,6 +60,13 @@ export default function App() {
   const panel = useStore((s) => s.panel)
   const narrow = useNarrow()
   const [help, setHelp] = useState(false)
+  const [welcome, setWelcome] = useState(() => {
+    try {
+      return !localStorage.getItem('threshold:welcomed') && !localStorage.getItem('threshold:last')
+    } catch {
+      return false
+    }
+  })
 
   useShortcuts(() => setHelp((h) => !h))
 
@@ -166,6 +174,18 @@ export default function App() {
 
       <Toast />
       {help && <HelpSheet onClose={() => setHelp(false)} />}
+      {welcome && (
+        <WelcomeSheet
+          onClose={() => {
+            setWelcome(false)
+            try {
+              localStorage.setItem('threshold:welcomed', '1')
+            } catch {
+              /* storage unavailable */
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -331,6 +351,41 @@ function Toast() {
   return (
     <div className={`toast${visible ? ' is-on' : ''}`} role="status" aria-live="polite">
       {toast?.text}
+    </div>
+  )
+}
+
+function WelcomeSheet({ onClose }: { onClose: () => void }) {
+  const start = (id: string | null) => {
+    if (id) {
+      const p = buildTemplate(id)
+      useStore.getState().loadProject(p)
+    }
+    if (id === 'blank') useStore.setState({ tool: 'room', view: 'split' })
+    onClose()
+  }
+  return (
+    <div className="sheet-backdrop">
+      <div className="sheet welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+        <span className="eyebrow">Threshold</span>
+        <h2 id="welcome-title">Design your home, every part of it.</h2>
+        <p className="muted">Draw rooms, add doors and windows, furnish, choose finishes, then see it in 3D or walk through it.</p>
+        <div className="welcome-grid">
+          <button type="button" className="welcome-card is-primary" onClick={() => start(null)}>
+            <strong>Explore the example home</strong>
+            <span>Two storeys, 3 bedrooms, fully furnished. Change anything.</span>
+          </button>
+          <button type="button" className="welcome-card" onClick={() => start('studio')}>
+            <strong>Start with a studio</strong>
+            <span>One room, bath and kitchen. Small and quick to learn on.</span>
+          </button>
+          <button type="button" className="welcome-card" onClick={() => start('blank')}>
+            <strong>Start from scratch</strong>
+            <span>Empty plot. The Room tool is ready: drag to draw your first room.</span>
+          </button>
+        </div>
+        <p className="tip">Press ? at any time for shortcuts. Your work saves automatically in this browser.</p>
+      </div>
     </div>
   )
 }

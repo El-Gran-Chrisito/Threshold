@@ -11,6 +11,7 @@ import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
 import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
 import { Walker } from './Walker'
+import { DraggableHome } from './ItemDrag'
 import { explodeState, useExplodeOffset } from './explode'
 import { useFrame as useFrameR3F } from '@react-three/fiber'
 
@@ -472,31 +473,32 @@ function Ground({ color, radius }: { color: string; radius: number }) {
 }
 
 function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector3; radius: number; zoomRequest: number; walk: boolean }) {
-  const { camera } = useThree()
+  const { camera, size } = useThree()
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null)
-  const last = useRef(-1)
-  useEffect(() => {
-    if (walk) return
-    if (last.current === zoomRequest && last.current !== -1) return
-    last.current = zoomRequest
-    const d = Math.max(8, radius * 2.3)
-    camera.position.set(center.x + d * 0.55, center.y + d * 0.75, center.z + d * 0.85)
+  const last = useRef<string>('')
+  const aspect = size.width / Math.max(1, size.height)
+  const frame = () => {
+    const cam = camera as THREE.PerspectiveCamera
+    const vfov = ((cam.fov || 42) * Math.PI) / 180
+    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect)
+    const r = Math.max(4, radius)
+    const d = Math.max(r / Math.sin(vfov / 2), r / Math.sin(hfov / 2)) * 1.0
+    const dir = new THREE.Vector3(0.55, 0.75, 0.85).normalize()
+    camera.position.copy(center).addScaledVector(dir, d)
     camera.lookAt(center)
     if (controls.current) {
       controls.current.target.copy(center)
       controls.current.update()
     }
-  }, [zoomRequest, center, radius, camera, walk])
+  }
+  // Frame on first show, on "Reset", and when the pane changes shape a lot.
+  const key = `${zoomRequest}|${walk}|${Math.round(aspect * 4)}`
   useEffect(() => {
-    if (!walk && controls.current) {
-      // Returning from walk mode: frame the home again.
-      const d = Math.max(8, radius * 2.3)
-      camera.position.set(center.x + d * 0.55, center.y + d * 0.75, center.z + d * 0.85)
-      controls.current.target.copy(center)
-      controls.current.update()
-    }
+    if (walk || last.current === key) return
+    last.current = key
+    frame()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walk])
+  }, [key, walk])
   if (walk) return null
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2 - 0.03} minDistance={1.5} maxDistance={Math.max(60, radius * 6)} />
 }
@@ -606,6 +608,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
       <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
       {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
       <group onClick={onClick}>
+        <DraggableHome disabled={walk}>
         {visible.map((l) => (
           <LevelModel
             key={l.id}
@@ -619,6 +622,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
             index={visible.indexOf(l)}
           />
         ))}
+        </DraggableHome>
       </group>
       <ExplodeDriver walk={walk} />
       <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0)} walk={walk} />

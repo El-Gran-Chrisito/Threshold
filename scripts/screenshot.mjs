@@ -7,6 +7,8 @@ const errors = []
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`) })
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
 await page.goto(url)
+await page.waitForTimeout(800)
+if (await page.$('.welcome')) await page.click('text=Explore the example home')
 await page.waitForTimeout(4000)
 await page.screenshot({ path: `${out}/01-split.png` })
 await page.click('text=3D')
