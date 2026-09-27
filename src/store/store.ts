@@ -49,7 +49,7 @@ export interface State {
   /** Vertical cut through the house in 3D: axis, position (0–1 across the house) and which side stays. */
   section: { on: boolean; axis: 'x' | 'z'; at: number; flip: boolean }
   /** Camera direction request for the 3D view. */
-  viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'; seq: number }
+  viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'; seq: number }
   /** Lower 3D quality (no shadows, 1x resolution) for slower devices. */
   lowQuality: boolean
   /** Room tools build walls around the new room (off = floor-only areas: patios, decks, lawns). */

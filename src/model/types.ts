@@ -155,6 +155,8 @@ export interface Site {
   /** Compass bearing of plan "up", degrees. 0 = north is up. */
   northAngle: number
   lot?: Lot
+  /** What surrounds the house in 3D. Defaults to a suburban street. */
+  surroundings?: 'suburb' | 'garden' | 'country' | 'plain'
 }
 
 export interface Project {

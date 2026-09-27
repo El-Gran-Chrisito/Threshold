@@ -12,6 +12,7 @@ import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { BriefForm } from './BriefForm'
 import { defaultLot } from '../model/site'
+import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
@@ -757,6 +758,22 @@ export function ProjectPanel() {
         {project.defaults.baseboards !== false && (
           <Swatches label="Trim colour" swatches={[...PAINTS.slice(0, 8), { name: 'Oak', hex: '#C29A6B' }, { name: 'Walnut', hex: '#6A4630' }]} value={project.defaults.trimColor ?? '#F7F7F4'} onChange={(c) => useStore.getState().apply((p) => ({ ...p, defaults: { ...p.defaults, trimColor: c } }))} />
         )}
+      </Field>
+      <Field label="Surroundings in 3D">
+        <div className="style-list">
+          {SURROUNDINGS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              className={`style-card${(project.site.surroundings ?? 'suburb') === o.id ? ' is-on' : ''}`}
+              aria-pressed={(project.site.surroundings ?? 'suburb') === o.id}
+              onClick={() => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, surroundings: o.id, showGround: true } }))}
+            >
+              <strong>{o.name}</strong>
+              <span className="muted">{o.blurb}</span>
+            </button>
+          ))}
+        </div>
       </Field>
       <Field label="Site">
         <Toggle id="site-ground" checked={project.site.showGround} onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, showGround: v } }))} label="Show ground in 3D" />

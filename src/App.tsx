@@ -349,12 +349,13 @@ function View3DBar() {
             id="view-from"
             value=""
             onChange={(e) => {
-              const dir = e.target.value as 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'
+              const dir = e.target.value as 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'
               if (dir) set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 } })
             }}
             aria-label="View from"
           >
             <option value="">View from…</option>
+            <option value="street">Street (eye level)</option>
             <option value="corner">Corner</option>
             <option value="top">Top</option>
             <option value="S">South (front)</option>

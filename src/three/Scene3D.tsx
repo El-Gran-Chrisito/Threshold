@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Html, OrbitControls } from '@react-three/drei'
+import { Environment, Html, OrbitControls } from '@react-three/drei'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Item, Level, Lot, Opening, Project, Room, Vec2, Wall } from '../model/types'
@@ -16,6 +16,8 @@ import { DraggableHome } from './ItemDrag'
 import { useHover } from './hover'
 import { homeGroupRef } from './exportModel'
 import { explodeState, useExplodeOffset } from './explode'
+import { SkyDome, Surroundings, skyColors, solarDirection } from './Surroundings'
+import { buildLandscape, groundLevel } from '../model/landscape'
 
 const M = 0.01 // cm → m
 
@@ -611,7 +613,7 @@ export function nightFactor(hour: number): number {
   return Math.min(1, (7 - hour) / 1.5)
 }
 
-function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; radius: number; hour: number; north: number; indoor: boolean }) {
+function Sun({ center, radius, hour, north, indoor, ibl = false, shadowRadius }: { center: THREE.Vector3; radius: number; hour: number; north: number; indoor: boolean; ibl?: boolean; shadowRadius?: number }) {
   const light = useRef<THREE.DirectionalLight>(null)
   const night = nightFactor(hour)
   const dir = sunDirection(hour, north)
@@ -623,7 +625,7 @@ function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; r
     l.target.position.copy(center)
     l.target.updateMatrixWorld()
     const cam = l.shadow.camera as THREE.OrthographicCamera
-    const r = radius + 4
+    const r = Math.max(radius + 4, shadowRadius ?? 0)
     cam.left = -r
     cam.right = r
     cam.top = r
@@ -631,12 +633,13 @@ function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; r
     cam.near = 0.5
     cam.far = radius * 5 + 30
     cam.updateProjectionMatrix()
-  }, [center, radius])
+  }, [center, radius, shadowRadius])
+  const soft = ibl && !indoor ? 0.55 : 1
   return (
     <>
-      <directionalLight ref={light} position={pos} intensity={(low ? 1.6 : 2.3) * (1 - night * 0.93)} color={night > 0.3 ? '#9FB4E8' : low ? '#FFD6A8' : '#FFF6E8'} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
-      <hemisphereLight args={[night > 0.5 ? '#5C6E99' : '#DDE8F0', '#8C8474', (low ? 0.9 : 1.1) * (indoor ? 1.7 : 1) * (1 - night * 0.8)]} />
-      <ambientLight intensity={(indoor ? 0.75 : 0.25) * (1 - night * 0.7)} />
+      <directionalLight ref={light} position={pos} intensity={(low ? 1.6 : 2.3) * (1 - night * 0.93)} color={night > 0.3 ? '#9FB4E8' : low ? '#FFD6A8' : '#FFF6E8'} castShadow shadow-mapSize={(shadowRadius ?? 0) > 24 ? [4096, 4096] : [2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
+      <hemisphereLight args={[night > 0.5 ? '#5C6E99' : '#DDE8F0', '#8C8474', (low ? 0.9 : 1.1) * (indoor ? 1.7 : 1) * (1 - night * 0.8) * soft]} />
+      <ambientLight intensity={(indoor ? 0.75 : 0.25) * (1 - night * 0.7) * soft} />
     </>
   )
 }
@@ -730,7 +733,7 @@ function Ground({ color, radius }: { color: string; radius: number }) {
   )
 }
 
-function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector3; radius: number; zoomRequest: number; walk: boolean }) {
+function CameraRig({ center, radius, zoomRequest, walk, street }: { center: THREE.Vector3; radius: number; zoomRequest: number; walk: boolean; street: { eye: THREE.Vector3; target: THREE.Vector3 } | null }) {
   const { camera, size } = useThree()
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null)
   const last = useRef<string>('')
@@ -743,6 +746,18 @@ function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector
     const r = Math.max(4, radius)
     const d = Math.max(r / Math.sin(vfov / 2), r / Math.sin(hfov / 2)) * 1.0
     // Plan north is -z. "From the south" means the camera stands south looking north.
+    if (viewFrom.dir === 'street') {
+      // Standing across the street at eye height, looking at the house.
+      const eye = street?.eye ?? center.clone().add(new THREE.Vector3(0, 0, d * 0.9)).setY(1.65)
+      const target = street?.target ?? center.clone().setY(2.4)
+      camera.position.copy(eye)
+      camera.lookAt(target)
+      if (controls.current) {
+        controls.current.target.copy(target)
+        controls.current.update()
+      }
+      return
+    }
     const dirs: Record<string, [number, number, number]> = { corner: [0.55, 0.75, 0.85], top: [0, 1, 0.0001], N: [0, 0.18, -1], S: [0, 0.18, 1], E: [1, 0.18, 0], W: [-1, 0.18, 0] }
     const dir = new THREE.Vector3(...dirs[viewFrom.dir]).normalize()
     camera.position.copy(center).addScaledVector(dir, d)
@@ -782,7 +797,7 @@ function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, walk])
   if (walk) return null
-  return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2 - 0.03} minDistance={1.5} maxDistance={Math.max(60, radius * 6)} />
+  return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2 - 0.02} minDistance={1.5} maxDistance={Math.max(90, radius * 8)} />
 }
 
 // ---------------------------------------------------------------------------
@@ -842,6 +857,20 @@ export function Scene3D({ walk }: { walk: boolean }) {
     if (!all.length) return null
     return { minX: Math.min(...all.map((b) => b.minX)), maxX: Math.max(...all.map((b) => b.maxX)), minY: Math.min(...all.map((b) => b.minY)), maxY: Math.max(...all.map((b) => b.maxY)) }
   }, [project.levels])
+  // The garden only depends on the site and the ground floor's shell, so moving furniture never rebuilds it.
+  const ground = groundLevel(project)
+  const landKey = JSON.stringify([project.site, ground?.walls, ground?.openings, ground?.rooms.map((r) => [r.points, r.floor])])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const land = useMemo(() => buildLandscape(project), [landKey])
+  const sky = useMemo(() => skyColors(solarDirection(sunHour, project.site.northAngle).y), [sunHour, project.site.northAngle])
+  const lotRadius = land ? (Math.hypot(land.lot.w, land.lot.d) * M) / 2 + 4 : 0
+  const streetView = useMemo(() => {
+    if (!land || !houseBounds) return null
+    const hx = ((houseBounds.minX + houseBounds.maxX) / 2) * M
+    const hz = ((houseBounds.minY + houseBounds.maxY) / 2) * M
+    const z = land.street ? ((land.street.far[2] + land.street.far[3]) / 2) * M : land.lane ? land.lane[1] * M + 2 : land.front * M + 6
+    return { eye: new THREE.Vector3(hx + 3, 1.65, z), target: new THREE.Vector3(hx, 2.6, hz) }
+  }, [land, houseBounds])
   const nightNow = nightFactor(sunHour)
   const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
   const levels = [...project.levels].sort((a, b) => a.elevation - b.elevation)
@@ -902,10 +931,26 @@ export function Scene3D({ walk }: { walk: boolean }) {
         if (e.type === 'click' && useStore.getState().tool === 'select') useStore.getState().select(null)
       }}
     >
-      <color attach="background" args={[skyColor]} />
-      <fog attach="fog" args={[skyColor, radius * 4 + 30, radius * 10 + 90]} />
-      <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
-      {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
+      {land ? (
+        <>
+          <color attach="background" args={[sky.horizon]} />
+          <fog attach="fog" args={[sky.horizon, Math.max(110, radius * 7), 1500]} />
+          <SkyDome hour={sunHour} north={project.site.northAngle} />
+          {!lowQuality && (
+            <Environment key={Math.round(sunHour * 2)} frames={1} resolution={64} environmentIntensity={0.6 * (1 - sky.night * 0.85)}>
+              <SkyDome hour={sunHour} north={project.site.northAngle} clouds={0.15} radius={60} />
+            </Environment>
+          )}
+          <Surroundings L={land} groundColor={project.site.groundColor} hour={sunHour} lowQuality={lowQuality} />
+        </>
+      ) : (
+        <>
+          <color attach="background" args={[skyColor]} />
+          <fog attach="fog" args={[skyColor, radius * 4 + 30, radius * 10 + 90]} />
+          {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
+        </>
+      )}
+      <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} ibl={!!land && !lowQuality} shadowRadius={Math.min(45, lotRadius)} />
       {project.site.lot && !walk && <LotLines lot={project.site.lot} />}
       <SectionCut bounds={houseBounds} walk={walk} />
       <group onClick={onClick} ref={(g) => void (homeGroupRef.current = g)}>
@@ -928,7 +973,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
         </DraggableHome>
       </group>
       <ExplodeDriver walk={walk} />
-      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0) + explode * 0.25} walk={walk} />
+      <CameraRig center={center} radius={radius} zoomRequest={zoomRequest + (isEmpty ? 0.5 : 0) + explode * 0.25} walk={walk} street={streetView} />
       {walk && <Walker />}
     </Canvas>
   )
