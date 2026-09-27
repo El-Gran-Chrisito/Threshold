@@ -40,6 +40,8 @@ export interface State {
   cloudStatus: CloudStatus
   /** 3D camera focus request (double-click on an object). */
   focus: { x: number; y: number; z: number; seq: number } | null
+  /** Room tools build walls around the new room (off = floor-only areas: patios, decks, lawns). */
+  roomWalls: boolean
   /** An account design was opened at start-up. */
   cloudLoaded: boolean
   panel: 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
@@ -107,6 +109,7 @@ export const useStore = create<State>((set, get) => ({
   walker: null,
   cloudStatus: 'off',
   focus: null,
+  roomWalls: true,
   cloudLoaded: false,
   panel: 'inspector',
   toast: null,

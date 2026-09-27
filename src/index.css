@@ -1935,3 +1935,21 @@ kbd {
   box-shadow: none;
   align-self: flex-start;
 }
+
+.tool-options .sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin-inline: 4px;
+}
+
+.stair-hole {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-dasharray: 6 4;
+}
+
+.stair-hole-text {
+  fill: var(--ink-2);
+  font-weight: 600;
+}

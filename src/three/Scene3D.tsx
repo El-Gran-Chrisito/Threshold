@@ -292,7 +292,7 @@ const ItemMesh = memo(function ItemMesh({ item, selected, center }: { item: Item
 // changes when lamps are added or removed, so moving the time slider never
 // forces shaders to recompile.
 
-const LAMP_SHAPES: Record<string, number> = { 'floor-lamp': 0.85, 'table-lamp': 0.72, pendant: 0.1, chandelier: 0.5, 'ceiling-light': 0 }
+const LAMP_SHAPES: Record<string, number> = { 'floor-lamp': 0.85, 'table-lamp': 0.72, pendant: 0.1, chandelier: 0.5, 'ceiling-light': 0, sconce: 0.6, 'fire-pit': 1.2 }
 
 function LampLights({ items }: { items: Item[] }) {
   const hour = useStore((s) => s.sunHour)

@@ -65,6 +65,12 @@ function seeded(n: number) {
   }
 }
 
+function shade(hex: string): string {
+  const v = parseInt(hex.replace('#', ''), 16)
+  const k = (c: number) => Math.round(c * 0.75)
+  return `#${[k((v >> 16) & 255), k((v >> 8) & 255), k(v & 255)].map((c) => c.toString(16).padStart(2, '0')).join('')}`
+}
+
 export function buildParts(shape: string, W: number, D: number, H: number, c1: C, c2: C): Part[] {
   const hw = W / 2
   const hd = D / 2
@@ -520,6 +526,75 @@ export function buildParts(shape: string, W: number, D: number, H: number, c1: C
     }
     case 'column':
       return [B(-hw, 0, -hd, hw, H, hd, c1)]
+    case 'bench':
+      return [B(-hw, H - 0.05, -hd, hw, H, hd, c1), B(-hw + 0.04, 0, -hd + 0.04, -hw + 0.08, H - 0.05, hd - 0.04, c2), B(hw - 0.08, 0, -hd + 0.04, hw - 0.04, H - 0.05, hd - 0.04, c2)]
+    case 'towel-rack':
+      return [
+        { g: 'cyl', p: [0, H * 0.8, hd * 0.2], s: [0.022, W, 0.022], c: c1, r: [0, 0, Math.PI / 2], metal: 0.8 },
+        B(-hw * 0.8, H * 0.25, hd * 0.2 - 0.004, hw * 0.8, H * 0.8, hd * 0.2 + 0.004, c2, { rough: 1 }),
+        B(-hw, H * 0.7, -hd, -hw + 0.02, H * 0.85, hd, c1, { metal: 0.8 }),
+        B(hw - 0.02, H * 0.7, -hd, hw, H * 0.85, hd, c1, { metal: 0.8 }),
+      ]
+    case 'sconce':
+      return [B(-hw * 0.5, H * 0.3, -hd, hw * 0.5, H * 0.7, -hd + 0.02, c1, { metal: 0.6 }), { g: 'cone', p: [0, H * 0.6, 0], s: [W, H * 0.6, D * 0.9], c: c2, e: 1.5 }]
+    case 'shelf':
+      return [B(-hw, 0, -hd, hw, H, hd, c1), B(-hw + 0.1, -0.12, -hd, -hw + 0.12, 0, hd * 0.6, c2), B(hw - 0.12, -0.12, -hd, hw - 0.1, 0, hd * 0.6, c2)]
+    case 'fence': {
+      const n = Math.max(2, Math.round(W / 0.12))
+      const parts: Part[] = [B(-hw, H * 0.15, -hd, hw, H * 0.2, hd, c2), B(-hw, H * 0.8, -hd, hw, H * 0.85, hd, c2)]
+      for (let i = 0; i < n; i++) {
+        const x = -hw + (W * (i + 0.5)) / n
+        parts.push(B(x - W / n / 2 + 0.005, 0, -hd * 0.4, x + W / n / 2 - 0.005, H, hd * 0.4, c1, { rough: 1 }))
+      }
+      parts.push(B(-hw, 0, -hd * 1.4, -hw + 0.09, H + 0.05, hd * 1.4, c2), B(hw - 0.09, 0, -hd * 1.4, hw, H + 0.05, hd * 1.4, c2))
+      return parts
+    }
+    case 'railing': {
+      const n = Math.max(2, Math.round(W / 0.12))
+      const parts: Part[] = [B(-hw, H - 0.05, -0.03, hw, H, 0.03, c2), B(-hw, 0.05, -0.015, hw, 0.08, 0.015, c1)]
+      for (let i = 0; i <= n; i++) {
+        const x = -hw + (W * i) / n
+        parts.push(B(x - 0.01, 0.08, -0.01, x + 0.01, H - 0.05, 0.01, c1, { metal: 0.5 }))
+      }
+      return parts
+    }
+    case 'pergola': {
+      const post = 0.15
+      const parts: Part[] = []
+      for (const x of [-hw + post / 2, hw - post / 2]) for (const z of [-hd + post / 2, hd - post / 2]) parts.push(B(x - post / 2, 0, z - post / 2, x + post / 2, H - 0.2, z + post / 2, c1))
+      parts.push(B(-hw - 0.2, H - 0.2, -hd + 0.02, hw + 0.2, H - 0.05, -hd + 0.12, c1), B(-hw - 0.2, H - 0.2, hd - 0.12, hw + 0.2, H - 0.05, hd - 0.02, c1))
+      const n = Math.max(4, Math.round(W / 0.4))
+      for (let i = 0; i <= n; i++) {
+        const x = -hw + (W * i) / n
+        parts.push(B(x - 0.03, H - 0.05, -hd - 0.25, x + 0.03, H + 0.12, hd + 0.25, c2))
+      }
+      return parts
+    }
+    case 'fire-pit':
+      return [Cy(0, 0, 0, H, W, D, c1, { rough: 1 }), Cy(0, 0, H - 0.02, H + 0.005, W * 0.72, D * 0.72, '#2B2522'), { g: 'cone', p: [0, H + 0.15, 0], s: [W * 0.35, 0.3, D * 0.35], c: c2, e: 2.5, o: 0.9 }]
+    case 'garden-bed': {
+      const t = 0.05
+      return [
+        B(-hw, 0, -hd, hw, H, -hd + t, c1, { rough: 1 }),
+        B(-hw, 0, hd - t, hw, H, hd, c1, { rough: 1 }),
+        B(-hw, 0, -hd, -hw + t, H, hd, c1, { rough: 1 }),
+        B(hw - t, 0, -hd, hw, H, hd, c1, { rough: 1 }),
+        B(-hw + t, 0, -hd + t, hw - t, H - 0.06, hd - t, '#5A4535', { rough: 1 }),
+        ...Array.from({ length: Math.max(2, Math.round(W / 0.35)) }, (_, i) => S(-hw + (W * (i + 0.5)) / Math.max(2, Math.round(W / 0.35)), H + 0.08, 0, 0.3, 0.25, D * 0.6, c2, { rough: 1 })),
+      ]
+    }
+    case 'shed': {
+      const wallH = H * 0.72
+      const rise = H - wallH
+      return [
+        B(-hw, 0, -hd, hw, wallH, hd, c1, { rough: 0.9 }),
+        B(-hw * 0.3, 0, hd, hw * 0.3, wallH * 0.85, hd + 0.01, shade(c1)),
+        { g: 'box', p: [0, wallH + rise / 2, -hd / 2], s: [W + 0.2, 0.05, Math.hypot(D / 2 + 0.1, rise)], c: c2, r: [Math.atan2(rise, D / 2), 0, 0] },
+        { g: 'box', p: [0, wallH + rise / 2, hd / 2], s: [W + 0.2, 0.05, Math.hypot(D / 2 + 0.1, rise)], c: c2, r: [-Math.atan2(rise, D / 2), 0, 0] },
+      ]
+    }
+    case 'umbrella':
+      return [Cy(0, 0, 0, 0.05, 0.5, 0.5, c2), Cy(0, 0, 0.05, H, 0.04, 0.04, c2, { metal: 0.3 }), { g: 'cone', p: [0, H - 0.25, 0], s: [W, 0.5, D], c: c1 }]
     default:
       return [B(-hw, 0, -hd, hw, H, hd, c1)]
   }

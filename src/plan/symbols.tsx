@@ -390,6 +390,80 @@ export function ItemSymbol({ w, d, color, color2, shape, px }: P): ReactNode {
     }
     case 'column':
       return r(-hw, -hd, w, d, { ...body, className: 'sym-solid' })
+    case 'bench':
+    case 'shelf':
+    case 'towel-rack':
+      return r(-hw, -hd, w, d, { ...body, rx: 2 })
+    case 'sconce':
+      return (
+        <g>
+          <path d={`M ${-hw} ${-hd} H ${hw} L ${hw * 0.6} ${hd} H ${-hw * 0.6} Z`} {...body} />
+        </g>
+      )
+    case 'fence':
+    case 'railing': {
+      const n = Math.max(2, Math.round(w / (shape === 'fence' ? 12 : 12)))
+      return (
+        <g>
+          {r(-hw, -hd, w, d, body)}
+          {Array.from({ length: n - 1 }, (_, i) => (
+            <path key={i} d={`M ${-hw + ((i + 1) * w) / n} ${-hd} V ${hd}`} {...line} opacity={0.5} />
+          ))}
+        </g>
+      )
+    }
+    case 'pergola': {
+      const n = Math.max(4, Math.round(w / 40))
+      return (
+        <g>
+          {r(-hw, -hd, w, d, { ...dashed })}
+          {Array.from({ length: n + 1 }, (_, i) => (
+            <path key={i} d={`M ${-hw + (i * w) / n} ${-hd - 20} V ${hd + 20}`} {...line} style={{ stroke: color2 }} strokeWidth={px * 2} />
+          ))}
+          {[
+            [-hw, -hd],
+            [hw - 15, -hd],
+            [-hw, hd - 15],
+            [hw - 15, hd - 15],
+          ].map(([x, y], i) => (
+            <rect key={i} x={x} y={y} width={15} height={15} className="sym-solid" />
+          ))}
+        </g>
+      )
+    }
+    case 'fire-pit':
+      return (
+        <g>
+          <circle cx={0} cy={0} r={Math.min(hw, hd)} {...body} />
+          <circle cx={0} cy={0} r={Math.min(hw, hd) * 0.7} className="sym-soft" strokeWidth={px} style={{ fill: color2 }} />
+        </g>
+      )
+    case 'garden-bed':
+      return (
+        <g>
+          {r(-hw, -hd, w, d, body)}
+          {r(-hw + 5, -hd + 5, w - 10, d - 10, { className: 'sym-soft', strokeWidth: px, style: { fill: color2 } })}
+        </g>
+      )
+    case 'shed':
+      return (
+        <g>
+          {r(-hw, -hd, w, d, body)}
+          <path d={`M ${-hw} 0 H ${hw}`} {...line} />
+          <path d={`M ${-w * 0.15} ${hd} H ${w * 0.15}`} {...line} strokeWidth={px * 3} />
+        </g>
+      )
+    case 'umbrella': {
+      const R = Math.min(hw, hd)
+      return (
+        <g>
+          <polygon points={Array.from({ length: 8 }, (_, i) => `${Math.cos((i * Math.PI) / 4) * R},${Math.sin((i * Math.PI) / 4) * R}`).join(' ')} {...body} opacity={0.7} />
+          {Array.from({ length: 4 }, (_, i) => (
+            <path key={i} d={`M ${-Math.cos((i * Math.PI) / 4) * R} ${-Math.sin((i * Math.PI) / 4) * R} L ${Math.cos((i * Math.PI) / 4) * R} ${Math.sin((i * Math.PI) / 4) * R}`} {...line} opacity={0.5} />
+          ))}
+        </g>
+      )
+    }
     default:
       return r(-hw, -hd, w, d, body)
   }

@@ -75,6 +75,8 @@ export const CATALOG: CatalogEntry[] = [
   { id: 'bookshelf', name: 'Bookshelf', category: 'Living', shape: 'bookshelf', w: 90, d: 35, h: 200, color: OAK, color2: '#7E5E44', price: 350, keywords: 'shelves books' },
   { id: 'rug', name: 'Area rug 8×5.5', category: 'Living', shape: 'rug', w: 244, d: 168, h: 1, color: '#B9A58C', color2: '#8E7B63', price: 400, keywords: 'carpet' },
   { id: 'rug-large', name: 'Area rug 10×8', category: 'Living', shape: 'rug', w: 305, d: 244, h: 1, color: '#9DA6A9', color2: '#6F787B', price: 700, keywords: 'carpet' },
+  { id: 'bench', name: 'Bench', category: 'Living', shape: 'bench', w: 150, d: 42, h: 46, color: '#8C6A4E', color2: '#2A2B2D', price: 250, keywords: 'entry seat' },
+  { id: 'console', name: 'Console table', category: 'Living', shape: 'table', w: 120, d: 35, h: 78, color: '#6A4630', color2: '#2A2B2D', price: 300, keywords: 'entry hall' },
   { id: 'fireplace', name: 'Fireplace', category: 'Living', shape: 'fireplace', w: 150, d: 45, h: 110, color: STONE, color2: '#222', price: 3000 },
   { id: 'piano', name: 'Upright piano', category: 'Living', shape: 'piano', w: 150, d: 60, h: 125, color: '#1D1C1B', color2: WHITE, price: 4000 },
 
@@ -120,6 +122,7 @@ export const CATALOG: CatalogEntry[] = [
   { id: 'tub-free', name: 'Bathtub, freestanding', category: 'Bath', shape: 'tub-free', w: 170, d: 80, h: 60, color: PORCELAIN, color2: PORCELAIN, price: 2200, keywords: 'bath tub' },
   { id: 'shower', name: 'Shower, 36"', category: 'Bath', shape: 'shower', w: 91, d: 91, h: 200, color: '#DDE6EA', color2: STEEL, price: 2500 },
   { id: 'shower-large', name: 'Walk-in shower', category: 'Bath', shape: 'shower', w: 152, d: 91, h: 200, color: '#DDE6EA', color2: STEEL, price: 4500 },
+  { id: 'towel-rack', name: 'Towel rail', category: 'Bath', shape: 'towel-rack', w: 60, d: 8, h: 60, elevation: 100, mount: 'wall', color: '#A8ABAD', color2: '#E3DCCF', price: 60 },
   { id: 'mirror', name: 'Mirror', category: 'Bath', shape: 'mirror', w: 70, d: 3, h: 90, elevation: 105, mount: 'wall', color: '#CFE0E6', color2: BLACK, price: 150 },
 
   // Office
@@ -140,6 +143,8 @@ export const CATALOG: CatalogEntry[] = [
   { id: 'table-lamp', name: 'Table lamp', category: 'Lighting', shape: 'table-lamp', w: 35, d: 35, h: 55, elevation: 55, color: '#F2E8D5', color2: '#B89457', price: 90 },
   { id: 'pendant', name: 'Pendant light', category: 'Lighting', shape: 'pendant', w: 45, d: 45, h: 70, mount: 'ceiling', color: BLACK, color2: '#FFE7B0', price: 200 },
   { id: 'chandelier', name: 'Chandelier', category: 'Lighting', shape: 'chandelier', w: 80, d: 80, h: 70, mount: 'ceiling', color: '#B89457', color2: '#FFE7B0', price: 600 },
+  { id: 'sconce', name: 'Wall sconce', category: 'Lighting', shape: 'sconce', w: 18, d: 15, h: 28, elevation: 165, mount: 'wall', color: '#B89457', color2: '#FFE7B0', price: 120 },
+  { id: 'recessed', name: 'Recessed light', category: 'Lighting', shape: 'ceiling-light', w: 15, d: 15, h: 2, mount: 'ceiling', color: '#F1F0EC', color2: '#FFE7B0', price: 90, keywords: 'downlight can pot' },
   { id: 'ceiling-light', name: 'Ceiling light', category: 'Lighting', shape: 'ceiling-light', w: 40, d: 40, h: 10, mount: 'ceiling', color: WHITE, color2: '#FFE7B0', price: 120, keywords: 'flush mount' },
 
   // Decor
@@ -156,12 +161,20 @@ export const CATALOG: CatalogEntry[] = [
   { id: 'lounger', name: 'Lounger', category: 'Outdoor', shape: 'lounger', w: 70, d: 195, h: 40, color: '#E8E1D4', color2: '#6B4D35', price: 250, keywords: 'chaise' },
   { id: 'grill', name: 'Grill', category: 'Outdoor', shape: 'grill', w: 130, d: 60, h: 115, color: BLACK, color2: STEEL, price: 600, keywords: 'bbq' },
   { id: 'hot-tub', name: 'Hot tub', category: 'Outdoor', shape: 'hot-tub', w: 213, d: 213, h: 90, color: '#6B5846', color2: '#6FB6C8', price: 8000, keywords: 'spa jacuzzi' },
+  { id: 'fence', name: 'Fence, 8 ft', category: 'Outdoor', shape: 'fence', w: 244, d: 8, h: 180, color: '#8C6A4E', color2: '#6B4D35', price: 320, keywords: 'privacy boundary' },
+  { id: 'pergola', name: 'Pergola', category: 'Outdoor', shape: 'pergola', w: 366, d: 305, h: 260, color: '#6B4D35', color2: '#6B4D35', price: 4500, keywords: 'arbor shade' },
+  { id: 'fire-pit', name: 'Fire pit', category: 'Outdoor', shape: 'fire-pit', w: 110, d: 110, h: 40, color: '#8A8580', color2: '#FF8A3D', price: 800 },
+  { id: 'garden-bed', name: 'Garden bed', category: 'Outdoor', shape: 'garden-bed', w: 244, d: 91, h: 40, color: '#7A5A40', color2: '#5B8540', price: 250, keywords: 'planter vegetable raised' },
+  { id: 'shed', name: 'Garden shed', category: 'Outdoor', shape: 'shed', w: 305, d: 244, h: 250, color: '#9DB2BD', color2: '#4A4E52', price: 4000, keywords: 'storage' },
+  { id: 'umbrella', name: 'Patio umbrella', category: 'Outdoor', shape: 'umbrella', w: 270, d: 270, h: 240, color: '#E8E1D4', color2: '#6B4D35', price: 250, keywords: 'parasol shade' },
   { id: 'pool', name: 'Pool', category: 'Outdoor', shape: 'pool', w: 450, d: 900, h: 10, color: '#E7E3DA', color2: '#4FA7C9', price: 45000, keywords: 'swimming' },
 
   // Structure
   { id: 'stairs', name: 'Stairs, straight', category: 'Structure', shape: 'stairs', w: 100, d: 330, h: 270, color: OAK, color2: WHITE, price: 3500, fitHeight: true, keywords: 'staircase steps' },
   { id: 'stairs-wide', name: 'Stairs, wide', category: 'Structure', shape: 'stairs', w: 130, d: 360, h: 270, color: WALNUT, color2: WHITE, price: 4500, fitHeight: true, keywords: 'staircase steps' },
   { id: 'column', name: 'Column', category: 'Structure', shape: 'column', w: 30, d: 30, h: 270, color: WHITE, color2: WHITE, price: 300, fitHeight: true, keywords: 'pillar post' },
+  { id: 'railing', name: 'Railing', category: 'Structure', shape: 'railing', w: 200, d: 5, h: 100, color: '#2A2B2D', color2: '#C29A6B', price: 400, keywords: 'balustrade guard' },
+  { id: 'shelf', name: 'Open shelf', category: 'Structure', shape: 'shelf', w: 91, d: 25, h: 4, elevation: 150, mount: 'wall', color: '#C29A6B', color2: '#2A2B2D', price: 90, keywords: 'floating wall shelf' },
   { id: 'beam', name: 'Ceiling beam', category: 'Structure', shape: 'box', w: 400, d: 20, h: 25, mount: 'ceiling', color: WALNUT, color2: WALNUT, price: 600 },
   { id: 'counter', name: 'Countertop run', category: 'Structure', shape: 'base-cabinet', w: 244, d: 61, h: 91, color: WHITE, color2: STONE, price: 2400, keywords: 'kitchen cabinets' },
   { id: 'box', name: 'Custom box', category: 'Structure', shape: 'box', w: 100, d: 100, h: 100, color: '#C8C2B6', color2: '#C8C2B6', price: 0, keywords: 'block generic' },

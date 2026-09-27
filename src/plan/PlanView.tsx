@@ -221,7 +221,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const s = useStore.getState()
     if (draft?.kind === 'poly' && draft.points.length >= 3) {
       s.applyLevel((l) => {
-        const { level: next, room } = addRoom(l, draft.points, {}, { thickness: s.project.defaults.wallThickness, height: activeLevel(s).height })
+        const { level: next, room } = addRoom(l, draft.points, s.roomWalls ? {} : { floor: 'pavers', name: nextAreaName(l), showCeiling: false }, { thickness: s.project.defaults.wallThickness, height: activeLevel(s).height }, s.roomWalls)
         queueMicrotask(() => useStore.getState().select({ kind: 'room', id: room.id }))
         return next
       })
@@ -524,12 +524,12 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const s = useStore.getState()
     let roomId = ''
     s.applyLevel((l) => {
-      const { level: next, room } = addRoom(l, rectPoints(a, b), {}, { thickness: s.project.defaults.wallThickness, height: l.height })
+      const { level: next, room } = addRoom(l, rectPoints(a, b), s.roomWalls ? {} : { floor: 'pavers', name: nextAreaName(l), showCeiling: false }, { thickness: s.project.defaults.wallThickness, height: l.height }, s.roomWalls)
       roomId = room.id
       return next
     })
     s.select({ kind: 'room', id: roomId })
-    s.notify('Room added. Drag its edges to resize.')
+    s.notify(s.roomWalls ? 'Room added. Drag its edges to resize.' : 'Area added. Pick its surface in the Floor list.')
   }
 
   const openingPreview = (p: Vec2): { o: Opening; wall: ReturnType<typeof findWallAt> } | null => {
@@ -924,6 +924,20 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
 
         <RoomsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount !== 'ceiling'} />
+        {otherLevel && (
+          <g pointerEvents="none">
+            {otherLevel.items
+              .filter((i) => catalogEntry(i.type).shape === 'stairs')
+              .map((i) => (
+                <g key={i.id} transform={`translate(${i.x} ${i.y}) rotate(${i.rotation})`}>
+                  <rect x={-i.width / 2} y={-i.depth / 2} width={i.width} height={i.depth} className="stair-hole" strokeWidth={px * 1.5} />
+                  <text y={0} fontSize={11 * px} textAnchor="middle" dominantBaseline="middle" className="stair-hole-text">
+                    Stairs up from below
+                  </text>
+                </g>
+              ))}
+          </g>
+        )}
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
@@ -1080,13 +1094,31 @@ const THICKNESSES: Array<{ cm: number; label: string; metric: string }> = [
   { cm: 30, label: 'Thick 12″', metric: 'Thick 30 cm' },
 ]
 
+function nextAreaName(l: Level): string {
+  const n = l.rooms.filter((r) => /^Outdoor area/.test(r.name)).length + 1
+  return n === 1 ? 'Outdoor area' : `Outdoor area ${n}`
+}
+
 function WallOptions() {
   const thickness = useStore((s) => s.project.defaults.wallThickness)
   const units = useStore((s) => s.project.units)
+  const tool = useStore((s) => s.tool)
+  const roomWalls = useStore((s) => s.roomWalls)
   return (
     <div className="tool-options" role="radiogroup" aria-label="New wall thickness">
-      <span>New walls</span>
-      {THICKNESSES.map((t) => (
+      {tool !== 'wall' && (
+        <>
+          <button type="button" className={`chip${roomWalls ? ' is-on' : ''}`} onClick={() => useStore.setState({ roomWalls: true })} title="Room with walls around it">
+            Room with walls
+          </button>
+          <button type="button" className={`chip${!roomWalls ? ' is-on' : ''}`} onClick={() => useStore.setState({ roomWalls: false })} title="Patio, deck, driveway or lawn: floor only">
+            Floor only
+          </button>
+          <span className="sep" aria-hidden />
+        </>
+      )}
+      {(tool === 'wall' || roomWalls) && <span>New walls</span>}
+      {(tool === 'wall' || roomWalls) && THICKNESSES.map((t) => (
         <button
           key={t.cm}
           type="button"
