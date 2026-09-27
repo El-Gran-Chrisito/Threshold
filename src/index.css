@@ -2795,3 +2795,87 @@ kbd {
   background: var(--accent);
   border-radius: inherit;
 }
+
+.getting-started {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--panel));
+}
+
+.getting-started header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.getting-started header strong {
+  flex: 1;
+}
+
+.getting-started ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+}
+
+.getting-started li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.getting-started li small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.getting-started li.is-done > span:last-child {
+  color: var(--ink-2);
+  text-decoration: line-through;
+}
+
+.gs-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--accent);
+  border-radius: 5px;
+  color: var(--on-accent);
+}
+
+.getting-started li.is-done .gs-check {
+  background: var(--accent);
+}
+
+.gs-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.gs-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.gs-done {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+}

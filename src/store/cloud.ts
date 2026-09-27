@@ -40,7 +40,7 @@ let ready: Promise<{ coll: Coll } | null> | null = null
 export function cloud(): Promise<{ coll: Coll } | null> {
   if (!ready) {
     ready = (async () => {
-      if (!window.claude?.use) return null
+      if (typeof window === 'undefined' || !window.claude?.use) return null
       try {
         const [db, user] = (await Promise.all([window.claude.use('db'), window.claude.use('user')])) as [DB | null, UserNS | null]
         if (!db || !user) return null

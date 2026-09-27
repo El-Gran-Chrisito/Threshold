@@ -6,6 +6,7 @@ import { Presentation } from './ui/Presentation'
 import { decodeDesign, sharedCode } from './store/share'
 import { uid } from './model/factory'
 import { track } from './product/analytics'
+import { watchOnboarding } from './product/onboarding'
 import { requireFeature, useEntitlements } from './product/entitlements'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
@@ -72,6 +73,7 @@ export default function App() {
   const narrow = useNarrow()
   const [help, setHelp] = useState(false)
   const presenting = useStore((s) => s.presenting)
+  useEffect(() => watchOnboarding(), [])
   useEffect(() => {
     void (async () => {
       const ent = useEntitlements.getState()

@@ -1,0 +1,21 @@
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' })).newPage()
+const errors = []
+page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
+await page.goto('http://localhost:4173/')
+await page.evaluate(() => localStorage.clear())
+await page.reload()
+await page.waitForTimeout(800)
+await page.click('text=Explore the example home')
+await page.waitForTimeout(800)
+await page.click('.view-switch >> text=3D')
+await page.waitForTimeout(800)
+await page.click('.view-switch >> text=2D')
+await page.click('button:has-text("Edit")')
+await page.waitForTimeout(300)
+console.log('progress:', await page.locator('.getting-started header .muted').textContent())
+await page.screenshot({ path: `${out}/getting-started.png` })
+console.log(errors.join('\n') || 'no errors')
+await browser.close()

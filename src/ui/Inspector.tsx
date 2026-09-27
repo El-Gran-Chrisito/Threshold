@@ -28,6 +28,7 @@ import { furnishRoom } from '../model/furnish'
 import { wireRoom, wiringSummary } from '../model/electrical'
 import { requireFeature } from '../product/entitlements'
 import { PlanTag } from './Paywall'
+import { GettingStarted } from './GettingStarted'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
 
@@ -717,6 +718,7 @@ function LevelSummary({ level }: { level: Level }) {
   const total = project.levels.reduce((s, l) => s + l.rooms.reduce((a, r) => a + roomArea(r), 0), 0)
   return (
     <section className="inspector">
+      <GettingStarted />
       <InspectorHead kind="Nothing selected" title={level.name} />
       <div className="stat-row">
         <div className="stat">
