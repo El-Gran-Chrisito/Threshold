@@ -5,6 +5,7 @@ import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, 
 import {
   addRoom,
   addWalls,
+  autoRooms,
   insertRoomVertex,
   clampOpening,
   findWallAt,
@@ -210,13 +211,29 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     useStore.getState().cancel()
   }, [tool, levelId])
 
+  /** Commit the walls being drawn; any area they now enclose becomes a room. */
+  const commitWalls = useCallback(() => {
+    const s = useStore.getState()
+    let found = 0
+    s.preview((base) => {
+      const cur = useStore.getState().project
+      const lvl = activeLevel({ project: cur, levelId: s.levelId })
+      const r = autoRooms(lvl)
+      found = r.count
+      void base
+      return { ...cur, levels: cur.levels.map((l) => (l.id === lvl.id ? r.level : l)) }
+    })
+    s.commit()
+    if (found) s.notify(found === 1 ? 'Walls enclose a new room' : `Walls enclose ${found} new rooms`)
+  }, [])
+
   const finishChain = useCallback(() => {
     const s = useStore.getState()
-    if (draft?.kind === 'chain' && draft.points.length >= 2) s.commit()
+    if (draft?.kind === 'chain' && draft.points.length >= 2) commitWalls()
     else s.cancel()
     setDraft(null)
     setLengthInput(null)
-  }, [draft])
+  }, [draft, commitWalls])
 
   const finishPoly = useCallback(() => {
     const s = useStore.getState()
@@ -442,7 +459,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
           // Closing the loop on the first point finishes the chain.
           if (dist(sp, draft.points[0]) < 1 && pts.length > 2) {
             previewChain(pts)
-            useStore.getState().commit()
+            commitWalls()
             setDraft(null)
             return
           }
@@ -1045,6 +1062,23 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       )}
       {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
       {!minimap && underlayMode && <UnderlayBar />}
+      {!minimap && (draft?.kind === 'chain' || draft?.kind === 'poly') && lengthInput === null && (
+        <div className="draw-actions">
+          <button type="button" className="btn btn-primary" onClick={() => (draft.kind === 'chain' ? finishChain() : finishPoly())}>
+            Finish
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              useStore.getState().cancel()
+              setDraft(null)
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
       {!minimap && <ToolHint drawing={draft} />}
     </div>
