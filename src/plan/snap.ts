@@ -96,3 +96,65 @@ export function snapPoint(raw: Vec2, o: SnapOptions): SnapResult {
   if (ay && Math.abs(ay.y - p.y) < 0.5) guides.push({ axis: 'y', value: ay.y, from: ay })
   return { p, kind, guides }
 }
+
+// ---------------------------------------------------------------------------
+// Furniture-to-furniture alignment while dragging
+
+export interface ItemGuide {
+  a: Vec2
+  b: Vec2
+}
+
+function halfExtents(w: number, d: number, rotation: number) {
+  const r = (rotation * Math.PI) / 180
+  const c = Math.abs(Math.cos(r))
+  const s = Math.abs(Math.sin(r))
+  return { hx: (c * w) / 2 + (s * d) / 2, hy: (s * w) / 2 + (c * d) / 2 }
+}
+
+/**
+ * Nudge a dragged item so one of its edges or its centre lines up with an
+ * edge or centre of a nearby item. Returns the adjusted centre and guide lines.
+ */
+export function alignItem(
+  moving: { width: number; depth: number; rotation: number },
+  pos: Vec2,
+  others: Array<{ x: number; y: number; width: number; depth: number; rotation: number }>,
+  tol: number,
+): { pos: Vec2; guides: ItemGuide[] } {
+  const me = halfExtents(moving.width, moving.depth, moving.rotation)
+  let bestX: { shift: number; line: number; other: { x: number; y: number; hy: number } } | null = null
+  let bestY: { shift: number; line: number; other: { x: number; y: number; hx: number } } | null = null
+  const myXs = [-me.hx, 0, me.hx]
+  const myYs = [-me.hy, 0, me.hy]
+  for (const o of others) {
+    const oe = halfExtents(o.width, o.depth, o.rotation)
+    // Only consider items reasonably close, so guides stay meaningful.
+    if (Math.abs(o.x - pos.x) > 900 || Math.abs(o.y - pos.y) > 900) continue
+    for (const ox of [o.x - oe.hx, o.x, o.x + oe.hx]) {
+      for (const mx of myXs) {
+        const shift = ox - (pos.x + mx)
+        if (Math.abs(shift) < tol && (!bestX || Math.abs(shift) < Math.abs(bestX.shift))) bestX = { shift, line: ox, other: { x: o.x, y: o.y, hy: oe.hy } }
+      }
+    }
+    for (const oy of [o.y - oe.hy, o.y, o.y + oe.hy]) {
+      for (const my of myYs) {
+        const shift = oy - (pos.y + my)
+        if (Math.abs(shift) < tol && (!bestY || Math.abs(shift) < Math.abs(bestY.shift))) bestY = { shift, line: oy, other: { x: o.x, y: o.y, hx: oe.hx } }
+      }
+    }
+  }
+  const out = { x: pos.x + (bestX?.shift ?? 0), y: pos.y + (bestY?.shift ?? 0) }
+  const guides: ItemGuide[] = []
+  if (bestX) {
+    const y0 = Math.min(bestX.other.y - bestX.other.hy, out.y - me.hy)
+    const y1 = Math.max(bestX.other.y + bestX.other.hy, out.y + me.hy)
+    guides.push({ a: { x: bestX.line, y: y0 - 20 }, b: { x: bestX.line, y: y1 + 20 } })
+  }
+  if (bestY) {
+    const x0 = Math.min(bestY.other.x - bestY.other.hx, out.x - me.hx)
+    const x1 = Math.max(bestY.other.x + bestY.other.hx, out.x + me.hx)
+    guides.push({ a: { x: x0 - 20, y: bestY.line }, b: { x: x1 + 20, y: bestY.line } })
+  }
+  return { pos: out, guides }
+}

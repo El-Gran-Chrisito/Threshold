@@ -23,7 +23,7 @@ import {
 import { makeItem, makeLabel, makeOpening, uid } from '../model/factory'
 import { catalogEntry } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
-import { snapPoint, type SnapResult } from './snap'
+import { alignItem, snapPoint, type ItemGuide, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
 import { ContextMenu, type MenuState } from './ContextMenu'
 import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
@@ -95,6 +95,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const [draft, setDraft] = useState<Draft>(null)
   const [measure, setMeasure] = useState<{ a: Vec2; b: Vec2 } | null>(null)
   const [marquee, setMarquee] = useState<{ a: Vec2; b: Vec2 } | null>(null)
+  const [itemGuides, setItemGuides] = useState<ItemGuide[]>([])
   const marqueeRef = useRef<{ a: Vec2; b: Vec2 } | null>(null)
   marqueeRef.current = marquee
   const multi = useStore((s) => s.multi)
@@ -701,13 +702,25 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         let rot = dr.orig.rotation
         if (s.snap) pos = snapToGrid(pos, grid / 2)
         const c = catalogEntry(dr.orig.type)
+        const baseLevel = activeLevel({ project: s.txBase ?? s.project, levelId: s.levelId })
+        let snappedToWall = false
         if (!e.altKey && c.category !== 'Outdoor' && c.shape !== 'rug' && s.snap) {
-          const sn = snapItemToWall(activeLevel({ project: s.txBase ?? s.project, levelId: s.levelId }), dr.orig, add({ x: dr.orig.x, y: dr.orig.y }, delta), 18 / scaleNow + 4)
+          const sn = snapItemToWall(baseLevel, dr.orig, add({ x: dr.orig.x, y: dr.orig.y }, delta), 18 / scaleNow + 4)
           if (sn) {
             pos = { x: sn.x, y: sn.y }
             rot = sn.rotation
+            snappedToWall = true
           }
         }
+        if (!e.altKey && s.snap) {
+          // Line up with other furniture (along the wall too, when backed onto one).
+          const others = baseLevel.items.filter((i) => i.id !== dr.id && catalogEntry(i.type).mount !== 'ceiling')
+          const al = alignItem({ width: dr.orig.width, depth: dr.orig.depth, rotation: rot }, pos, others, 7 / scaleNow)
+          const keepX = snappedToWall && (rot === 90 || rot === 270)
+          const keepY = snappedToWall && (rot === 0 || rot === 180)
+          pos = { x: keepX ? pos.x : al.pos.x, y: keepY ? pos.y : al.pos.y }
+          setItemGuides(al.guides.filter((g) => !((keepX && g.a.x === g.b.x) || (keepY && g.a.y === g.b.y))))
+        } else setItemGuides([])
         s.previewLevel((base) => ({ ...base, items: base.items.map((i) => (i.id === dr.id ? { ...i, x: pos.x, y: pos.y, rotation: rot } : i)) }))
         return
       }
@@ -860,6 +873,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const dr = drag.current
     drag.current = null
     if (!dr) return
+    if (itemGuides.length) setItemGuides([])
     const s = useStore.getState()
     switch (dr.kind) {
       case 'pan':
@@ -1075,6 +1089,9 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
                 pointerEvents="none"
               />
             ))}
+        {itemGuides.map((g, i) => (
+          <path key={`ig${i}`} d={`M ${g.a.x} ${g.a.y} L ${g.b.x} ${g.b.y}`} className="guide" strokeWidth={px} pointerEvents="none" />
+        ))}
         {marquee && <path d={polyPath(rectPoints(marquee.a, marquee.b))} className="marquee" strokeWidth={px} pointerEvents="none" />}
         {measure && dist(measure.a, measure.b) > 1 && (
           <g pointerEvents="none" className="measure">

@@ -172,3 +172,18 @@ describe('templates', () => {
     }
   })
 })
+
+describe('furniture alignment', () => {
+  it('snaps an edge to a nearby item edge and reports a guide', async () => {
+    const { alignItem } = await import('../plan/snap')
+    const other = { x: 100, y: 100, width: 100, depth: 50, rotation: 0 } // left edge at x=50
+    const r = alignItem({ width: 40, depth: 40, rotation: 0 }, { x: 73, y: 300 }, [other], 5) // my left edge at 53
+    expect(r.pos.x).toBe(70)
+    expect(r.pos.y).toBe(300)
+    expect(r.guides).toHaveLength(1)
+    // Nothing within 5 cm: edges at 70/90/110 vs 50/100/150.
+    const far = alignItem({ width: 40, depth: 40, rotation: 0 }, { x: 90, y: 300 }, [other], 5)
+    expect(far.guides).toHaveLength(0)
+    expect(far.pos).toEqual({ x: 90, y: 300 })
+  })
+})
