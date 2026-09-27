@@ -25,6 +25,7 @@ import { catalogEntry } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { snapPoint, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
+import { ContextMenu, type MenuState } from './ContextMenu'
 import { DimLine, ItemGlyph, ItemsLayer, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
@@ -107,6 +108,18 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const [altKey, setAltKey] = useState(false)
   const drag = useRef<Drag | null>(null)
   const applyTypedRef = useRef<(t: string) => void>(() => {})
+  const longPress = useRef<{ sx: number; sy: number; timer: ReturnType<typeof setTimeout> } | null>(null)
+  const [menu, setMenu] = useState<MenuState | null>(null)
+  const openMenu = (clientX: number, clientY: number, hit: string | null) => {
+    const rect = wrapRef.current!.getBoundingClientRect()
+    const at = toPlan(clientX, clientY)
+    const s = useStore.getState()
+    if (hit && !hit.startsWith('h:') && !hit.startsWith('dim:')) {
+      const [kind, id] = hit.split(':')
+      if (!(kind === 'item' && selectedItemIds(s).includes(id))) s.select({ kind, id } as never)
+    }
+    setMenu({ x: Math.min(clientX - rect.left, rect.width - 230), y: Math.min(clientY - rect.top, rect.height - 260), hit: hit && !hit.startsWith('h:') ? hit : null, at })
+  }
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const pinch = useRef<{ d: number; cam: Camera; mid: { x: number; y: number } } | null>(null)
 
@@ -322,10 +335,28 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   // ---- pointer handlers ----------------------------------------------------------
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button === 2) {
-      // Right click finishes drawing.
-      if (draft?.kind === 'chain') finishChain()
-      if (draft?.kind === 'poly') finishPoly()
+      // Right click finishes drawing; otherwise it opens the quick-actions menu.
+      if (draft?.kind === 'chain') return finishChain()
+      if (draft?.kind === 'poly') return finishPoly()
+      if (!minimap) openMenu(e.clientX, e.clientY, hitOf(e))
       return
+    }
+    if (e.pointerType === 'touch' && !minimap && useStore.getState().tool === 'select') {
+      // Long-press opens the same menu on touch screens.
+      const hit = hitOf(e)
+      const sx = e.clientX
+      const sy = e.clientY
+      if (longPress.current) clearTimeout(longPress.current.timer)
+      longPress.current = {
+        sx,
+        sy,
+        timer: setTimeout(() => {
+          longPress.current = null
+          useStore.getState().cancel()
+          drag.current = null
+          openMenu(sx, sy, hit)
+        }, 550),
+      }
     }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     svgRef.current?.setPointerCapture(e.pointerId)
@@ -613,6 +644,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   }
 
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (longPress.current && Math.hypot(e.clientX - longPress.current.sx, e.clientY - longPress.current.sy) > 8) {
+      clearTimeout(longPress.current.timer)
+      longPress.current = null
+    }
     if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pinch.current && pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()]
@@ -809,6 +844,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   }
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (longPress.current) {
+      clearTimeout(longPress.current.timer)
+      longPress.current = null
+    }
     pointers.current.delete(e.pointerId)
     if (pinch.current) {
       if (pointers.current.size < 2) pinch.current = null
@@ -1072,6 +1111,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         </form>
       )}
       {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
+      {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
       {!minimap && underlayMode && <UnderlayBar />}
       {!minimap && (draft?.kind === 'chain' || draft?.kind === 'poly') && lengthInput === null && (
         <div className="draw-actions">

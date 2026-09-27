@@ -2100,3 +2100,35 @@ kbd {
   margin: 0;
   font-size: 15px;
 }
+
+.context-menu {
+  position: absolute;
+  z-index: 30;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.context-menu button {
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.context-menu button:hover,
+.context-menu button:focus-visible {
+  background: var(--panel-2);
+}
+
+.context-menu button.is-danger {
+  color: var(--danger);
+}

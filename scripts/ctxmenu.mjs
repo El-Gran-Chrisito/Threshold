@@ -1,0 +1,33 @@
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+page.on('pageerror', (e) => console.log('pageerror: ' + e.message))
+await page.goto('http://localhost:4173/')
+await page.waitForTimeout(800)
+if (await page.$('.welcome')) await page.click('text=Explore the example home')
+await page.click('.view-switch >> text=2D')
+await page.waitForTimeout(500)
+const toScreen = (pt) => page.evaluate(({ x, y }) => {
+  const svg = document.querySelector('.plan-svg')
+  const [vx, vy, vw, vh] = svg.getAttribute('viewBox').split(' ').map(Number)
+  const r = svg.getBoundingClientRect()
+  return { x: r.left + ((x - vx) / vw) * r.width, y: r.top + ((y - vy) / vh) * r.height }
+}, pt)
+const sofa = await page.evaluate(() => window.__threshold.store.getState().project.levels[0].items.find((i) => i.type === 'sofa-2'))
+let p = await toScreen(sofa)
+await page.mouse.click(p.x, p.y, { button: 'right' })
+await page.waitForTimeout(200)
+await page.screenshot({ path: `${out}/e1-context.png` })
+await page.click('.context-menu >> text=Rotate 90°')
+const rot = await page.evaluate((id) => window.__threshold.store.getState().project.levels[0].items.find((i) => i.id === id).rotation, sofa.id)
+console.log('sofa rotation', sofa.rotation, '->', rot)
+// Wall: west exterior wall of the living room at y = 4 ft
+p = await toScreen({ x: 0, y: 4 * 30.48 })
+await page.mouse.click(p.x, p.y, { button: 'right' })
+await page.waitForTimeout(150)
+const n0 = await page.evaluate(() => window.__threshold.store.getState().project.levels[0].openings.length)
+await page.click('.context-menu >> text=Add window here')
+const n1 = await page.evaluate(() => window.__threshold.store.getState().project.levels[0].openings.length)
+console.log('openings', n0, '->', n1)
+await browser.close()
