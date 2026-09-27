@@ -182,6 +182,8 @@ export const CATALOG: CatalogEntry[] = [
   // Structure
   { id: 'stairs', name: 'Stairs, straight', category: 'Structure', shape: 'stairs', w: 100, d: 330, h: 270, color: OAK, color2: WHITE, price: 3500, fitHeight: true, keywords: 'staircase steps' },
   { id: 'stairs-wide', name: 'Stairs, wide', category: 'Structure', shape: 'stairs', w: 130, d: 360, h: 270, color: WALNUT, color2: WHITE, price: 4500, fitHeight: true, keywords: 'staircase steps' },
+  { id: 'stairs-l', name: 'Stairs, L-shaped', category: 'Structure', shape: 'stairs-l', w: 200, d: 280, h: 270, color: OAK, color2: WHITE, price: 5500, fitHeight: true, keywords: 'staircase steps quarter turn landing corner' },
+  { id: 'stairs-u', name: 'Stairs, U-shaped', category: 'Structure', shape: 'stairs-u', w: 210, d: 300, h: 270, color: OAK, color2: WHITE, price: 6500, fitHeight: true, keywords: 'staircase steps half turn switchback landing' },
   { id: 'column', name: 'Column', category: 'Structure', shape: 'column', w: 30, d: 30, h: 270, color: WHITE, color2: WHITE, price: 300, fitHeight: true, keywords: 'pillar post' },
   { id: 'railing', name: 'Railing', category: 'Structure', shape: 'railing', w: 200, d: 5, h: 100, color: '#2A2B2D', color2: '#C29A6B', price: 400, keywords: 'balustrade guard' },
   { id: 'shelf', name: 'Open shelf', category: 'Structure', shape: 'shelf', w: 91, d: 25, h: 4, elevation: 150, mount: 'wall', color: '#C29A6B', color2: '#2A2B2D', price: 90, keywords: 'floating wall shelf' },
@@ -203,4 +205,30 @@ export function searchCatalog(q: string, category?: Category | 'All'): CatalogEn
     if (!needle) return true
     return `${c.name} ${c.category} ${c.keywords ?? ''}`.toLowerCase().includes(needle)
   })
+}
+
+export const isStairs = (shape: string) => shape === 'stairs' || shape === 'stairs-l' || shape === 'stairs-u'
+
+/** Width of one flight of a turning stair, in the item's own units. */
+export function stairFlight(shape: string, w: number, d: number): number {
+  return shape === 'stairs-u' ? Math.min(100, w * 0.45) : Math.min(100, Math.min(w, d) * 0.5)
+}
+
+/**
+ * Plan outline of a stair in its local frame (centred, y towards the foot).
+ * Straight and U stairs fill their box; an L stair leaves its inside corner open.
+ */
+export function stairOutline(shape: string, w: number, d: number): Array<{ x: number; y: number }> {
+  const hw = w / 2
+  const hd = d / 2
+  if (shape !== 'stairs-l') return [{ x: -hw, y: -hd }, { x: hw, y: -hd }, { x: hw, y: hd }, { x: -hw, y: hd }]
+  const f = stairFlight(shape, w, d)
+  return [
+    { x: hw - f, y: hd },
+    { x: hw, y: hd },
+    { x: hw, y: -hd },
+    { x: -hw, y: -hd },
+    { x: -hw, y: -hd + f },
+    { x: hw - f, y: -hd + f },
+  ]
 }

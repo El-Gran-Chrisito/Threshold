@@ -19,6 +19,8 @@ export interface Part {
   metal?: number
 }
 
+import { stairFlight } from '../model/catalog'
+
 type C = string
 
 const DARK = '#1E1F21'
@@ -522,6 +524,38 @@ export function buildParts(shape: string, W: number, D: number, H: number, c1: C
       const railLen = Math.hypot(D, H)
       const ang = Math.atan2(H, D)
       parts.push({ g: 'box', p: [hw - 0.03, H / 2 + railH + rise * 0.5, 0], s: [0.05, 0.05, railLen], c: c1, r: [ang, 0, 0] })
+      return parts
+    }
+    case 'stairs-l':
+    case 'stairs-u': {
+      // Flight one rises along -z on the +x side to a landing at the back;
+      // flight two turns left (L) or comes back along +z on the -x side (U).
+      const u = shape === 'stairs-u'
+      const n = Math.max(5, Math.round(H / 0.18))
+      const rise = H / n
+      const fw = stairFlight(shape, W * 100, D * 100) / 100
+      const n1 = Math.floor((n - 1) / 2)
+      const n2 = n - 1 - n1
+      const parts: Part[] = []
+      const step = (x0: number, z0: number, x1: number, z1: number, y: number) => {
+        parts.push(B(x0, 0, z0, x1, y, z1, c2, { rough: 0.8 }))
+        parts.push(B(x0, y - 0.025, z0, x1, y + 0.005, z1, c1))
+      }
+      const run1 = (D - fw) / n1
+      for (let i = 0; i < n1; i++) step(hw - fw, hd - (i + 1) * run1, hw, hd - i * run1, (i + 1) * rise)
+      const yl = (n1 + 1) * rise
+      if (u) step(-hw, -hd, hw, -hd + fw, yl)
+      else step(hw - fw, -hd, hw, -hd + fw, yl)
+      if (u) {
+        const run2 = (D - fw) / n2
+        for (let j = 0; j < n2; j++) step(-hw, -hd + fw + j * run2, -hw + fw, -hd + fw + (j + 1) * run2, (n1 + 2 + j) * rise)
+      } else {
+        const run2 = (W - fw) / n2
+        for (let j = 0; j < n2; j++) step(hw - fw - (j + 1) * run2, -hd, hw - fw - j * run2, -hd + fw, (n1 + 2 + j) * rise)
+      }
+      // Newel posts at the landing corners.
+      parts.push(B(hw - fw - 0.03, 0, -hd + fw - 0.03, hw - fw + 0.03, yl + 0.95, -hd + fw + 0.03, c1))
+      if (u) parts.push(B(-hw + fw - 0.03, 0, -hd + fw - 0.03, -hw + fw + 0.03, yl + 0.95, -hd + fw + 0.03, c1))
       return parts
     }
     case 'column':

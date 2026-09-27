@@ -4,8 +4,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Item, Level, Lot, Opening, Project, Room, Vec2, Wall } from '../model/types'
 import { activeLevel, useStore } from '../store/store'
-import { catalogEntry } from '../model/catalog'
-import { dist, pointInPolygon, rectCorners, sub } from '../model/geometry'
+import { catalogEntry, isStairs, stairOutline } from '../model/catalog'
+import { dist, pointInPolygon, rotate, sub } from '../model/geometry'
 import { exteriorSides, levelBounds, paintRoomWalls, updateWall } from '../model/ops'
 import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
@@ -537,7 +537,9 @@ function RoofMesh({ level, wallColor, endFinish }: { level: Level; wallColor: st
 function stairHoles(project: Project, level: Level): Vec2[][] {
   const below = project.levels.filter((l) => l.elevation < level.elevation).sort((a, b) => b.elevation - a.elevation)[0]
   if (!below) return []
-  return below.items.filter((i) => catalogEntry(i.type).shape === 'stairs').map((i) => rectCorners(i, i.width + 4, i.depth + 4, i.rotation))
+  return below.items
+    .filter((i) => isStairs(catalogEntry(i.type).shape))
+    .map((i) => stairOutline(catalogEntry(i.type).shape, i.width + 4, i.depth + 4).map((p) => rotate({ x: p.x + i.x, y: p.y + i.y }, i.rotation, i)))
 }
 
 const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index, multi, hide }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number; multi: string[]; hide: string }) {

@@ -3,7 +3,7 @@
  * the object to select so it can be fixed in one click.
  */
 import type { Item, Level, Selection, Vec2 } from './types'
-import { catalogEntry } from './catalog'
+import { catalogEntry, isStairs } from './catalog'
 import { add, norm, normalOf, pointInPolygon, rectCorners, scale, sub } from './geometry'
 import { roomWallSides, wallLength } from './ops'
 import { floorMaterial } from './materials'
@@ -121,7 +121,7 @@ export function checkLevel(level: Level): Issue[] {
   // Furniture standing outside every room.
   for (const i of level.items) {
     const c = catalogEntry(i.type)
-    if (c.category === 'Outdoor' || c.shape === 'stairs') continue
+    if (c.category === 'Outdoor' || isStairs(c.shape)) continue
     if (!level.rooms.some((r) => pointInPolygon(i, r.points))) issues.push({ level: 'tip', text: `${names(i)} is outside every room`, select: { kind: 'item', id: i.id } })
   }
 

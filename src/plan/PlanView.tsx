@@ -21,7 +21,7 @@ import {
   wallLength,
 } from '../model/ops'
 import { makeItem, makeLabel, makeOpening, uid } from '../model/factory'
-import { catalogEntry } from '../model/catalog'
+import { catalogEntry, isStairs, stairOutline } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { alignItem, snapPoint, type ItemGuide, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
@@ -1026,10 +1026,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         {otherLevel && (
           <g pointerEvents="none">
             {otherLevel.items
-              .filter((i) => catalogEntry(i.type).shape === 'stairs')
+              .filter((i) => isStairs(catalogEntry(i.type).shape))
               .map((i) => (
                 <g key={i.id} transform={`translate(${i.x} ${i.y}) rotate(${i.rotation})`}>
-                  <rect x={-i.width / 2} y={-i.depth / 2} width={i.width} height={i.depth} className="stair-hole" strokeWidth={px * 1.5} />
+                  <path d={`M ${stairOutline(catalogEntry(i.type).shape, i.width, i.depth).map((p) => `${p.x} ${p.y}`).join(' L ')} Z`} className="stair-hole" strokeWidth={px * 1.5} />
                   <text y={0} fontSize={11 * px} textAnchor="middle" dominantBaseline="middle" className="stair-hole-text">
                     Stairs up from below
                   </text>

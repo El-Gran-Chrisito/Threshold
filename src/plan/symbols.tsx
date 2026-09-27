@@ -3,6 +3,7 @@
  * frame: centred on the origin, width along x, depth along y, front at +y.
  */
 import type { ReactNode } from 'react'
+import { stairFlight, stairOutline } from '../model/catalog'
 
 interface P {
   w: number
@@ -383,6 +384,42 @@ export function ItemSymbol({ w, d, color, color2, shape, px }: P): ReactNode {
           ))}
           <path d={`M 0 ${hd - sd * 0.5} V ${-hd + sd * 0.8} M ${-w * 0.14} ${-hd + sd * 1.8} L 0 ${-hd + sd * 0.8} L ${w * 0.14} ${-hd + sd * 1.8}`} {...line} strokeWidth={px * 1.8} />
           <text x={0} y={hd - sd * 1.6} className="sym-text" fontSize={Math.min(w * 0.18, 20)} textAnchor="middle" dominantBaseline="middle" transform={`rotate(0)`}>
+            UP
+          </text>
+        </g>
+      )
+    }
+    case 'stairs-l':
+    case 'stairs-u': {
+      const u = shape === 'stairs-u'
+      const f = stairFlight(shape, w, d)
+      const n1 = Math.max(3, Math.round((d - f) / 26))
+      const s1 = (d - f) / n1
+      const n2 = Math.max(3, Math.round((u ? d - f : w - f) / 26))
+      const s2 = ((u ? d : w) - f) / n2
+      const outline = stairOutline(shape, w, d)
+      const treads: string[] = []
+      for (let i = 1; i < n1; i++) treads.push(`M ${hw - f} ${hd - i * s1} H ${hw}`)
+      treads.push(`M ${hw - f} ${-hd + f} H ${hw}`)
+      if (u) {
+        treads.push(`M ${-hw} ${-hd + f} H ${-hw + f}`)
+        for (let j = 1; j < n2; j++) treads.push(`M ${-hw} ${-hd + f + j * s2} H ${-hw + f}`)
+      } else {
+        treads.push(`M ${hw - f} ${-hd} V ${-hd + f}`)
+        for (let j = 1; j < n2; j++) treads.push(`M ${hw - f - j * s2} ${-hd} V ${-hd + f}`)
+      }
+      const mx = hw - f / 2
+      const my = -hd + f / 2
+      const arrow = u ? `M ${mx} ${hd - s1 * 0.5} V ${my} H ${-hw + f / 2} V ${hd - s2 * 0.8}` : `M ${mx} ${hd - s1 * 0.5} V ${my} H ${-hw + s2 * 0.8}`
+      const tip = u ? { x: -hw + f / 2, y: hd - s2 * 0.8, dx: 0, dy: 1 } : { x: -hw + s2 * 0.8, y: my, dx: -1, dy: 0 }
+      const a = Math.min(f * 0.14, 14)
+      return (
+        <g>
+          <path d={`M ${outline.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`} {...body} />
+          <path d={treads.join(' ')} {...line} />
+          <path d={arrow} {...line} strokeWidth={px * 1.8} fill="none" />
+          <path d={`M ${tip.x - tip.dx * a * 1.6 - tip.dy * a} ${tip.y - tip.dy * a * 1.6 + tip.dx * a} L ${tip.x} ${tip.y} L ${tip.x - tip.dx * a * 1.6 + tip.dy * a} ${tip.y - tip.dy * a * 1.6 - tip.dx * a}`} {...line} strokeWidth={px * 1.8} fill="none" />
+          <text x={mx} y={hd - s1 * 1.6} className="sym-text" fontSize={Math.min(f * 0.3, 20)} textAnchor="middle" dominantBaseline="middle">
             UP
           </text>
         </g>
