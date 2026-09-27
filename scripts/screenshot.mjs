@@ -1,0 +1,28 @@
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const url = process.argv[3] ?? 'http://localhost:4173/'
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const errors = []
+page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`) })
+page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
+await page.goto(url)
+await page.waitForTimeout(4000)
+await page.screenshot({ path: `${out}/01-split.png` })
+await page.click('text=3D')
+await page.waitForTimeout(2500)
+await page.screenshot({ path: `${out}/02-3d.png` })
+await page.click('text=Outside')
+await page.waitForTimeout(2000)
+await page.screenshot({ path: `${out}/03-outside.png` })
+await page.click('text=Explode')
+await page.waitForTimeout(3000)
+await page.screenshot({ path: `${out}/04-explode.png` })
+await page.click('.view-switch >> text=Walk')
+await page.waitForTimeout(2500)
+await page.screenshot({ path: `${out}/05-walk.png` })
+await page.click('.view-switch >> text=2D')
+await page.waitForTimeout(1500)
+await page.screenshot({ path: `${out}/06-plan.png` })
+console.log(errors.slice(0, 30).join('\n') || 'no console errors')
+await browser.close()
