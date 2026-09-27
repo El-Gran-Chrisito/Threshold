@@ -271,6 +271,17 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
           ))}
         </div>
       </Field>
+      {['planks', 'parquet', 'tiles', 'marble', 'brick', 'deck', 'hex'].includes(fm.pattern) && (
+        <Field label="Pattern direction">
+          <div className="chip-wrap">
+            {[0, 45, 90, 135].map((a) => (
+              <button key={a} type="button" className={`chip${(r.floorAngle ?? 0) === a ? ' is-on' : ''}`} onClick={() => upd({ floorAngle: a })}>
+                {a}°
+              </button>
+            ))}
+          </div>
+        </Field>
+      )}
       {fm.pattern === 'solid' || fm.pattern === 'carpet' || fm.pattern === 'concrete' ? (
         <Field label="Floor colour">
           <Swatches label="Floor colour" swatches={PAINTS} value={r.floorColor ?? fm.base} onChange={(c) => upd({ floorColor: c })} />

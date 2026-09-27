@@ -390,6 +390,22 @@ export function ItemSymbol({ w, d, color, color2, shape, px }: P): ReactNode {
     }
     case 'column':
       return r(-hw, -hd, w, d, { ...body, className: 'sym-solid' })
+    case 'plate':
+      return (
+        <g>
+          <circle cx={0} cy={0} r={Math.max(Math.max(hw, hd) * 1.6, 5 * px)} {...body} />
+          <path d={`M ${-Math.max(hw, 3 * px)} 0 H ${Math.max(hw, 3 * px)}`} {...line} />
+        </g>
+      )
+    case 'fan':
+      return (
+        <g>
+          <circle cx={0} cy={0} r={Math.min(hw, hd) * 0.15} {...body} />
+          {Array.from({ length: 5 }, (_, i) => (
+            <ellipse key={i} cx={Math.min(hw, hd) * 0.55} cy={0} rx={Math.min(hw, hd) * 0.42} ry={Math.min(hw, hd) * 0.08} transform={`rotate(${i * 72})`} {...dashed} />
+          ))}
+        </g>
+      )
     case 'bench':
     case 'shelf':
     case 'towel-rack':

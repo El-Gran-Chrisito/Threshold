@@ -62,6 +62,8 @@ export interface Room {
   points: Vec2[]
   floor: string // material id
   floorColor?: string // tint override for solid materials
+  /** Direction of planks/tiles in degrees (0 = along x). */
+  floorAngle?: number
   ceilingColor: string
   showCeiling: boolean
 }

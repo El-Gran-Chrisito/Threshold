@@ -260,7 +260,23 @@ function roomShape(r: Room, holes: Vec2[][]): THREE.Shape {
 
 const FloorMesh = memo(function FloorMesh({ room, holes, slab, showCeiling, ceilingY, selected }: { room: Room; holes: Vec2[][]; slab: number; showCeiling: boolean; ceilingY: number; selected: boolean }) {
   const shape = useMemo(() => roomShape(room, holes), [room, holes])
-  const geo = useMemo(() => new THREE.ExtrudeGeometry(shape, { depth: slab * M, bevelEnabled: false }), [shape, slab])
+  const angle = room.floorAngle ?? 0
+  const geo = useMemo(() => {
+    const g = new THREE.ExtrudeGeometry(shape, { depth: slab * M, bevelEnabled: false })
+    if (angle) {
+      // Turn the pattern: rotate the texture coordinates (which are in metres).
+      const uv = g.attributes.uv
+      const c = Math.cos((angle * Math.PI) / 180)
+      const s = Math.sin((angle * Math.PI) / 180)
+      for (let i = 0; i < uv.count; i++) {
+        const u = uv.getX(i)
+        const v = uv.getY(i)
+        uv.setXY(i, u * c - v * s, u * s + v * c)
+      }
+      uv.needsUpdate = true
+    }
+    return g
+  }, [shape, slab, angle])
   const ceilGeo = useMemo(() => new THREE.ShapeGeometry(shape), [shape])
   useEffect(() => () => geo.dispose(), [geo])
   useEffect(() => () => ceilGeo.dispose(), [ceilGeo])

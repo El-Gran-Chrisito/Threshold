@@ -13,6 +13,7 @@ export type Category =
   | 'Office'
   | 'Laundry'
   | 'Lighting'
+  | 'Electrical'
   | 'Decor'
   | 'Outdoor'
   | 'Structure'
@@ -26,6 +27,7 @@ export const CATEGORIES: Category[] = [
   'Office',
   'Laundry',
   'Lighting',
+  'Electrical',
   'Decor',
   'Outdoor',
   'Structure',
@@ -146,6 +148,14 @@ export const CATALOG: CatalogEntry[] = [
   { id: 'sconce', name: 'Wall sconce', category: 'Lighting', shape: 'sconce', w: 18, d: 15, h: 28, elevation: 165, mount: 'wall', color: '#B89457', color2: '#FFE7B0', price: 120 },
   { id: 'recessed', name: 'Recessed light', category: 'Lighting', shape: 'ceiling-light', w: 15, d: 15, h: 2, mount: 'ceiling', color: '#F1F0EC', color2: '#FFE7B0', price: 90, keywords: 'downlight can pot' },
   { id: 'ceiling-light', name: 'Ceiling light', category: 'Lighting', shape: 'ceiling-light', w: 40, d: 40, h: 10, mount: 'ceiling', color: WHITE, color2: '#FFE7B0', price: 120, keywords: 'flush mount' },
+
+  // Electrical
+  { id: 'outlet', name: 'Outlet', category: 'Electrical', shape: 'plate', w: 7, d: 1, h: 12, elevation: 30, mount: 'wall', color: '#F4F2EC', color2: '#8C8F92', price: 150, keywords: 'socket receptacle plug' },
+  { id: 'switch', name: 'Light switch', category: 'Electrical', shape: 'plate', w: 7, d: 1, h: 12, elevation: 120, mount: 'wall', color: '#F4F2EC', color2: '#8C8F92', price: 120 },
+  { id: 'thermostat', name: 'Thermostat', category: 'Electrical', shape: 'plate', w: 10, d: 2.5, h: 10, elevation: 150, mount: 'wall', color: '#2A2B2D', color2: '#6FB6C8', price: 250 },
+  { id: 'smoke-alarm', name: 'Smoke alarm', category: 'Electrical', shape: 'ceiling-light', w: 13, d: 13, h: 4, mount: 'ceiling', color: '#F4F2EC', color2: '#E0E0E0', price: 60, keywords: 'detector co' },
+  { id: 'ceiling-fan', name: 'Ceiling fan', category: 'Electrical', shape: 'fan', w: 132, d: 132, h: 40, mount: 'ceiling', color: '#6A4630', color2: '#2A2B2D', price: 350 },
+  { id: 'ev-charger', name: 'EV charger', category: 'Electrical', shape: 'plate', w: 25, d: 10, h: 38, elevation: 110, mount: 'wall', color: '#2A2B2D', color2: '#2BB3A9', price: 1200, keywords: 'car electric garage' },
 
   // Decor
   { id: 'plant', name: 'Floor plant', category: 'Decor', shape: 'plant', w: 55, d: 55, h: 130, color: '#4F7A45', color2: '#B9785A', price: 80, keywords: 'tree fiddle' },

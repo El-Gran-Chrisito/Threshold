@@ -526,6 +526,16 @@ export function buildParts(shape: string, W: number, D: number, H: number, c1: C
     }
     case 'column':
       return [B(-hw, 0, -hd, hw, H, hd, c1)]
+    case 'plate':
+      return [B(-hw, 0, -hd, hw, H, hd, c1, { rough: 0.4 }), B(-hw * 0.4, H * 0.3, hd, hw * 0.4, H * 0.7, hd + 0.003, c2)]
+    case 'fan': {
+      const parts: Part[] = [Cy(0, 0, H * 0.6, H, 0.02, 0.02, c2, { metal: 0.6 }), Cy(0, 0, H * 0.35, H * 0.6, 0.18, 0.18, c2, { metal: 0.6 }), Cy(0, 0, H * 0.2, H * 0.35, 0.16, 0.16, '#FFE7B0', { e: 1 })]
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2
+        parts.push({ g: 'box', p: [(Math.cos(a) * W) / 4, H * 0.45, (Math.sin(a) * D) / 4], s: [W / 2 - 0.1, 0.012, 0.13], c: c1, r: [0, -a, 0] })
+      }
+      return parts
+    }
     case 'bench':
       return [B(-hw, H - 0.05, -hd, hw, H, hd, c1), B(-hw + 0.04, 0, -hd + 0.04, -hw + 0.08, H - 0.05, hd - 0.04, c2), B(hw - 0.08, 0, -hd + 0.04, hw - 0.04, H - 0.05, hd - 0.04, c2)]
     case 'towel-rack':

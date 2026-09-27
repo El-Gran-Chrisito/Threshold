@@ -17,7 +17,7 @@ bun run build:single # one self-contained HTML file in dist-single/
 | Area | Features |
 | --- | --- |
 | Plan (2D) | Rectangle and free-shape rooms, walls with typed lengths, shared walls, doors/windows/sliders/archways/garage doors, snapping (grid, corners, alignment guides, 15° angles), drag/resize/rotate handles, measure, text labels, auto-detect rooms from walls |
-| Furniture | 93 parametric items in 11 categories, auto-backs onto walls, any size, two colours each, mirror, lock, swap, copy/paste |
+| Furniture | 99 parametric items in 12 categories (incl. electrical), auto-backs onto walls, any size, two colours each, mirror, lock, swap, copy/paste |
 | Finishes | Paint per wall side or per room, 18 floor finishes with real-scale textures, ceilings, exterior colour, roof colour |
 | Levels | Multiple floors, basement, stair openings cut through floors, flat/gable/hip/shed roofs with pitch and overhang |
 | 3D | Orbit view, inside (cutaway) and outside views, exploded view, low-wall view, sun position by time of day, click-to-select and click-to-paint |
