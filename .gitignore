@@ -28,3 +28,4 @@ dist-single
 .license/
 .env.local
 dist-test
+dist-home
