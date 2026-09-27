@@ -308,7 +308,7 @@ function View3DBar() {
         )}
         <label className="slider" htmlFor="sun-hour">
           <Icon name="sun" size={16} />
-          <input id="sun-hour" type="range" min={6} max={20} step={0.25} value={sunHour} onChange={(e) => set({ sunHour: Number(e.target.value) })} />
+          <input id="sun-hour" type="range" min={5} max={23} step={0.25} value={sunHour} onChange={(e) => set({ sunHour: Number(e.target.value) })} aria-label="Time of day" />
           <span className="num">
             {((hour + 11) % 12) + 1}:{String(mins).padStart(2, '0')} {hour < 12 ? 'am' : 'pm'}
           </span>

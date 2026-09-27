@@ -120,7 +120,8 @@ function OpeningMesh({ o, w, cut }: { o: Opening; w: Wall; cut: number | null })
   const s0 = o.offset - o.width / 2
   const s1 = o.offset + o.width / 2
   const frame = stdMat(o.frameColor, { rough: 0.6 })
-  const glass = stdMat('#BFD9E3', { opacity: 0.28, rough: 0.05, metal: 0.1 })
+  const night = useStore((s) => Math.round(nightFactor(s.sunHour) * 4) / 4)
+  const glass = night > 0 ? stdMat('#FFD9A0', { opacity: 0.35 + night * 0.4, rough: 0.05, emissive: night * 1.4 }) : stdMat('#BFD9E3', { opacity: 0.28, rough: 0.05, metal: 0.1 })
   const ft = 5 // frame thickness cm
   const fd = Math.min(t, 10) // frame depth
   const parts: React.ReactNode[] = []
@@ -288,6 +289,28 @@ const ItemMesh = memo(function ItemMesh({ item, selected, center }: { item: Item
 })
 
 // ---------------------------------------------------------------------------
+// Lamps: real point lights that fade in after dark. The number of lights only
+// changes when lamps are added or removed, so moving the time slider never
+// forces shaders to recompile.
+
+const LAMP_SHAPES: Record<string, number> = { 'floor-lamp': 0.85, 'table-lamp': 0.72, pendant: 0.1, chandelier: 0.5, 'ceiling-light': 0 }
+
+function LampLights({ items }: { items: Item[] }) {
+  const hour = useStore((s) => s.sunHour)
+  const night = nightFactor(hour)
+  const lamps = items.filter((i) => catalogEntry(i.type).shape in LAMP_SHAPES).slice(0, 10)
+  return (
+    <>
+      {lamps.map((i) => {
+        const shape = catalogEntry(i.type).shape
+        const y = i.elevation / 100 + (i.height / 100) * LAMP_SHAPES[shape] - (shape === 'ceiling-light' ? 0.05 : 0)
+        return <pointLight key={i.id} position={[i.x / 100, y, i.y / 100]} intensity={night * (shape === 'chandelier' ? 9 : 5)} distance={7} decay={1.6} color="#FFD8A0" />
+      })}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Roof
 
 function roofGeometry(level: Level): THREE.BufferGeometry | null {
@@ -431,6 +454,7 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
         if (cut && c.mount === 'wall' && i.elevation > cut) return null
         return <ItemMesh key={i.id} item={i} selected={active && (selectionId === i.id || multi.includes(i.id))} center={center} />
       })}
+      <LampLights items={level.items} />
       {showRoof && !cut && (
         <Exploding offset={[0, 3.2, 0]}>
           <RoofMesh level={level} wallColor={project.defaults.exteriorColor} />
@@ -444,14 +468,24 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
 // Lighting and camera
 
 function sunDirection(hour: number, north: number): THREE.Vector3 {
+  // After dark the "sun" becomes moonlight from high in the south-west.
+  if (hour > 20.25 || hour < 5.75) hour = 14.5
   const t = Math.min(1, Math.max(0, (hour - 6) / 14))
   const elev = Math.max(0.08, Math.sin(t * Math.PI)) * (Math.PI / 180) * 62
   const az = ((90 + t * 180 + north) * Math.PI) / 180
   return new THREE.Vector3(Math.sin(az) * Math.cos(elev), Math.sin(elev), -Math.cos(az) * Math.cos(elev)).normalize()
 }
 
+/** 0 in daylight, 1 at night; eases through dusk and dawn. */
+export function nightFactor(hour: number): number {
+  if (hour >= 7 && hour <= 18.5) return 0
+  if (hour > 18.5) return Math.min(1, (hour - 18.5) / 1.75)
+  return Math.min(1, (7 - hour) / 1.5)
+}
+
 function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; radius: number; hour: number; north: number; indoor: boolean }) {
   const light = useRef<THREE.DirectionalLight>(null)
+  const night = nightFactor(hour)
   const dir = sunDirection(hour, north)
   const pos = center.clone().add(dir.clone().multiplyScalar(radius * 2 + 10))
   const low = dir.y < 0.35
@@ -472,9 +506,9 @@ function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; r
   }, [center, radius])
   return (
     <>
-      <directionalLight ref={light} position={pos} intensity={low ? 1.6 : 2.3} color={low ? '#FFD6A8' : '#FFF6E8'} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
-      <hemisphereLight args={['#DDE8F0', '#8C8474', (low ? 0.9 : 1.1) * (indoor ? 1.7 : 1)]} />
-      <ambientLight intensity={indoor ? 0.75 : 0.25} />
+      <directionalLight ref={light} position={pos} intensity={(low ? 1.6 : 2.3) * (1 - night * 0.93)} color={night > 0.3 ? '#9FB4E8' : low ? '#FFD6A8' : '#FFF6E8'} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
+      <hemisphereLight args={[night > 0.5 ? '#5C6E99' : '#DDE8F0', '#8C8474', (low ? 0.9 : 1.1) * (indoor ? 1.7 : 1) * (1 - night * 0.8)]} />
+      <ambientLight intensity={(indoor ? 0.75 : 0.25) * (1 - night * 0.7)} />
     </>
   )
 }
@@ -566,6 +600,8 @@ export function Scene3D({ walk }: { walk: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.levels.length, zoomRequest, active.id, walk, isEmpty])
 
+  const nightNow = nightFactor(sunHour)
+  const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
   const levels = [...project.levels].sort((a, b) => a.elevation - b.elevation)
   const visible = walk ? levels : cutaway ? levels.filter((l) => l.elevation <= active.elevation) : levels
   const topVisible = visible[visible.length - 1]
@@ -620,8 +656,8 @@ export function Scene3D({ walk }: { walk: boolean }) {
         if (e.type === 'click' && useStore.getState().tool === 'select') useStore.getState().select(null)
       }}
     >
-      <color attach="background" args={[bg]} />
-      <fog attach="fog" args={[bg, radius * 4 + 30, radius * 10 + 90]} />
+      <color attach="background" args={[skyColor]} />
+      <fog attach="fog" args={[skyColor, radius * 4 + 30, radius * 10 + 90]} />
       <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
       {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
       <group onClick={onClick}>
