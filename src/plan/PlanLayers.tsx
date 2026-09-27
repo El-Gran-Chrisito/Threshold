@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react'
 import type { Dimension, Item, Label, Level, Lot, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
 import { add, angleDeg, bounds, dist, labelPoint, lerp, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
-import { exteriorSides, roomArea } from '../model/ops'
+import { exteriorSides, rectSides, roomArea } from '../model/ops'
 import { formatArea, formatLength } from '../model/units'
 import { floorMaterial } from '../model/materials'
 import { catalogEntry } from '../model/catalog'
@@ -30,17 +30,20 @@ export const RoomsLayer = memo(function RoomsLayer({ level, px, selection }: { l
 })
 
 /** Room names and areas, drawn above furniture so they stay readable. */
-export const RoomLabelsLayer = memo(function RoomLabelsLayer({ level, px, units, showDims }: { level: Level; px: number; units: UnitSystem; showDims: boolean }) {
+export const RoomLabelsLayer = memo(function RoomLabelsLayer({ level, px, units, showDims, editable = false, editing }: { level: Level; px: number; units: UnitSystem; showDims: boolean; editable?: boolean; editing?: string }) {
   return (
     <g pointerEvents="none">
       {level.rooms.map((r) => (
-        <RoomLabel key={r.id} room={r} px={px} units={units} showDims={showDims} />
+        <RoomLabel key={r.id} room={r} px={px} units={units} showDims={showDims} editable={editable} editing={editing?.startsWith(`${r.id}:`) ? editing.slice(r.id.length + 1) : undefined} />
       ))}
     </g>
   )
 })
 
-const RoomLabel = memo(function RoomLabel({ room, px, units, showDims }: { room: Room; px: number; units: UnitSystem; showDims: boolean }) {
+export type RoomLabelField = 'name' | 'area' | 'dims'
+
+/** Where a room's name, area and size sit (plan units, relative to the label point). */
+export function roomLabelLayout(room: Room, px: number, units: UnitSystem, showDims: boolean) {
   const p = labelPoint(room.points)
   const b = bounds(room.points)
   const minSidePx = Math.min(b.maxX - b.minX, b.maxY - b.minY) / px
@@ -48,25 +51,41 @@ const RoomLabel = memo(function RoomLabel({ room, px, units, showDims }: { room:
   if (minSidePx < 26) return null
   const fs = Math.min(12.5, Math.max(9, widthPx / Math.max(6, room.name.length) / 0.62)) * px
   const compact = minSidePx < 64
-  let dims: string | null = null
-  if (room.points.length === 4 && showDims && !compact) {
-    const w = dist(room.points[0], room.points[1])
-    const h = dist(room.points[1], room.points[2])
-    dims = `${formatLength(w, units, { compact: true })} × ${formatLength(h, units, { compact: true })}`
+  const sides = rectSides(room)
+  const dims = sides && showDims && !compact ? `${formatLength(sides.a, units, { compact: true })} × ${formatLength(sides.b, units, { compact: true })}` : null
+  return {
+    p,
+    fs,
+    compact,
+    name: { y: dims ? -fs * 0.9 : compact ? fs * 0.35 : -fs * 0.3, size: fs, text: room.name },
+    area: compact ? null : { y: dims ? fs * 0.35 : fs * 0.95, size: fs * 0.85, text: formatArea(roomArea(room), units) },
+    dims: dims ? { y: fs * 1.45, size: fs * 0.8, text: dims } : null,
   }
+}
+
+const RoomLabel = memo(function RoomLabel({ room, px, units, showDims, editable, editing }: { room: Room; px: number; units: UnitSystem; showDims: boolean; editable: boolean; editing?: string }) {
+  const L = roomLabelLayout(room, px, units, showDims)
+  if (!L) return null
+  // Each line is a click target that opens an inline text box (in the select tool).
+  const hit = (field: RoomLabelField) => (editable ? { 'data-hit': `rl:${field}:${room.id}`, pointerEvents: 'auto' as const, className: `${field === 'name' ? 'room-name' : 'room-area'} is-editable` } : { className: field === 'name' ? 'room-name' : 'room-area' })
   return (
-    <g className="room-label" transform={`translate(${p.x} ${p.y})`} pointerEvents="none">
-      <text y={dims ? -fs * 0.9 : compact ? fs * 0.35 : -fs * 0.3} fontSize={fs} className="room-name" textAnchor="middle" strokeWidth={px * 3}>
-        {room.name}
-      </text>
-      {!compact && (
-        <text y={dims ? fs * 0.35 : fs * 0.95} fontSize={fs * 0.85} className="room-area" textAnchor="middle" strokeWidth={px * 3}>
-          {formatArea(roomArea(room), units)}
+    <g className="room-label" transform={`translate(${L.p.x} ${L.p.y})`} pointerEvents="none">
+      {editing !== 'name' && (
+        <text y={L.name.y} fontSize={L.name.size} textAnchor="middle" strokeWidth={px * 3} {...hit('name')}>
+          {L.name.text}
+          {editable && <title>Click to rename</title>}
         </text>
       )}
-      {dims && (
-        <text y={fs * 1.45} fontSize={fs * 0.8} className="room-area" textAnchor="middle" strokeWidth={px * 3}>
-          {dims}
+      {L.area && editing !== 'area' && (
+        <text y={L.area.y} fontSize={L.area.size} textAnchor="middle" strokeWidth={px * 3} {...hit('area')}>
+          {L.area.text}
+          {editable && <title>Click to type a new floor area</title>}
+        </text>
+      )}
+      {L.dims && editing !== 'dims' && (
+        <text y={L.dims.y} fontSize={L.dims.size} textAnchor="middle" strokeWidth={px * 3} {...hit('dims')}>
+          {L.dims.text}
+          {editable && <title>Click to type a new size</title>}
         </text>
       )}
     </g>

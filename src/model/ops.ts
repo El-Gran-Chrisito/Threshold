@@ -21,6 +21,7 @@ import {
   sideOf,
   signedArea,
   simplifyPolygon,
+  sub,
   subtractCovered,
 } from './geometry'
 import { makeRoom, makeWall } from './factory'
@@ -320,6 +321,56 @@ export function moveRoomEdge(base: Level, roomId: string, edgeIndex: number, dis
   const d = scale(outward, distance)
   let next = moveVertex(base, p, add(p, d))
   next = moveVertex(next, q, add(q, d))
+  return next
+}
+
+/** Side lengths of a room that is a rectangle (any rotation), in point order; null for other shapes. */
+export function rectSides(room: Room): { a: number; b: number } | null {
+  const p = room.points
+  if (p.length !== 4) return null
+  for (let i = 0; i < 4; i++) {
+    const u = sub(p[(i + 1) % 4], p[i])
+    const v = sub(p[(i + 2) % 4], p[(i + 1) % 4])
+    const lu = Math.hypot(u.x, u.y)
+    const lv = Math.hypot(v.x, v.y)
+    if (lu < 1 || lv < 1 || Math.abs((u.x * v.x + u.y * v.y) / (lu * lv)) > 0.02) return null
+  }
+  return { a: dist(p[0], p[1]), b: dist(p[1], p[2]) }
+}
+
+/**
+ * Set a rectangular room's side lengths. The second and third edges move
+ * outward (east and south for a room drawn from its top-left corner), taking
+ * their walls with them, exactly like dragging those edges.
+ */
+export function setRoomSides(level: Level, roomId: string, a: number, b: number): Level {
+  const room = level.rooms.find((r) => r.id === roomId)
+  const cur = room && rectSides(room)
+  if (!room || !cur) return level
+  let next = Math.abs(a - cur.a) > 0.05 ? moveRoomEdge(level, roomId, 1, a - cur.a) : level
+  if (Math.abs(b - cur.b) > 0.05) next = moveRoomEdge(next, roomId, 2, b - cur.b)
+  return next
+}
+
+/**
+ * Set a room's floor area, keeping its shape. Rectangles keep their
+ * proportions and grow east and south; other shapes scale from the top-left
+ * corner of their bounds. Walls and shared corners move with the room.
+ */
+export function setRoomArea(level: Level, roomId: string, cm2: number): Level {
+  const room = level.rooms.find((r) => r.id === roomId)
+  if (!room || cm2 <= 0) return level
+  const k = Math.sqrt(cm2 / roomArea(room))
+  if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-4) return level
+  const sides = rectSides(room)
+  if (sides) return setRoomSides(level, roomId, sides.a * k, sides.b * k)
+  const b = bounds(room.points)
+  const o = { x: b.minX, y: b.minY }
+  // Move far points first when growing (near first when shrinking) so a
+  // moved corner never lands on one that has not moved yet.
+  const order = [...room.points].sort((p, q) => (dist(q, o) - dist(p, o)) * (k > 1 ? 1 : -1))
+  let next = level
+  for (const p of order) next = moveVertex(next, p, { x: o.x + (p.x - o.x) * k, y: o.y + (p.y - o.y) * k })
   return next
 }
 

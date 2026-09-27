@@ -16,17 +16,20 @@ import {
   moveWall,
   paintRoomWalls,
   rectPoints,
+  roomArea,
+  setRoomArea,
+  setRoomSides,
   snapItemToWall,
   updateWall,
   wallLength,
 } from '../model/ops'
 import { makeItem, makeLabel, makeOpening, uid } from '../model/factory'
 import { catalogEntry, isStairs, stairOutline } from '../model/catalog'
-import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
+import { formatArea, formatLength, gridStep, parseArea, parseLength, parseSize, CM_PER_FT } from '../model/units'
 import { alignItem, snapPoint, type ItemGuide, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
 import { ContextMenu, type MenuState } from './ContextMenu'
-import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, LotLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
+import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, LotLayer, roomLabelLayout, type RoomLabelField, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
 interface Camera {
@@ -45,7 +48,7 @@ type Drag =
   | { kind: 'item-size'; id: string; axis: 'w' | 'd'; sign: number; orig: Item }
   | { kind: 'wall'; id: string; start: Vec2; moved: boolean }
   | { kind: 'vertex'; from: Vec2; moved: boolean }
-  | { kind: 'room'; id: string; start: Vec2; moved: boolean }
+  | { kind: 'room'; id: string; start: Vec2; moved: boolean; click?: () => void }
   | { kind: 'room-edge'; id: string; edge: number; start: Vec2 }
   | { kind: 'opening'; id: string; moved: boolean }
   | { kind: 'op-width'; id: string; sign: number; orig: Opening }
@@ -108,15 +111,51 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     useUnderlay.getState().load(levelId)
   }, [levelId])
   const [lengthInput, setLengthInput] = useState<string | null>(null)
+  const [labelEdit, setLabelEdit] = useState<{ id: string; field: RoomLabelField; text: string; orig: string; bad: boolean } | null>(null)
+  const openLabelEdit = (id: string, field: RoomLabelField) => {
+    const st = useStore.getState()
+    const r = activeLevel(st).rooms.find((x) => x.id === id)
+    if (!r) return
+    const L = roomLabelLayout(r, 1 / camRef.current.scale, st.project.units, st.showDims)
+    const text = field === 'name' ? r.name : field === 'area' ? formatArea(roomArea(r), st.project.units) : (L?.dims?.text ?? '')
+    setLabelEdit({ id, field, text, orig: text, bad: false })
+  }
+  const applyLabelEdit = (closeIfBad: boolean) => {
+    const e = labelEdit
+    if (!e) return
+    const st = useStore.getState()
+    const r = activeLevel(st).rooms.find((x) => x.id === e.id)
+    const t = e.text.trim()
+    if (!r || t === e.orig.trim()) return setLabelEdit(null)
+    const u = st.project.units
+    if (e.field === 'name') {
+      if (t) st.applyLevel((l) => ({ ...l, rooms: l.rooms.map((x) => (x.id === r.id ? { ...x, name: t } : x)) }))
+      return setLabelEdit(null)
+    }
+    if (e.field === 'dims') {
+      const v = parseSize(t, u)
+      if (!v || v.a < 30 || v.b < 30) return closeIfBad ? setLabelEdit(null) : setLabelEdit({ ...e, bad: true })
+      st.applyLevel((l) => setRoomSides(l, r.id, v.a, v.b))
+      st.notify(`${r.name} is now ${formatLength(v.a, u, { compact: true })} × ${formatLength(v.b, u, { compact: true })}. Undo to go back.`)
+      return setLabelEdit(null)
+    }
+    const v = parseArea(t, u)
+    if (!v || v < 900) return closeIfBad ? setLabelEdit(null) : setLabelEdit({ ...e, bad: true })
+    st.applyLevel((l) => setRoomArea(l, r.id, v))
+    st.notify(`${r.name} is now ${formatArea(v, u)}. Undo to go back.`)
+    setLabelEdit(null)
+  }
   const [altKey, setAltKey] = useState(false)
   const drag = useRef<Drag | null>(null)
   const applyTypedRef = useRef<(t: string) => void>(() => {})
   const longPress = useRef<{ sx: number; sy: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
-  const openMenu = (clientX: number, clientY: number, hit: string | null) => {
+  const openMenu = (clientX: number, clientY: number, hitIn: string | null) => {
+    let hit = hitIn
     const rect = wrapRef.current!.getBoundingClientRect()
     const at = toPlan(clientX, clientY)
     const s = useStore.getState()
+    if (hit?.startsWith('rl:')) hit = `room:${hit.split(':')[2]}`
     if (hit && !hit.startsWith('h:') && !hit.startsWith('dim:')) {
       const [kind, id] = hit.split(':')
       if (!(kind === 'item' && selectedItemIds(s).includes(id))) s.select({ kind: kind === 'ann' ? 'dim' : kind, id } as never)
@@ -427,6 +466,21 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         }
         if (hit?.startsWith('ann:')) {
           drag.current = panDrag(() => s.select({ kind: 'dim', id: hit.slice(4) }))
+          return
+        }
+        if (hit?.startsWith('rl:')) {
+          // A room's name, area or size: a click opens a text box; a drag still moves or pans.
+          const [, field, id] = hit.split(':') as [string, RoomLabelField, string]
+          const edit = () => {
+            s.select({ kind: 'room', id })
+            openLabelEdit(id, field)
+          }
+          if (s.selection?.kind === 'room' && s.selection.id === id) {
+            s.begin()
+            drag.current = { kind: 'room', id, start: p, moved: false, click: edit }
+          } else {
+            drag.current = panDrag(edit)
+          }
           return
         }
         if (hit?.startsWith('dim:')) {
@@ -909,6 +963,14 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         setHover(null)
         s.commit()
         return
+      case 'room':
+        if (!dr.moved && dr.click) {
+          s.cancel()
+          dr.click()
+          return
+        }
+        s.commit()
+        return
       default:
         s.commit()
     }
@@ -1041,7 +1103,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling' && (showElectrical || (catalogEntry(i.type).category !== 'Electrical' && i.type !== 'recessed'))} />
-        {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} />}
+        {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} editable={tool === 'select'} editing={labelEdit ? `${labelEdit.id}:${labelEdit.field}` : undefined} />}
         {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
         {showDims && !minimap && <WallDims level={level} px={px} units={units} interactive={tool === 'select'} />}
@@ -1138,6 +1200,40 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         </form>
       )}
       {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
+      {labelEdit &&
+        (() => {
+          const r = level.rooms.find((x) => x.id === labelEdit.id)
+          const L = r && roomLabelLayout(r, px, units, showDims)
+          const line = L && L[labelEdit.field]
+          if (!r || !L || !line) return null
+          const x = (L.p.x - cam.x0) * cam.scale
+          const y = (L.p.y + line.y - line.size * 0.3 - cam.y0) * cam.scale
+          const hint = labelEdit.field === 'dims' ? (units === 'imperial' ? `Type a size, like 12' x 14'` : 'Type a size, like 3.6 x 4.2 m') : labelEdit.field === 'area' ? (units === 'imperial' ? 'Type an area, like 250 sq ft' : 'Type an area, like 20 m²') : 'Room name'
+          return (
+            <form
+              className={`label-edit${labelEdit.bad ? ' is-bad' : ''}`}
+              style={{ left: x, top: y }}
+              onSubmit={(e) => {
+                e.preventDefault()
+                applyLabelEdit(false)
+              }}
+            >
+              <input
+                autoFocus
+                aria-label={hint}
+                value={labelEdit.text}
+                style={{ fontSize: Math.max(14, line.size * cam.scale), width: `${Math.max(8, labelEdit.text.length + 3)}ch` }}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setLabelEdit({ ...labelEdit, text: e.target.value, bad: false })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setLabelEdit(null)
+                }}
+                onBlur={() => applyLabelEdit(true)}
+              />
+              <span className="label-edit-hint">{labelEdit.bad ? `Could not read that. ${hint}` : `${hint} · Enter to apply`}</span>
+            </form>
+          )
+        })()}
       {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
       {!minimap && tool === 'measure' && measure && dist(measure.a, measure.b) > 5 && !drag.current && (
         <div className="draw-actions">

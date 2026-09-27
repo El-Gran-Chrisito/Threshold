@@ -95,6 +95,57 @@ export function parseLength(input: string, units: UnitSystem, bare: 'ft' | 'in' 
   return null
 }
 
+/** A room length typed without a unit: feet in imperial; in metric, metres up to 50, else centimetres. */
+function parseRoomLength(input: string, units: UnitSystem): number | null {
+  const t = input.trim()
+  if (units === 'metric' && /^\d+(?:[.,]\d+)?$/.test(t)) {
+    const v = parseFloat(t.replace(',', '.'))
+    return v <= 50 ? v * 100 : v
+  }
+  return parseLength(t, units)
+}
+
+/**
+ * Parse a room size such as `12' x 14'`, `12x14`, `31'6" × 69'`, `3.6 x 4.2 m`
+ * or `360 by 420 cm`. A unit written once at the end applies to both numbers.
+ * Returns centimetres, or null.
+ */
+export function parseSize(input: string, units: UnitSystem): { a: number; b: number } | null {
+  const parts = input
+    .trim()
+    .toLowerCase()
+    .split(/\s*(?:×|\*|\bby\b|x(?![a-z]))\s*/)
+    .filter(Boolean)
+  if (parts.length !== 2) return null
+  let [p, q] = parts
+  const unit = q.match(/(mm|cm|m)$/)?.[1]
+  if (unit && /^\d+(?:[.,]\d+)?$/.test(p.trim())) p = `${p}${unit}`
+  const a = parseRoomLength(p, units)
+  const b = parseRoomLength(q, units)
+  return a && b && a > 0 && b > 0 ? { a, b } : null
+}
+
+/**
+ * Parse a floor area such as `2,174 sq ft`, `2174`, `180 m²` or `180m2`.
+ * A number with no unit is read in the design's units. Returns cm², or null.
+ */
+export function parseArea(input: string, units: UnitSystem): number | null {
+  const s = input.trim().toLowerCase()
+  const m = s.match(/^(\d[\d,]*(?:\.\d+)?|\d*\.\d+)\s*(.*)$/)
+  if (!m) return null
+  // A comma before exactly three digits groups thousands; otherwise it is a decimal comma.
+  const raw = /,\d{3}(?!\d)/.test(m[1]) ? m[1].replace(/,/g, '') : m[1].replace(',', '.')
+  const v = parseFloat(raw)
+  if (!(v > 0)) return null
+  const u = m[2].replace(/\.$/, '').trim()
+  const sqft = /^(sq\.?\s*ft|sqft|ft2|ft²|sf|square\s+f(ee|oo)t)$/
+  const sqm = /^(sq\.?\s*m|m2|m²|square\s+met(re|er)s?)$/
+  if (!u) return units === 'metric' ? v * 10000 : v * CM2_PER_FT2
+  if (sqft.test(u)) return v * CM2_PER_FT2
+  if (sqm.test(u)) return v * 10000
+  return null
+}
+
 /** Default snapping grid in cm: 6 inches or 10 cm. */
 export function gridStep(units: UnitSystem): number {
   return units === 'imperial' ? CM_PER_IN * 6 : 10
