@@ -427,6 +427,58 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+// Reading comfort: remembered per device (a personal preference, not part of the design).
+type Comfort = { size: 1 | 1.12 | 1.25; spacing: boolean }
+
+function loadComfort(): Comfort {
+  try {
+    const raw = localStorage.getItem('threshold:comfort')
+    if (raw) return { size: 1, spacing: false, ...JSON.parse(raw) }
+  } catch {
+    /* storage unavailable */
+  }
+  return { size: 1, spacing: false }
+}
+
+function applyComfort(c: Comfort) {
+  const root = document.documentElement
+  root.style.setProperty('--ui-zoom', String(c.size))
+  root.classList.toggle('comfort-spacing', c.spacing)
+}
+
+applyComfort(loadComfort())
+
+function ComfortSettings() {
+  const [c, setC] = useState(loadComfort)
+  const update = (patch: Partial<Comfort>) => {
+    const next = { ...c, ...patch }
+    setC(next)
+    applyComfort(next)
+    try {
+      localStorage.setItem('threshold:comfort', JSON.stringify(next))
+    } catch {
+      /* storage unavailable */
+    }
+  }
+  return (
+    <section className="comfort">
+      <h3>Reading comfort</h3>
+      <div className="segmented" role="radiogroup" aria-label="Text size">
+        {([
+          [1, 'Text: normal'],
+          [1.12, 'Large'],
+          [1.25, 'Larger'],
+        ] as const).map(([v, label]) => (
+          <button key={v} type="button" role="radio" aria-checked={c.size === v} className={c.size === v ? 'is-on' : ''} onClick={() => update({ size: v })}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <Toggle id="comfort-spacing" checked={c.spacing} onChange={(v) => update({ spacing: v })} label="Extra space between letters, words and lines" />
+    </section>
+  )
+}
+
 function HelpSheet({ onClose }: { onClose: () => void }) {
   const rows: Array<[string, string]> = [
     ['V', 'Select and move things'],
@@ -462,6 +514,7 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
             <Icon name="close" />
           </button>
         </header>
+        <ComfortSettings />
         <ol className="help-steps">
           <li>
             <strong>Draw rooms.</strong> Pick Room and drag a rectangle. Rooms next to each other share walls.

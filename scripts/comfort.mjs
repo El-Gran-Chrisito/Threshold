@@ -1,0 +1,16 @@
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+page.on('pageerror', (e) => console.log('pageerror: ' + e.message))
+await page.goto('http://localhost:4173/')
+await page.waitForTimeout(800)
+if (await page.$('.welcome')) await page.click('text=Explore the example home')
+await page.click('.help-btn')
+await page.click('text=Larger')
+await page.click('text=Extra space between letters')
+await page.screenshot({ path: `${out}/d1-comfort-help.png` })
+await page.click('[aria-label="Close help"]')
+await page.waitForTimeout(300)
+await page.screenshot({ path: `${out}/d2-comfort-app.png` })
+await browser.close()

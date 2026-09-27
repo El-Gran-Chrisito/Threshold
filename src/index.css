@@ -387,7 +387,7 @@ hr {
 
 .panel-tabs {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   border-bottom: 1px solid var(--line);
   flex: none;
 }
@@ -758,11 +758,12 @@ hr {
 
 .stat-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .stat {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -2061,4 +2062,41 @@ kbd {
 .dim-text.is-editable:hover {
   text-decoration: underline;
   font-weight: 700;
+}
+
+:root {
+  --ui-zoom: 1;
+}
+
+.sidepanel,
+.toolrail,
+.sheet {
+  zoom: var(--ui-zoom);
+}
+
+.comfort-spacing body,
+.comfort-spacing {
+  letter-spacing: 0.035em;
+  word-spacing: 0.14em;
+}
+
+.comfort-spacing .inspector,
+.comfort-spacing .panel-body,
+.comfort-spacing .sheet {
+  line-height: 1.65;
+}
+
+.comfort {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-block: 10px;
+  background: var(--panel-2);
+  border-radius: 10px;
+}
+
+.comfort h3 {
+  margin: 0;
+  font-size: 15px;
 }
