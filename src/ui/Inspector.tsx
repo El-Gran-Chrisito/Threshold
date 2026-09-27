@@ -21,7 +21,8 @@ import {
   updateWall,
   wallLength,
 } from '../model/ops'
-import { makeOpening, OPENING_PRESETS, uid } from '../model/factory'
+import { makeItem, makeOpening, OPENING_PRESETS, uid } from '../model/factory'
+import { cabinetsAlongWall, checkLevel } from '../model/checks'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
 
@@ -119,6 +120,16 @@ function sideName(level: Level, w: Wall, side: 'A' | 'B'): string {
   return room ? room.name : 'Outside'
 }
 
+function addCabinets(w: Wall, side: 'A' | 'B', uppers: boolean) {
+  const s = useStore.getState()
+  const level = activeLevel(s)
+  const cabs = cabinetsAlongWall(level, w.id, side, uppers, makeItem)
+  if (!cabs.length) return s.notify('No free stretch of wall for cabinets')
+  s.applyLevel((l) => ({ ...l, items: [...l.items, ...cabs] }))
+  useStore.setState({ selection: { kind: 'item', id: cabs[0].id }, multi: cabs.map((c) => c.id) })
+  s.notify(`Added ${cabs.length} cabinets`)
+}
+
 function WallInspector({ w, level, units }: { w: Wall; level: Level; units: 'imperial' | 'metric' }) {
   const L = wallLength(w)
   const setLength = (newL: number) => {
@@ -167,6 +178,22 @@ function WallInspector({ w, level, units }: { w: Wall; level: Level; units: 'imp
           <Icon name="trash" size={16} /> Delete
         </button>
       </div>
+      <Field label="Kitchen cabinets along this wall" hint="Base cabinets with a counter; doors and low windows are left clear.">
+        <div className="btn-row">
+          {(['A', 'B'] as const)
+            .filter((side) => sideName(level, w, side) !== 'Outside')
+            .map((side) => (
+              <span key={side} className="btn-row">
+                <button type="button" className="btn" onClick={() => addCabinets(w, side, false)}>
+                  Base cabinets · {sideName(level, w, side)}
+                </button>
+                <button type="button" className="btn" onClick={() => addCabinets(w, side, true)}>
+                  + wall cabinets
+                </button>
+              </span>
+            ))}
+        </div>
+      </Field>
       <p className="tip">Drag the wall to move it. Drag its end dots to reshape. Joined walls and rooms follow.</p>
     </section>
   )
@@ -581,6 +608,34 @@ function exteriorColor(level: Level) {
   return s ? (s.side === 'A' ? s.wall.colorA : s.wall.colorB) : undefined
 }
 
+function DesignCheck({ level }: { level: Level }) {
+  const issues = checkLevel(level)
+  const problems = issues.filter((i) => i.level === 'problem')
+  const tips = issues.filter((i) => i.level === 'tip')
+  if (!level.rooms.length && !level.items.length) return null
+  return (
+    <Field label="Design check">
+      {issues.length === 0 ? (
+        <p className="check-ok">
+          <Icon name="check" size={16} /> No problems found on this floor
+        </p>
+      ) : (
+        <ul className="check-list">
+          {[...problems, ...tips].slice(0, 12).map((i, k) => (
+            <li key={k}>
+              <button type="button" className={`check-item is-${i.level}`} onClick={() => i.select && useStore.getState().select(i.select)}>
+                <span className="check-dot" aria-hidden />
+                {i.text}
+              </button>
+            </li>
+          ))}
+          {issues.length > 12 && <li className="muted">and {issues.length - 12} more</li>}
+        </ul>
+      )}
+    </Field>
+  )
+}
+
 function LevelSummary({ level }: { level: Level }) {
   const project = useStore((s) => s.project)
   const units = project.units
@@ -603,6 +658,7 @@ function LevelSummary({ level }: { level: Level }) {
           <span className="stat-k">Rooms</span>
         </div>
       </div>
+      <DesignCheck level={level} />
       {level.rooms.length > 0 && (
         <Field label="Rooms on this floor">
           <ul className="room-list">
