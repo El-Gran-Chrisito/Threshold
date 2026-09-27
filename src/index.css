@@ -2301,3 +2301,19 @@ kbd {
 .font-lexend {
   --font: 'Lexend', 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
+
+.lot-line {
+  fill: none;
+  stroke: var(--ink-2);
+}
+
+.setback-line {
+  fill: none;
+  stroke: var(--accent);
+  opacity: 0.8;
+}
+
+.lot-label {
+  fill: var(--ink-2);
+  font-weight: 600;
+}

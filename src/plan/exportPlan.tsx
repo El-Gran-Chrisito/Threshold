@@ -8,7 +8,7 @@ import type { Level, Project } from '../model/types'
 import { levelBounds, roomArea } from '../model/ops'
 import { formatArea, formatLength, CM_PER_FT } from '../model/units'
 import { catalogEntry } from '../model/catalog'
-import { ItemsLayer, KeptDims, LabelsLayer, OpeningsLayer, RoomLabelsLayer, RoomsLayer, WallDims, WallsLayer } from './PlanLayers'
+import { ItemsLayer, KeptDims, LabelsLayer, LotLayer, OpeningsLayer, RoomLabelsLayer, RoomsLayer, WallDims, WallsLayer } from './PlanLayers'
 
 // Fixed light-theme colours: the sheet is a document, not a themed UI.
 const SHEET_CSS = `
@@ -38,10 +38,15 @@ text{font-family:'Atkinson Hyperlegible Next',system-ui,-apple-system,'Segoe UI'
 .sheet-title{fill:#1c2226;font-weight:700}
 .sheet-sub{fill:#56626a}
 .sheet-rule{stroke:#1c2226}
+.lot-line{fill:none;stroke:#56626a}
+.setback-line{fill:none;stroke:#0b7a75}
+.lot-label{fill:#56626a;font-weight:600}
 `
 
 function PlanSheet({ project, level, width }: { project: Project; level: Level; width: number }) {
-  const b = levelBounds(level) ?? { minX: 0, minY: 0, maxX: 1000, maxY: 800 }
+  const lb = levelBounds(level) ?? { minX: 0, minY: 0, maxX: 1000, maxY: 800 }
+  const lot = project.site.lot
+  const b = lot ? { minX: Math.min(lb.minX, lot.x), minY: Math.min(lb.minY, lot.y), maxX: Math.max(lb.maxX, lot.x + lot.w), maxY: Math.max(lb.maxY, lot.y + lot.d) } : lb
   const margin = Math.max(150, (b.maxX - b.minX) * 0.08)
   const x0 = b.minX - margin
   const y0 = b.minY - margin
@@ -60,6 +65,7 @@ function PlanSheet({ project, level, width }: { project: Project; level: Level; 
     <svg xmlns="http://www.w3.org/2000/svg" width={width} height={Math.round(h * scale)} viewBox={`${x0} ${y0} ${w} ${h}`}>
       <style>{SHEET_CSS}</style>
       <rect x={x0} y={y0} width={w} height={h} className="plan-bg" />
+      {project.site.lot && <LotLayer lot={project.site.lot} px={px * 1.5} units={units} />}
       <RoomsLayer level={level} px={px} selection={null} />
       <ItemsLayer items={level.items} px={px * 1.3} selection={null} filter={(i) => catalogEntry(i.type).mount !== 'ceiling'} />
       <WallsLayer level={level} px={px} selection={null} />

@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import type { Dimension, Item, Label, Level, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
+import type { Dimension, Item, Label, Level, Lot, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
 import { add, angleDeg, bounds, dist, labelPoint, lerp, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
 import { exteriorSides, roomArea } from '../model/ops'
 import { formatArea, formatLength } from '../model/units'
@@ -7,6 +7,7 @@ import { floorMaterial } from '../model/materials'
 import { catalogEntry } from '../model/catalog'
 import { ItemSymbol } from './symbols'
 import { jointKeys, polyPath, spanPolygon, wallSpans } from './wallGeometry'
+import { buildable } from '../model/site'
 
 // ---------------------------------------------------------------------------
 // Rooms
@@ -303,6 +304,29 @@ export const WallDims = memo(function WallDims({ level, px, units, interactive =
     </g>
   )
 })
+
+/** Property lines (dash-dot), the setback line (dotted) and the lot's size. */
+export function LotLayer({ lot, px, units }: { lot: Lot; px: number; units: UnitSystem }) {
+  const b = buildable(lot)
+  const c = [
+    { x: lot.x, y: lot.y },
+    { x: lot.x + lot.w, y: lot.y },
+    { x: lot.x + lot.w, y: lot.y + lot.d },
+    { x: lot.x, y: lot.y + lot.d },
+  ]
+  const off = 26 * px
+  return (
+    <g className="lot" pointerEvents="none">
+      <rect x={lot.x} y={lot.y} width={lot.w} height={lot.d} className="lot-line" strokeWidth={2 * px} strokeDasharray={`${14 * px} ${5 * px} ${3 * px} ${5 * px}`} />
+      {b.maxX > b.minX && b.maxY > b.minY && <rect x={b.minX} y={b.minY} width={b.maxX - b.minX} height={b.maxY - b.minY} className="setback-line" strokeWidth={1.2 * px} strokeDasharray={`${3 * px} ${4 * px}`} />}
+      <DimLine a={c[0]} b={c[1]} px={px} units={units} offset={-off} />
+      <DimLine a={c[1]} b={c[2]} px={px} units={units} offset={-off} />
+      <text x={lot.x + lot.w / 2} y={lot.y + lot.d + 44 * px} fontSize={12 * px} textAnchor="middle" className="lot-label">
+        Front (street) · setbacks: front {formatLength(lot.front, units)}, sides {formatLength(lot.side, units)}, rear {formatLength(lot.rear, units)}
+      </text>
+    </g>
+  )
+}
 
 /** Dimension line with end ticks and a centred label. */
 export function DimLine({ a, b, px, units, offset = 0, label }: { a: Vec2; b: Vec2; px: number; units: UnitSystem; offset?: number; label?: string }) {

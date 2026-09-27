@@ -26,7 +26,8 @@ bun run build:single # one self-contained HTML file in dist-single/
 | 3D | Orbit view with inside and outside presets, views from top and each compass side, exploded view with layer tags and show/hide for roof, walls, floors and furniture, low walls, sun by time of day, night lighting from lamps, click to select, click to paint, drag furniture, double-click to focus, Fast 3D mode for slower devices |
 | Walk | First-person walk-through with wall collision, open doors, mini-map with position and heading |
 | Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude, via the artifact `sample` capability) |
-| Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
+| Site | Lot with property lines and front, side and rear setbacks on the plan, the plan sheet and in 3D; ground colour; north direction |
+| Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors, walls past the property line or inside a setback); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
 | Files | Autosave to the browser and, inside Claude, to the viewer's account; several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
 | Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing, Lexend or Atkinson Hyperlegible font), light and dark themes, phone layout |
 

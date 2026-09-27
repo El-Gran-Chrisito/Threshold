@@ -23,6 +23,7 @@ import {
 } from '../model/ops'
 import { makeItem, makeOpening, OPENING_PRESETS, uid } from '../model/factory'
 import { cabinetsAlongWall, checkLevel } from '../model/checks'
+import { lotIssues } from '../model/site'
 import { furnishRoom } from '../model/furnish'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
@@ -659,7 +660,8 @@ function exteriorColor(level: Level) {
 }
 
 function DesignCheck({ level }: { level: Level }) {
-  const issues = checkLevel(level)
+  const lot = useStore((s) => s.project.site.lot)
+  const issues = [...lotIssues(lot, level), ...checkLevel(level)]
   const problems = issues.filter((i) => i.level === 'problem')
   const tips = issues.filter((i) => i.level === 'tip')
   if (!level.rooms.length && !level.items.length) return null

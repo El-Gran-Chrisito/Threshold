@@ -134,11 +134,27 @@ export interface Level {
   roof: Roof
 }
 
+/**
+ * Property lines as a rectangle in plan space. The front (street) is the
+ * bottom edge of the plan. Setbacks are the required gaps between the
+ * property lines and the house.
+ */
+export interface Lot {
+  x: number
+  y: number
+  w: number
+  d: number
+  front: number
+  side: number
+  rear: number
+}
+
 export interface Site {
   showGround: boolean
   groundColor: string
   /** Compass bearing of plan "up", degrees. 0 = north is up. */
   northAngle: number
+  lot?: Lot
 }
 
 export interface Project {

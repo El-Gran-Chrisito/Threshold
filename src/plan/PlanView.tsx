@@ -26,7 +26,7 @@ import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { alignItem, snapPoint, type ItemGuide, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
 import { ContextMenu, type MenuState } from './ContextMenu'
-import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
+import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, LotLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
 interface Camera {
@@ -89,6 +89,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const zoomRequest = useStore((s) => s.zoomRequest)
   const walker = useStore((s) => s.walker)
   const units = project.units
+  const lot = project.site.lot
 
   const [hover, setHover] = useState<SnapResult | null>(null)
   const [rawHover, setRawHover] = useState<Vec2 | null>(null)
@@ -1013,6 +1014,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
             ))}
           </g>
         )}
+        {lot && !minimap && <LotLayer lot={lot} px={px} units={units} />}
         {otherLevel && (
           <g className="other-level" pointerEvents="none">
             <WallsLayer level={otherLevel} px={px} selection={null} ghost />

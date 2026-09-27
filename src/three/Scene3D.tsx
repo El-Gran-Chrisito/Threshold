@@ -2,7 +2,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import type { Item, Level, Opening, Project, Room, Vec2, Wall } from '../model/types'
+import type { Item, Level, Lot, Opening, Project, Room, Vec2, Wall } from '../model/types'
 import { activeLevel, useStore } from '../store/store'
 import { catalogEntry } from '../model/catalog'
 import { dist, pointInPolygon, rectCorners, sub } from '../model/geometry'
@@ -639,6 +639,38 @@ function Sun({ center, radius, hour, north, indoor }: { center: THREE.Vector3; r
   )
 }
 
+/** Property line as a thin white strip on the ground, with a stake at each corner. */
+function LotLines({ lot }: { lot: Lot }) {
+  const t = 0.08
+  const x0 = lot.x * M
+  const z0 = lot.y * M
+  const w = lot.w * M
+  const d = lot.d * M
+  const strips: Array<[number, number, number, number]> = [
+    [x0 + w / 2, z0, w, t],
+    [x0 + w / 2, z0 + d, w, t],
+    [x0, z0 + d / 2, t, d],
+    [x0 + w, z0 + d / 2, t, d],
+  ]
+  const mat = stdMat('#F4F2EC', { rough: 1 })
+  const stake = stdMat('#C2410C', { rough: 0.8 })
+  return (
+    <group userData={{ hit: 'ground' }}>
+      {strips.map(([x, z, sx, sz], k) => (
+        <mesh key={k} position={[x, -0.12, z]} scale={[sx, 0.04, sz]} geometry={unitBox} material={mat} receiveShadow />
+      ))}
+      {[
+        [x0, z0],
+        [x0 + w, z0],
+        [x0 + w, z0 + d],
+        [x0, z0 + d],
+      ].map(([x, z], k) => (
+        <mesh key={`s${k}`} position={[x, 0.2, z]} scale={[0.08, 0.7, 0.08]} geometry={unitBox} material={stake} castShadow />
+      ))}
+    </group>
+  )
+}
+
 function Ground({ color, radius }: { color: string; radius: number }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow userData={{ hit: 'ground' }}>
@@ -816,6 +848,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
       <fog attach="fog" args={[skyColor, radius * 4 + 30, radius * 10 + 90]} />
       <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
       {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
+      {project.site.lot && !walk && <LotLines lot={project.site.lot} />}
       <group onClick={onClick} ref={(g) => void (homeGroupRef.current = g)}>
         <DraggableHome disabled={walk}>
         {visible.map((l) => (

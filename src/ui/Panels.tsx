@@ -7,10 +7,11 @@ import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
 import { Icon } from './Icon'
-import type { Level, RoofStyle } from '../model/types'
+import type { Level, Lot, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { BriefForm } from './BriefForm'
+import { defaultLot } from '../model/site'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
@@ -460,6 +461,63 @@ function ShoppingList() {
   )
 }
 
+function LotSettings() {
+  const project = useStore((s) => s.project)
+  const lot = project.site.lot
+  const units = project.units
+  const apply = useStore.getState().apply
+  const setLot = (patch: Partial<Lot>) =>
+    apply((p) => {
+      const cur = p.site.lot
+      if (!cur) return p
+      const next = { ...cur, ...patch }
+      // Resize about the centre so the house stays where it is on the lot.
+      if (patch.w !== undefined) next.x = cur.x + (cur.w - patch.w) / 2
+      if (patch.d !== undefined) next.y = cur.y + (cur.d - patch.d) / 2
+      return { ...p, site: { ...p.site, lot: next } }
+    })
+  return (
+    <Field label="Lot (property lines)">
+      <Toggle id="site-lot" checked={!!lot} onChange={(v) => apply((p) => ({ ...p, site: { ...p.site, lot: v ? defaultLot(p) : undefined } }))} label="Show the lot and setbacks" />
+      {lot && (
+        <>
+          <div className="grid-2">
+            <Field label="Lot width">
+              <LengthInput id="lot-w" value={lot.w} units={units} min={100} onChange={(v) => setLot({ w: v })} />
+            </Field>
+            <Field label="Lot depth">
+              <LengthInput id="lot-d" value={lot.d} units={units} min={100} onChange={(v) => setLot({ d: v })} />
+            </Field>
+            <Field label="Front setback">
+              <LengthInput id="lot-front" value={lot.front} units={units} onChange={(v) => setLot({ front: v })} />
+            </Field>
+            <Field label="Rear setback">
+              <LengthInput id="lot-rear" value={lot.rear} units={units} onChange={(v) => setLot({ rear: v })} />
+            </Field>
+            <Field label="Side setbacks">
+              <LengthInput id="lot-side" value={lot.side} units={units} onChange={(v) => setLot({ side: v })} />
+            </Field>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              apply((p) => {
+                const fresh = defaultLot(p)
+                const cur = p.site.lot!
+                return { ...p, site: { ...p.site, lot: { ...cur, x: fresh.x + (fresh.w - cur.w) / 2, y: fresh.y + (fresh.d - cur.d) / 2 } } }
+              })
+            }
+          >
+            Centre the lot on the house
+          </button>
+          <p className="field-hint">Front (street) is the bottom edge of the plan. The design check flags walls past a setback.</p>
+        </>
+      )}
+    </Field>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Project: templates, saved designs, import/export
 
@@ -704,6 +762,7 @@ export function ProjectPanel() {
         <Toggle id="site-ground" checked={project.site.showGround} onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, showGround: v } }))} label="Show ground in 3D" />
         <Swatches label="Ground colour" swatches={[{ name: 'Lawn', hex: '#8DA870' }, { name: 'Dry grass', hex: '#B6AE7A' }, { name: 'Gravel', hex: '#B9B4AA' }, { name: 'Snow', hex: '#EEF1F3' }, { name: 'Soil', hex: '#8A6E55' }]} value={project.site.groundColor} onChange={(c) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, groundColor: c } }))} />
       </Field>
+      <LotSettings />
       <Field label="North direction (compass bearing of plan up)">
         <NumberInput id="north" value={project.site.northAngle} min={-180} max={360} step={15} suffix="°" onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, northAngle: v } }))} />
       </Field>
