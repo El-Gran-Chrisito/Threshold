@@ -7,6 +7,8 @@ import { cloud, cloudList, cloudLoad, cloudSave, onCloudStatus, type CloudStatus
 
 const HISTORY_LIMIT = 200
 
+export type PartKind = 'roof' | 'walls' | 'floors' | 'furniture'
+
 export interface PaintState {
   target: 'wall' | 'floor'
   color: string
@@ -40,6 +42,8 @@ export interface State {
   cloudStatus: CloudStatus
   /** 3D camera focus request (double-click on an object). */
   focus: { x: number; y: number; z: number; seq: number } | null
+  /** Component types hidden while the 3D view is exploded. */
+  hiddenParts: PartKind[]
   /** Camera direction request for the 3D view. */
   viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'; seq: number }
   /** Lower 3D quality (no shadows, 1x resolution) for slower devices. */
@@ -115,6 +119,7 @@ export const useStore = create<State>((set, get) => ({
   focus: null,
   roomWalls: true,
   viewFrom: { dir: 'corner', seq: 0 },
+  hiddenParts: [],
   lowQuality: (() => {
     try {
       return localStorage.getItem('threshold:lowq') === '1'

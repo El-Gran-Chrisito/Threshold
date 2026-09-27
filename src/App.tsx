@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { activeLevel, selectedItemIds, useStore } from './store/store'
+import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
 import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/Inspector'
@@ -297,6 +297,13 @@ function WalkerMarkerNote() {
   return null
 }
 
+const PARTS: Array<[PartKind, string]> = [
+  ['roof', 'Roof'],
+  ['walls', 'Walls'],
+  ['floors', 'Floors'],
+  ['furniture', 'Furniture'],
+]
+
 function View3DBar() {
   const cutaway = useStore((s) => s.cutaway)
   const showRoof = useStore((s) => s.showRoof)
@@ -304,6 +311,7 @@ function View3DBar() {
   const explode = useStore((s) => s.explode)
   const sunHour = useStore((s) => s.sunHour)
   const lowQuality = useStore((s) => s.lowQuality)
+  const hiddenParts = useStore((s) => s.hiddenParts)
   const set = useStore.getState().set
   const hour = Math.floor(sunHour)
   const mins = Math.round((sunHour - hour) * 60)
@@ -369,6 +377,19 @@ function View3DBar() {
             <span>Spread</span>
             <input id="explode-amt" type="range" min={0.1} max={1.6} step={0.05} value={explode} onChange={(e) => set({ explode: Number(e.target.value) })} />
           </label>
+        )}
+        {explode > 0 && (
+          <div className="part-toggles" role="group" aria-label="Parts to show">
+            <span>Show</span>
+            {PARTS.map(([k, label]) => {
+              const on = !hiddenParts.includes(k)
+              return (
+                <button key={k} type="button" className={`chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ hiddenParts: on ? [...hiddenParts, k] : hiddenParts.filter((x) => x !== k) })}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
         )}
         <label className="slider" htmlFor="sun-hour">
           <Icon name="sun" size={16} />

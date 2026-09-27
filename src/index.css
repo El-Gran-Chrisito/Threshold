@@ -2166,3 +2166,22 @@ kbd {
   width: auto;
   box-shadow: none;
 }
+
+.part-toggles {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.part-toggles .chip {
+  padding: 3px 10px;
+  font-size: 13px;
+}

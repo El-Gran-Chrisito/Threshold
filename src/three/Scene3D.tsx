@@ -483,7 +483,7 @@ function stairHoles(project: Project, level: Level): Vec2[][] {
   return below.items.filter((i) => catalogEntry(i.type).shape === 'stairs').map((i) => rectCorners(i, i.width + 4, i.depth + 4, i.rotation))
 }
 
-const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index, multi }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number; multi: string[] }) {
+const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index, multi, hide }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number; multi: string[]; hide: string }) {
   // Derived inputs are keyed by value so that editing one object (dragging a
   // chair) does not hand every wall and floor a "new" prop and rebuild them.
   const jointsKey = [...jointKeys(level)].sort().join('|')
@@ -501,13 +501,13 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
   const trim = project.defaults.baseboards === false ? null : project.defaults.trimColor ?? '#F7F7F4'
   return (
     <Exploding base={[0, level.elevation * M, 0]} offset={[0, index * 3.4, 0]}>
-      {level.rooms.map((r) => (
+      {!hide.includes('floors') && level.rooms.map((r) => (
         <FloorMesh key={r.id} room={r} holes={holes} slab={level.slab} showCeiling={showCeiling && !cut} ceilingY={level.height} selected={active && selectionId === r.id} />
       ))}
-      {level.walls.map((w) => (
+      {!hide.includes('walls') && level.walls.map((w) => (
         <WallMesh key={w.id} w={w} openings={level.openings} joints={joints} cut={cut} selected={active && selectionId === w.id} center={center} outside={outside.get(w.id) ?? null} trim={trim} />
       ))}
-      {level.items.map((i) => {
+      {!hide.includes('furniture') && level.items.map((i) => {
         const c = catalogEntry(i.type)
         if (cut && c.mount === 'ceiling') return null
         if (cut && c.mount === 'wall' && i.elevation > cut) return null
@@ -515,7 +515,7 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
       })}
       <LampLights items={level.items} />
       <PartTag at={[(center.x - 0) * M, 0.3, center.y * M]} bounds={levelBounds(level)} text={level.name} />
-      {showRoof && !cut && (
+      {showRoof && !cut && !hide.includes('roof') && (
         <Exploding offset={[0, 3.2, 0]}>
           <RoofMesh level={level} wallColor={project.defaults.exteriorColor} />
           {level.roof.style !== 'none' && <PartTag at={[center.x * M, (level.height + 60) / 100, center.y * M]} bounds={null} text={`Roof (${level.roof.style})`} />}
@@ -659,6 +659,8 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const zoomRequest = useStore((s) => s.zoomRequest)
   const explode = useStore((s) => (s.explode > 0 ? 1 : 0))
   const lowQuality = useStore((s) => s.lowQuality)
+  const hiddenParts = useStore((s) => s.hiddenParts)
+  const hide = explode && !walk ? hiddenParts.join(',') : ''
   const [bg, setBg] = useState(bgColor)
 
   useEffect(() => {
@@ -763,6 +765,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
             active={l.id === levelId}
             index={visible.indexOf(l)}
             multi={multi}
+            hide={hide}
           />
         ))}
         </DraggableHome>
