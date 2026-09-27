@@ -110,7 +110,7 @@ export function checkLevel(level: Level): Issue[] {
   for (const zone of doorZones(level)) {
     for (const i of level.items) {
       const c = catalogEntry(i.type)
-      if (c.mount === 'ceiling' || c.shape === 'rug' || i.elevation > 150) continue
+      if (c.mount === 'ceiling' || c.shape === 'rug' || c.shape === 'plate' || i.elevation > 150) continue
       if (convexOverlap(zone, footprints.get(i.id)!, 3)) {
         issues.push({ level: 'problem', text: `${names(i)} is in the way of a door`, select: { kind: 'item', id: i.id } })
         break

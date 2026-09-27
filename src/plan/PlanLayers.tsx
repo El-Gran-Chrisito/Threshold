@@ -233,7 +233,7 @@ export const ItemGlyph = memo(function ItemGlyph({ item, px, selected, ghost }: 
       data-hit={ghost ? undefined : `item:${item.id}`}
       className={`item${selected ? ' is-selected' : ''}${ghost ? ' is-ghost' : ''}${c.mount === 'ceiling' ? ' is-ceiling' : ''}`}
     >
-      <ItemSymbol w={item.width} d={item.depth} color={item.color} color2={item.color2} shape={c.shape} px={px} />
+      <ItemSymbol w={item.width} d={item.depth} color={item.color} color2={item.color2} shape={c.shape} px={px} type={item.type} />
       {selected && <rect x={-item.width / 2 - 3 * px} y={-item.depth / 2 - 3 * px} width={item.width + 6 * px} height={item.depth + 6 * px} className="sel-box" strokeWidth={px * 1.5} />}
     </g>
   )

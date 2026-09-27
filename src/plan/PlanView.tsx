@@ -90,6 +90,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const walker = useStore((s) => s.walker)
   const units = project.units
   const lot = project.site.lot
+  const showElectrical = useStore((s) => s.showElectrical)
 
   const [hover, setHover] = useState<SnapResult | null>(null)
   const [rawHover, setRawHover] = useState<Vec2 | null>(null)
@@ -1022,7 +1023,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         )}
 
         <RoomsLayer level={level} px={px} selection={selection} />
-        <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount !== 'ceiling'} />
+        <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount !== 'ceiling' && (showElectrical || catalogEntry(i.type).category !== 'Electrical')} />
         {otherLevel && (
           <g pointerEvents="none">
             {otherLevel.items
@@ -1039,7 +1040,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         )}
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
-        <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
+        <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling' && (showElectrical || (catalogEntry(i.type).category !== 'Electrical' && i.type !== 'recessed'))} />
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} />}
         {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />

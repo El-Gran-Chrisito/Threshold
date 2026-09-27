@@ -2317,3 +2317,34 @@ kbd {
   fill: var(--ink-2);
   font-weight: 600;
 }
+
+.sym-elec {
+  stroke: #9a3412;
+}
+
+.sym-elec-fill {
+  fill: var(--panel);
+}
+
+.sym-elec-text {
+  fill: #9a3412;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sym-elec {
+    stroke: #fdba74;
+  }
+  :root:not([data-theme='light']) .sym-elec-text {
+    fill: #fdba74;
+  }
+}
+
+:root[data-theme='dark'] .sym-elec {
+  stroke: #fdba74;
+}
+
+:root[data-theme='dark'] .sym-elec-text {
+  fill: #fdba74;
+}

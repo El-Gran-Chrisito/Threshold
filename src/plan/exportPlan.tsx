@@ -41,6 +41,9 @@ text{font-family:'Atkinson Hyperlegible Next',system-ui,-apple-system,'Segoe UI'
 .lot-line{fill:none;stroke:#56626a}
 .setback-line{fill:none;stroke:#0b7a75}
 .lot-label{fill:#56626a;font-weight:600}
+.sym-elec{stroke:#9a3412}
+.sym-elec-fill{fill:#ffffff}
+.sym-elec-text{fill:#9a3412;font-weight:700}
 `
 
 function PlanSheet({ project, level, width }: { project: Project; level: Level; width: number }) {

@@ -27,6 +27,8 @@ export interface State {
   view: ViewMode
   showDims: boolean
   showGrid: boolean
+  /** Show outlets, switches, alarms and other electrical items on the plan. */
+  showElectrical: boolean
   snap: boolean
   showOtherLevels: boolean
   /** In 3D, hide levels above the active one (look inside). */
@@ -106,6 +108,7 @@ export const useStore = create<State>((set, get) => ({
   view: 'split',
   showDims: true,
   showGrid: true,
+  showElectrical: true,
   snap: true,
   showOtherLevels: true,
   cutaway: true,

@@ -257,6 +257,7 @@ function ViewOptions() {
   const showGrid = useStore((s) => s.showGrid)
   const snap = useStore((s) => s.snap)
   const showOther = useStore((s) => s.showOtherLevels)
+  const showElectrical = useStore((s) => s.showElectrical)
   const [open, setOpen] = useState(false)
   const set = useStore.getState().set
   return (
@@ -270,6 +271,7 @@ function ViewOptions() {
           <Toggle id="opt-grid" checked={showGrid} onChange={(v) => set({ showGrid: v })} label="Grid" />
           <Toggle id="opt-snap" checked={snap} onChange={(v) => set({ snap: v })} label="Snap to grid and corners" />
           <Toggle id="opt-other" checked={showOther} onChange={(v) => set({ showOtherLevels: v })} label="Show floor below" />
+          <Toggle id="opt-elec" checked={showElectrical} onChange={(v) => set({ showElectrical: v })} label="Electrical (outlets, switches, alarms)" />
         </div>
       )}
     </div>

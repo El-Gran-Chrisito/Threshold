@@ -13,11 +13,70 @@ interface P {
   shape: string
   /** Stroke width in plan units (cm) for 1 screen px. */
   px: number
+  /** Catalog id, for items that share a shape but use different plan symbols. */
+  type?: string
 }
 
 const r = (x: number, y: number, w: number, h: number, extra: Record<string, unknown> = {}) => <rect x={x} y={y} width={Math.max(0, w)} height={Math.max(0, h)} {...extra} />
 
-export function ItemSymbol({ w, d, color, color2, shape, px }: P): ReactNode {
+/** Standard electrical-plan symbols, kept readable at any zoom. */
+function electricalSymbol(type: string, px: number): ReactNode | null {
+  const stroke = { className: 'sym-elec', strokeWidth: px * 1.3, fill: 'none' }
+  const text = (t: string, size: number) => (
+    <text x={0} y={0} className="sym-elec-text" fontSize={size * px} textAnchor="middle" dominantBaseline="central">
+      {t}
+    </text>
+  )
+  switch (type) {
+    case 'outlet': {
+      const R = 5 * px
+      return (
+        <g>
+          <circle r={R} {...stroke} className="sym-elec sym-elec-fill" />
+          <path d={`M ${-R * 0.45} ${-R * 1.6} V ${R * 1.6} M ${R * 0.45} ${-R * 1.6} V ${R * 1.6}`} {...stroke} />
+        </g>
+      )
+    }
+    case 'switch':
+      return text('S', 13)
+    case 'thermostat':
+      return (
+        <g>
+          <rect x={-6 * px} y={-6 * px} width={12 * px} height={12 * px} {...stroke} className="sym-elec sym-elec-fill" />
+          {text('T', 9)}
+        </g>
+      )
+    case 'ev-charger':
+      return (
+        <g>
+          <rect x={-9 * px} y={-6 * px} width={18 * px} height={12 * px} {...stroke} className="sym-elec sym-elec-fill" />
+          {text('EV', 8)}
+        </g>
+      )
+    case 'smoke-alarm':
+      return (
+        <g>
+          <circle r={8 * px} {...stroke} className="sym-elec sym-elec-fill" />
+          {text('SD', 7)}
+        </g>
+      )
+    case 'recessed': {
+      const R = 6 * px
+      return (
+        <g>
+          <circle r={R} {...stroke} className="sym-elec sym-elec-fill" />
+          <path d={`M ${-R * 0.7} ${-R * 0.7} L ${R * 0.7} ${R * 0.7} M ${R * 0.7} ${-R * 0.7} L ${-R * 0.7} ${R * 0.7}`} {...stroke} />
+        </g>
+      )
+    }
+    default:
+      return null
+  }
+}
+
+export function ItemSymbol({ w, d, color, color2, shape, px, type }: P): ReactNode {
+  const elec = type ? electricalSymbol(type, px) : null
+  if (elec) return elec
   const hw = w / 2
   const hd = d / 2
   const body = { className: 'sym-body', style: { fill: color }, strokeWidth: px }
