@@ -13,6 +13,7 @@ import { addRoom, clampOpening, deleteRoom, edgeOnSide, exteriorSides, moveRoom,
 import { bounds, lerp, pointInPolygon } from '../model/geometry'
 import { makeItem, makeOpening } from '../model/factory'
 import { furnishRoom } from '../model/furnish'
+import { wireRoom, wiringSummary } from '../model/electrical'
 import { CM_PER_FT } from '../model/units'
 import { applyHomeStyle, HOME_STYLES } from '../model/styles'
 
@@ -32,6 +33,7 @@ export type Action =
   | { op: 'add_item'; type: string; room: string; place?: Side | 'center'; along?: number; rotation?: number; color?: string; width?: number; depth?: number }
   | { op: 'remove_items'; room: string; type?: string }
   | { op: 'furnish_room'; room: string }
+  | { op: 'wire_rooms'; room?: string }
   | { op: 'exterior'; color: string; finish?: string }
   | { op: 'set_roof'; style: RoofStyle; pitch?: number; material?: RoofMaterial; color?: string }
   | { op: 'apply_style'; style: string }
@@ -91,6 +93,7 @@ Each action is one of:
    place = which wall the item backs onto; along = position along that wall (0 = west/north end, 1 = east/south end); "center" floats it mid-room.
 - {"op":"remove_items","room":name,"type"?:catalogId}
 - {"op":"furnish_room","room":name}   (adds a sensible starter set for the room's type; prefer this over many add_item actions when asked to furnish a room)
+- {"op":"wire_rooms","room"?:name}   (ceiling lights, switches by doors, outlets every 12 ft, smoke alarms; omit room for every room on this floor)
 - {"op":"exterior","color":"#RRGGBB","finish"?:finishId}
 - {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12,"material"?:"shingle"|"metal"|"tile"|"slate"|"membrane","color"?:"#RRGGBB"}
 - {"op":"apply_style","style":${HOME_STYLES.map((s) => `"${s.id}"`).join('|')}}  (restyles every room, floor, trim, outside, roof and furniture colour in the whole home; use first, then any specific changes)
@@ -357,6 +360,18 @@ export function runActions(project: Project, levelId: string, actions: Action[])
           if (!items.length) throw new Error(`no free space in ${r.name}`)
           level = { ...level, items: [...level.items, ...items] }
           applied.push(`${r.name}: furnished (${items.length} pieces)`)
+          break
+        }
+        case 'wire_rooms': {
+          const rooms = a.room ? [findRoom(level, a.room)].filter((r): r is Room => !!r) : level.rooms
+          if (!rooms.length) throw new Error(`no room “${a.room}”`)
+          const added: Item[] = []
+          for (const r of rooms) {
+            const items = wireRoom(level, r)
+            added.push(...items)
+            level = { ...level, items: [...level.items, ...items] }
+          }
+          applied.push(added.length ? `Electrical: ${wiringSummary(added)}` : 'Electrical: already in place')
           break
         }
         case 'exterior': {

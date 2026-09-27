@@ -47,12 +47,14 @@ describe('assistant actions', () => {
     const r = runActions(p, lvl, [
       { op: 'apply_style', style: 'industrial' },
       { op: 'set_floor', room: 'Den', floor: 'walnut' },
+      { op: 'wire_rooms', room: 'Den' },
     ])
     expect(r.skipped).toEqual([])
     const g = r.project.levels[0]
     expect(g.rooms.find((x) => x.name === 'Den')!.floor).toBe('walnut')
     expect(g.rooms.find((x) => x.name === 'Kitchen & dining')!.floor).toBe('concrete')
     expect(r.project.levels[1].roof.material).toBe('metal')
+    expect(r.applied.some((x) => x.startsWith('Electrical:') && x.includes('outlet'))).toBe(true)
   })
 
   it('reports actions it cannot do instead of failing', () => {
