@@ -1,0 +1,10 @@
+# Cloudflare Workers settings for the license server.
+# Secrets are set with: wrangler secret put STRIPE_SECRET_KEY / LICENSE_PRIVATE_KEY
+name = "threshold-license"
+main = "worker.ts"
+compatibility_date = "2026-09-01"
+
+[vars]
+# Stripe price ids to plans, if the prices have no "plan" metadata:
+# PRICE_PLANS = '{"price_123":"pro","price_456":"studio"}'
+# ALLOWED_ORIGIN = "https://your-site.example"

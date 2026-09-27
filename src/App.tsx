@@ -71,7 +71,21 @@ export default function App() {
   const [help, setHelp] = useState(false)
   const presenting = useStore((s) => s.presenting)
   useEffect(() => {
-    void useEntitlements.getState().init()
+    void (async () => {
+      const ent = useEntitlements.getState()
+      await ent.init()
+      // Back from a hosted checkout: ?checkout_session=cs_... (Stripe's {CHECKOUT_SESSION_ID}).
+      const params = new URLSearchParams(window.location.search)
+      const session = params.get('checkout_session') ?? params.get('session_id')
+      if (session) {
+        const r = await ent.claimCheckout(session)
+        useStore.getState().notify(r.message)
+        params.delete('checkout_session')
+        params.delete('session_id')
+        const q = params.toString()
+        window.history.replaceState(null, '', window.location.pathname + (q ? `?${q}` : '') + window.location.hash)
+      }
+    })()
   }, [])
   const [welcome, setWelcome] = useState(() => {
     try {

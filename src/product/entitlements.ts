@@ -27,6 +27,8 @@ export interface Entitlements {
 
 interface Actions {
   init: () => Promise<void>
+  /** After a hosted checkout: trade the checkout session for a license key. */
+  claimCheckout: (sessionId: string) => Promise<{ ok: boolean; message: string }>
   activate: (key: string) => Promise<{ ok: boolean; message: string }>
   startTrial: () => boolean
   signOut: () => void
@@ -122,6 +124,18 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
     set({ key, license: v.payload, ...derive(v.payload, get().trialStartedAt), paywall: { open: false, feature: null } })
     track('license_activated', { plan: v.payload.plan })
     return { ok: true, message: `${v.payload.plan === 'studio' ? 'Studio' : 'Pro'} is active. Thank you!` }
+  },
+
+  claimCheckout: async (sessionId) => {
+    if (!productConfig.licenseApi) return { ok: false, message: 'Payment received. Your license key will arrive by email.' }
+    try {
+      const res = await fetch(`${productConfig.licenseApi}/activate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId }) })
+      const data = (await res.json()) as { key?: string; error?: string }
+      if (!res.ok || !data.key) return { ok: false, message: data.error ?? 'Could not confirm the payment yet. Try reloading in a minute.' }
+      return await get().activate(data.key)
+    } catch {
+      return { ok: false, message: 'Could not reach the license server. Try reloading in a minute.' }
+    }
   },
 
   startTrial: () => {
