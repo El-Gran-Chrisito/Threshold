@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/home.html" },
+    { "source": "/app", "destination": "/index.html" }
+  ],
+  "redirects": [{ "source": "/app/", "destination": "/app", "permanent": true }]
+}

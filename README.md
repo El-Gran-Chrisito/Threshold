@@ -2,6 +2,10 @@
 
 Design every part of a home in the browser: floor plan, walls, doors, windows, furniture, finishes, floors, lighting and roof. See it in 3D, pull it apart in an exploded view, or walk through it.
 
+## Selling it
+
+Threshold ships with Free, Pro and Studio plans, a 7-day Pro trial, offline-checked license keys, a license server for Stripe checkout and renewals, a marketing page with pricing, and legal page templates. Setup takes about an hour: see [docs/MONETIZATION.md](docs/MONETIZATION.md).
+
 ## Run
 
 ```bash
@@ -10,6 +14,7 @@ bun run dev          # local dev server
 bun run test         # model, assistant and design-check tests
 bun run build        # static site in dist/
 bun run build:single # one self-contained HTML file in dist-single/
+bun run license init # create license signing keys (once; see docs/MONETIZATION.md)
 ```
 
 `scripts/*.mjs` drive the built app in headless Chromium (Playwright) for end-to-end checks and screenshots.
@@ -43,5 +48,9 @@ src/store      app state with undo/redo, browser and account persistence, file s
 src/plan       2D editor (SVG), symbols, snapping, context menu, plan export
 src/three      3D scene (react-three-fiber), procedural furniture and textures, walk mode, exploded view, glTF export
 src/assistant  design assistant prompt and action executor
-src/ui         panels, inspector and controls
+src/ui         panels, inspector, controls, upgrade sheet, presentation mode
+src/product    plans, license keys, entitlements, gates, branding, funnel events
+src/landing    marketing page (home.html)
+server         license server (Stripe checkout -> license key, renewals)
+docs           selling setup guide
 ```

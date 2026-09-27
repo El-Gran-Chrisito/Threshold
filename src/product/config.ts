@@ -32,6 +32,8 @@ export const productConfig = {
     pro: { monthly: env.VITE_CHECKOUT_PRO_MONTHLY || '', yearly: env.VITE_CHECKOUT_PRO_YEARLY || '' },
     studio: { monthly: env.VITE_CHECKOUT_STUDIO_MONTHLY || '', yearly: env.VITE_CHECKOUT_STUDIO_YEARLY || '' },
   } as Record<Exclude<PlanId, 'free'>, Record<Billing, string>>,
+  /** Where subscribers manage billing (Stripe customer portal login link). */
+  billingPortal: env.VITE_BILLING_PORTAL_URL || '',
   trialDays: 7,
 }
 

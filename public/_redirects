@@ -1,0 +1,5 @@
+# Netlify: the marketing page at /, the app at /app.
+# (Cloudflare Pages: drop the "!" after 200.)
+/            /home.html    200!
+/app         /index.html   200
+/app/        /app          301

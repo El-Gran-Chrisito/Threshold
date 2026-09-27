@@ -117,6 +117,14 @@ export function PaywallSheet() {
           <p className="paywall-fine">
             Licensed to {license.email || license.name || 'you'}
             {license.exp ? ` · renews by ${new Date(license.exp).toLocaleDateString()}` : ''} ·{' '}
+            {productConfig.billingPortal && (
+              <>
+                <a href={productConfig.billingPortal} target="_blank" rel="noreferrer">
+                  Manage subscription
+                </a>{' '}
+                ·{' '}
+              </>
+            )}
             <button type="button" className="linklike" onClick={signOut}>
               Remove license from this device
             </button>
