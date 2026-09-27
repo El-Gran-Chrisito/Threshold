@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 dist-single
+
+# License signing keys (never commit)
+.license/
+.env.local
+dist-test

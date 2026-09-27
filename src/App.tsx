@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
 import { BriefForm } from './ui/BriefForm'
-import { PaywallSheet, PlanBadge } from './ui/Paywall'
+import { PaywallSheet, PlanBadge, PlanTag } from './ui/Paywall'
+import { Presentation } from './ui/Presentation'
 import { requireFeature, useEntitlements } from './product/entitlements'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
@@ -68,6 +69,7 @@ export default function App() {
   const panel = useStore((s) => s.panel)
   const narrow = useNarrow()
   const [help, setHelp] = useState(false)
+  const presenting = useStore((s) => s.presenting)
   useEffect(() => {
     void useEntitlements.getState().init()
   }, [])
@@ -103,6 +105,14 @@ export default function App() {
   const showPlan = view === 'plan' || view === 'split'
   const show3d = view === '3d' || view === 'split' || view === 'walk'
 
+  if (presenting)
+    return (
+      <>
+        <Presentation onExit={() => useStore.setState({ presenting: false })} />
+        <Toast />
+        <PaywallSheet />
+      </>
+    )
   return (
     <div className={`app view-${view}${panel ? ' has-panel' : ''}`}>
       <header className="topbar">
@@ -415,6 +425,17 @@ function View3DBar() {
           title="Faster 3D for slower devices: no shadows, lower resolution"
         >
           Fast 3D
+        </button>
+        <button
+          type="button"
+          className="pill"
+          onClick={() => {
+            if (!requireFeature('presentation')) return
+            useStore.setState({ presenting: true })
+          }}
+          title="Full-screen guided tour to show a client"
+        >
+          Present <PlanTag plan="studio" />
         </button>
       </div>
       <div className="bar3d-row sliders">

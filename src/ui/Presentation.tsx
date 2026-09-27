@@ -1,0 +1,121 @@
+/**
+ * Client presentation: the 3D home full screen with the studio's branding,
+ * a short summary, and a guided set of views (street, corners, garden side,
+ * from above, inside) that can advance on its own.
+ */
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { useStore } from '../store/store'
+import { useBrand, hasBrand } from '../product/brand'
+import { roomArea } from '../model/ops'
+import { formatArea } from '../model/units'
+import { Icon } from './Icon'
+
+const Scene3D = lazy(() => import('../three/Scene3D').then((m) => ({ default: m.Scene3D })))
+
+type Dir = 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'
+const VIEWS: Array<{ name: string; dir: Dir; inside?: boolean }> = [
+  { name: 'From the street', dir: 'street' },
+  { name: 'Front corner', dir: 'corner' },
+  { name: 'Right side', dir: 'E' },
+  { name: 'Garden side', dir: 'N' },
+  { name: 'Left side', dir: 'W' },
+  { name: 'From above', dir: 'top' },
+  { name: 'Inside', dir: 'corner', inside: true },
+]
+
+export function Presentation({ onExit }: { onExit: () => void }) {
+  const project = useStore((s) => s.project)
+  const brand = useBrand()
+  const [i, setI] = useState(0)
+  const [auto, setAuto] = useState(false)
+  const [evening, setEvening] = useState(false)
+  const saved = useRef<{ cutaway: boolean; showRoof: boolean; explode: number; wallCut: boolean; sunHour: number } | null>(null)
+
+  // Remember the designer's 3D settings and put them back afterwards.
+  useEffect(() => {
+    const s = useStore.getState()
+    saved.current = { cutaway: s.cutaway, showRoof: s.showRoof, explode: s.explode, wallCut: s.wallCut, sunHour: s.sunHour }
+    useStore.setState({ explode: 0, wallCut: false, section: { ...s.section, on: false }, selection: null })
+    return () => {
+      if (saved.current) useStore.setState(saved.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    const v = VIEWS[i]
+    const s = useStore.getState()
+    useStore.setState({ cutaway: !!v.inside, showRoof: !v.inside, viewFrom: { dir: v.dir, seq: s.viewFrom.seq + 1 } })
+  }, [i])
+
+  useEffect(() => {
+    useStore.setState({ sunHour: evening ? 19.75 : 15 })
+  }, [evening])
+
+  useEffect(() => {
+    if (!auto) return
+    const t = setInterval(() => setI((k) => (k + 1) % VIEWS.length), 7000)
+    return () => clearInterval(t)
+  }, [auto])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onExit()
+      if (e.key === 'ArrowRight') setI((k) => (k + 1) % VIEWS.length)
+      if (e.key === 'ArrowLeft') setI((k) => (k + VIEWS.length - 1) % VIEWS.length)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onExit])
+
+  const summary = useMemo(() => {
+    const rooms = project.levels.flatMap((l) => l.rooms)
+    const area = rooms.filter((r) => !/garage|patio|deck|lawn|outdoor/i.test(r.name)).reduce((s, r) => s + roomArea(r), 0)
+    const beds = rooms.filter((r) => /bed/i.test(r.name)).length
+    const full = rooms.filter((r) => /bath/i.test(r.name) && !/powder/i.test(r.name)).length
+    const half = rooms.filter((r) => /powder|half bath|wc/i.test(r.name)).length
+    const floors = project.levels.filter((l) => l.rooms.length).length
+    return [formatArea(area, project.units), beds ? `${beds} bedroom${beds > 1 ? 's' : ''}` : '', full || half ? `${full + half / 2} bath` : '', `${floors} floor${floors > 1 ? 's' : ''}`].filter(Boolean).join(' · ')
+  }, [project])
+
+  return (
+    <div className="present" role="dialog" aria-modal="true" aria-label={`Presentation: ${project.name}`}>
+      <div className="present-stage">
+        <Suspense fallback={<div className="loading3d">Building 3D view…</div>}>
+          <Scene3D walk={false} />
+        </Suspense>
+      </div>
+      <div className="present-brand">
+        {brand.logo ? <img src={brand.logo} alt={brand.company || 'Logo'} /> : null}
+        {hasBrand(brand) ? (brand.logo ? null : <strong>{brand.company}</strong>) : <strong>Threshold</strong>}
+      </div>
+      <button type="button" className="present-exit" onClick={onExit} aria-label="End presentation">
+        <Icon name="close" /> <span>End</span>
+      </button>
+      <div className="present-card">
+        <h1>{project.name}</h1>
+        <p>{summary}</p>
+        {hasBrand(brand) && (brand.company || brand.contact) && <p className="present-contact">{[brand.company, brand.contact].filter(Boolean).join(' · ')}</p>}
+      </div>
+      <div className="present-controls">
+        <button type="button" className="present-btn" onClick={() => setI((k) => (k + VIEWS.length - 1) % VIEWS.length)} aria-label="Previous view">
+          ◀
+        </button>
+        <span className="present-view">
+          {VIEWS[i].name}
+          <small>
+            {i + 1} / {VIEWS.length}
+          </small>
+        </span>
+        <button type="button" className="present-btn" onClick={() => setI((k) => (k + 1) % VIEWS.length)} aria-label="Next view">
+          ▶
+        </button>
+        <button type="button" className={`present-btn wide${auto ? ' is-on' : ''}`} aria-pressed={auto} onClick={() => setAuto((a) => !a)}>
+          {auto ? 'Pause tour' : 'Play tour'}
+        </button>
+        <button type="button" className={`present-btn wide${evening ? ' is-on' : ''}`} aria-pressed={evening} onClick={() => setEvening((e) => !e)}>
+          {evening ? 'Evening' : 'Daytime'}
+        </button>
+      </div>
+    </div>
+  )
+}

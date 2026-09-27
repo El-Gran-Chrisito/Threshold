@@ -9,7 +9,8 @@
     "build:single": "tsc -b && vite build --mode artifact --outDir dist-single",
     "test": "vitest run",
     "preview": "vite preview",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "license": "bun scripts/license-keys.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

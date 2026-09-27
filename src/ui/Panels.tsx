@@ -12,11 +12,11 @@ import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { BriefForm } from './BriefForm'
 import { PlanTag } from './Paywall'
-import { can, requireFeature } from '../product/entitlements'
+import { can, requireFeature, useEntitlements } from '../product/entitlements'
 import { canStartNewDesign, watermarked } from '../product/gates'
-import { FREE_LIMITS } from '../product/plans'
+import { allows, FREE_LIMITS } from '../product/plans'
 import { track } from '../product/analytics'
-import { useBrand } from '../product/brand'
+import { readLogo, useBrand } from '../product/brand'
 import { defaultLot } from '../model/site'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
@@ -474,6 +474,58 @@ function ShoppingList() {
   )
 }
 
+/** Studio: the studio's name, contact and logo on plan sheets and presentations. */
+function BrandingSettings() {
+  const plan = useEntitlements((s) => s.plan)
+  const brand = useBrand()
+  const fileRef = useRef<HTMLInputElement>(null)
+  if (!allows(plan, 'branding')) {
+    return (
+      <Field label="Your branding">
+        <button type="button" className="template-card" onClick={() => requireFeature('branding')}>
+          <strong>
+            Put your company on every plan sheet <PlanTag plan="studio" />
+          </strong>
+          <span className="muted">Name, contact and logo in the title block and in client presentations</span>
+        </button>
+      </Field>
+    )
+  }
+  return (
+    <Field label="Your branding (plan sheets and presentations)">
+      <input id="brand-company" placeholder="Company name" value={brand.company} onChange={(e) => brand.update({ company: e.target.value })} />
+      <input id="brand-contact" placeholder="Phone, email or website" value={brand.contact} onChange={(e) => brand.update({ contact: e.target.value })} />
+      <div className="btn-row">
+        <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
+          <Icon name="image" size={16} /> {brand.logo ? 'Change logo' : 'Add logo'}
+        </button>
+        {brand.logo && (
+          <button type="button" className="btn" onClick={() => brand.update({ logo: null })}>
+            Remove logo
+          </button>
+        )}
+      </div>
+      {brand.logo && <img className="brand-preview" src={brand.logo} alt="Your logo" />}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        hidden
+        onChange={async (e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (!f) return
+          try {
+            brand.update({ logo: await readLogo(f) })
+          } catch {
+            useStore.getState().notify('That image could not be read')
+          }
+        }}
+      />
+    </Field>
+  )
+}
+
 function LotSettings() {
   const project = useStore((s) => s.project)
   const lot = project.site.lot
@@ -806,6 +858,7 @@ export function ProjectPanel() {
         <Swatches label="Ground colour" swatches={[{ name: 'Lawn', hex: '#8DA870' }, { name: 'Dry grass', hex: '#B6AE7A' }, { name: 'Gravel', hex: '#B9B4AA' }, { name: 'Snow', hex: '#EEF1F3' }, { name: 'Soil', hex: '#8A6E55' }]} value={project.site.groundColor} onChange={(c) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, groundColor: c } }))} />
       </Field>
       <LotSettings />
+      <BrandingSettings />
       <Field label="North direction (compass bearing of plan up)">
         <NumberInput id="north" value={project.site.northAngle} min={-180} max={360} step={15} suffix="°" onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, northAngle: v } }))} />
       </Field>

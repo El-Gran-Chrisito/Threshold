@@ -52,6 +52,8 @@ export interface State {
   viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'; seq: number }
   /** Lower 3D quality (no shadows, 1x resolution) for slower devices. */
   lowQuality: boolean
+  /** Full-screen client presentation (Studio). */
+  presenting: boolean
   /** Room tools build walls around the new room (off = floor-only areas: patios, decks, lawns). */
   roomWalls: boolean
   /** An account design was opened at start-up. */
@@ -125,6 +127,7 @@ export const useStore = create<State>((set, get) => ({
   roomWalls: true,
   viewFrom: { dir: 'corner', seq: 0 },
   hiddenParts: [],
+  presenting: false,
   section: { on: false, axis: 'z', at: 0.5, flip: false },
   lowQuality: (() => {
     try {
