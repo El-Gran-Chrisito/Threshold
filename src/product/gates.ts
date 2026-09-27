@@ -4,8 +4,10 @@ import { can, requireFeature } from './entitlements'
 import { FREE_LIMITS } from './plans'
 
 /** Free keeps a few designs; starting another asks to upgrade (or to delete one). */
-export function canStartNewDesign(): boolean {
-  if (can('unlimited-designs') || listSaved().length < FREE_LIMITS.designs) return true
+export function canStartNewDesign(currentId?: string): boolean {
+  const saved = listSaved()
+  const inUse = saved.length + (currentId && !saved.some((m) => m.id === currentId) ? 1 : 0)
+  if (can('unlimited-designs') || inUse < FREE_LIMITS.designs) return true
   return requireFeature('unlimited-designs')
 }
 

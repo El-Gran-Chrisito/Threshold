@@ -24,6 +24,7 @@ import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
+import { canShareLinks, shareLink } from '../store/share'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
 import { exportGlb } from '../three/exportModel'
@@ -676,6 +677,16 @@ export function ProjectPanel() {
       s.notify('Could not export the 3D model')
     }
   }
+  const copyShare = async () => {
+    try {
+      const link = await shareLink(useStore.getState().project)
+      await navigator.clipboard.writeText(link)
+      track('export', { kind: 'share-link' })
+      s.notify('Share link copied. Whoever opens it gets their own copy of this design.')
+    } catch {
+      s.notify('Could not copy the link here')
+    }
+  }
   const copyJson = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(project))
@@ -709,7 +720,7 @@ export function ProjectPanel() {
           type="button"
           className="btn"
           onClick={() => {
-            if (!canStartNewDesign()) return
+            if (!canStartNewDesign(useStore.getState().project.id)) return
             const cur = useStore.getState().project
             const copy = { ...structuredClone(cur), id: uid('prj'), name: `${cur.name} (copy)`, createdAt: Date.now(), updatedAt: Date.now() }
             useStore.getState().loadProject(copy)
@@ -721,13 +732,13 @@ export function ProjectPanel() {
           <Icon name="copy" size={16} /> Duplicate this design
         </button>
       </div>
-      <DesignAllowance count={saved.length} />
+      <DesignAllowance count={saved.length + (saved.some((m) => m.id === project.id) ? 0 : 1)} />
       <Field label="Plan from your needs">
         {showBrief ? (
           <BriefForm
             submitLabel="Make this plan (current design stays saved)"
             onMake={(p) => {
-              if (!canStartNewDesign()) return
+              if (!canStartNewDesign(useStore.getState().project.id)) return
               useStore.getState().loadProject({ ...p, units: project.units })
               setSaved(listSaved())
               setShowBrief(false)
@@ -749,7 +760,7 @@ export function ProjectPanel() {
               className="template-card"
               confirmText="Click again: your current design stays saved"
               onConfirm={() => {
-                if (!canStartNewDesign()) return
+                if (!canStartNewDesign(useStore.getState().project.id)) return
                 const p = buildTemplate(t.id)
                 useStore.getState().loadProject({ ...p, units: project.units })
                 setSaved(listSaved())
@@ -798,6 +809,15 @@ export function ProjectPanel() {
               </li>
             ))}
           </ul>
+        </Field>
+      )}
+      {canShareLinks() && (
+        <Field label="Share" hint="The link holds the whole design. Nothing is uploaded; whoever opens it gets their own copy.">
+          <div className="btn-row">
+            <button type="button" className="btn btn-primary" onClick={copyShare}>
+              <Icon name="copy" size={16} /> Copy share link
+            </button>
+          </div>
         </Field>
       )}
       <Field label="Files">

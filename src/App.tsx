@@ -3,6 +3,9 @@ import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/s
 import { BriefForm } from './ui/BriefForm'
 import { PaywallSheet, PlanBadge, PlanTag } from './ui/Paywall'
 import { Presentation } from './ui/Presentation'
+import { decodeDesign, sharedCode } from './store/share'
+import { uid } from './model/factory'
+import { track } from './product/analytics'
 import { requireFeature, useEntitlements } from './product/entitlements'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
@@ -16,7 +19,6 @@ import { Toggle } from './ui/controls'
 import { walkKeys } from './three/Walker'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
-import { uid } from './model/factory'
 import { buildTemplate } from './model/templates'
 
 const Scene3D = lazy(() => import('./three/Scene3D').then((m) => ({ default: m.Scene3D })))
@@ -75,6 +77,20 @@ export default function App() {
       const ent = useEntitlements.getState()
       await ent.init()
       // Back from a hosted checkout: ?checkout_session=cs_... (Stripe's {CHECKOUT_SESSION_ID}).
+      // Opened from a share link: load the design as this person's own copy.
+      const code = sharedCode()
+      if (code) {
+        try {
+          const shared = await decodeDesign(code)
+          useStore.getState().loadProject({ ...shared, id: uid('prj'), name: shared.name.endsWith('(shared)') ? shared.name : `${shared.name} (shared)`, updatedAt: Date.now() })
+          useStore.getState().setView('split')
+          useStore.getState().notify('Opened a shared design. This is your own copy: change anything.')
+          track('design_created', { from: 'share' })
+        } catch {
+          useStore.getState().notify('That share link is incomplete. Ask for it again.')
+        }
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      }
       const params = new URLSearchParams(window.location.search)
       const session = params.get('checkout_session') ?? params.get('session_id')
       if (session) {
@@ -88,6 +104,7 @@ export default function App() {
     })()
   }, [])
   const [welcome, setWelcome] = useState(() => {
+    if (sharedCode()) return false
     try {
       return !localStorage.getItem('threshold:welcomed') && !localStorage.getItem('threshold:last')
     } catch {
