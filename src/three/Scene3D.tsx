@@ -588,13 +588,16 @@ function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null)
   const last = useRef<string>('')
   const aspect = size.width / Math.max(1, size.height)
+  const viewFrom = useStore((s) => s.viewFrom)
   const frame = () => {
     const cam = camera as THREE.PerspectiveCamera
     const vfov = ((cam.fov || 42) * Math.PI) / 180
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect)
     const r = Math.max(4, radius)
     const d = Math.max(r / Math.sin(vfov / 2), r / Math.sin(hfov / 2)) * 1.0
-    const dir = new THREE.Vector3(0.55, 0.75, 0.85).normalize()
+    // Plan north is -z. "From the south" means the camera stands south looking north.
+    const dirs: Record<string, [number, number, number]> = { corner: [0.55, 0.75, 0.85], top: [0, 1, 0.0001], N: [0, 0.18, -1], S: [0, 0.18, 1], E: [1, 0.18, 0], W: [-1, 0.18, 0] }
+    const dir = new THREE.Vector3(...dirs[viewFrom.dir]).normalize()
     camera.position.copy(center).addScaledVector(dir, d)
     camera.lookAt(center)
     if (controls.current) {
@@ -624,7 +627,7 @@ function CameraRig({ center, radius, zoomRequest, walk }: { center: THREE.Vector
     if (a.t >= 1) anim.current = null
   })
   // Frame on first show, on "Reset", and when the pane changes shape a lot.
-  const key = `${zoomRequest}|${walk}|${Math.round(aspect * 4)}`
+  const key = `${zoomRequest}|${walk}|${Math.round(aspect * 4)}|${viewFrom.seq}`
   useEffect(() => {
     if (walk || last.current === key) return
     last.current = key
@@ -655,6 +658,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const sunHour = useStore((s) => s.sunHour)
   const zoomRequest = useStore((s) => s.zoomRequest)
   const explode = useStore((s) => (s.explode > 0 ? 1 : 0))
+  const lowQuality = useStore((s) => s.lowQuality)
   const [bg, setBg] = useState(bgColor)
 
   useEffect(() => {
@@ -732,8 +736,9 @@ export function Scene3D({ walk }: { walk: boolean }) {
 
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      key={lowQuality ? 'low' : 'high'}
+      shadows={!lowQuality}
+      dpr={lowQuality ? 1 : [1, 2]}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping }}
       camera={{ fov: walk ? 70 : 42, near: 0.05, far: 2000, position: [12, 10, 14] }}
       onPointerMissed={(e) => {

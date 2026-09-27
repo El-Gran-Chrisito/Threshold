@@ -2152,3 +2152,17 @@ kbd {
   font-weight: 600;
   color: var(--dim);
 }
+
+.pill-select {
+  padding-block: 3px;
+}
+
+.pill-select select {
+  border: 0;
+  background: none;
+  padding: 3px 2px;
+  font-weight: 600;
+  font-size: 13.5px;
+  width: auto;
+  box-shadow: none;
+}

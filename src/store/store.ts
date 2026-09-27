@@ -40,6 +40,10 @@ export interface State {
   cloudStatus: CloudStatus
   /** 3D camera focus request (double-click on an object). */
   focus: { x: number; y: number; z: number; seq: number } | null
+  /** Camera direction request for the 3D view. */
+  viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'; seq: number }
+  /** Lower 3D quality (no shadows, 1x resolution) for slower devices. */
+  lowQuality: boolean
   /** Room tools build walls around the new room (off = floor-only areas: patios, decks, lawns). */
   roomWalls: boolean
   /** An account design was opened at start-up. */
@@ -110,6 +114,14 @@ export const useStore = create<State>((set, get) => ({
   cloudStatus: 'off',
   focus: null,
   roomWalls: true,
+  viewFrom: { dir: 'corner', seq: 0 },
+  lowQuality: (() => {
+    try {
+      return localStorage.getItem('threshold:lowq') === '1'
+    } catch {
+      return false
+    }
+  })(),
   cloudLoaded: false,
   panel: 'inspector',
   toast: null,

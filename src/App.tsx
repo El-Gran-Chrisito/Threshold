@@ -303,6 +303,7 @@ function View3DBar() {
   const wallCut = useStore((s) => s.wallCut)
   const explode = useStore((s) => s.explode)
   const sunHour = useStore((s) => s.sunHour)
+  const lowQuality = useStore((s) => s.lowQuality)
   const set = useStore.getState().set
   const hour = Math.floor(sunHour)
   const mins = Math.round((sunHour - hour) * 60)
@@ -321,8 +322,45 @@ function View3DBar() {
         <button type="button" className={`pill${wallCut ? ' is-on' : ''}`} onClick={() => set({ wallCut: !wallCut })} title="Cut walls low to see furniture">
           <Icon name="lowwalls" size={16} /> Low walls
         </button>
-        <button type="button" className="pill" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1 })} title="Reset camera">
+        <label className="pill pill-select" htmlFor="view-from">
+          <Icon name="eye" size={16} />
+          <select
+            id="view-from"
+            value=""
+            onChange={(e) => {
+              const dir = e.target.value as 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'
+              if (dir) set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 } })
+            }}
+            aria-label="View from"
+          >
+            <option value="">View from…</option>
+            <option value="corner">Corner</option>
+            <option value="top">Top</option>
+            <option value="S">South (front)</option>
+            <option value="N">North</option>
+            <option value="E">East</option>
+            <option value="W">West</option>
+          </select>
+        </label>
+        <button type="button" className="pill" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} title="Reset camera">
           <Icon name="fit" size={16} /> Reset
+        </button>
+        <button
+          type="button"
+          className={`pill${lowQuality ? ' is-on' : ''}`}
+          aria-pressed={lowQuality}
+          onClick={() => {
+            const v = !lowQuality
+            set({ lowQuality: v })
+            try {
+              localStorage.setItem('threshold:lowq', v ? '1' : '0')
+            } catch {
+              /* storage unavailable */
+            }
+          }}
+          title="Faster 3D for slower devices: no shadows, lower resolution"
+        >
+          Fast 3D
         </button>
       </div>
       <div className="bar3d-row sliders">
