@@ -6,7 +6,7 @@
  * Coordinates in actions are FEET on the plan: x grows to the east (right),
  * y grows to the south (down).
  */
-import type { Item, Level, OpeningKind, Project, Room, RoofStyle, Vec2, Wall, WallFinish } from '../model/types'
+import type { Item, Level, OpeningKind, Project, Room, RoofMaterial, RoofStyle, Vec2, Wall, WallFinish } from '../model/types'
 import { CATALOG, catalogEntry } from '../model/catalog'
 import { FLOORS, WALL_FINISHES, PAINTS } from '../model/materials'
 import { addRoom, clampOpening, deleteRoom, edgeOnSide, exteriorSides, moveRoom, moveRoomEdge, paintExterior, paintRoomWalls, rectPoints, roomArea, roomWallSides, snapItemToWall, wallLength } from '../model/ops'
@@ -32,7 +32,7 @@ export type Action =
   | { op: 'remove_items'; room: string; type?: string }
   | { op: 'furnish_room'; room: string }
   | { op: 'exterior'; color: string; finish?: string }
-  | { op: 'set_roof'; style: RoofStyle; pitch?: number }
+  | { op: 'set_roof'; style: RoofStyle; pitch?: number; material?: RoofMaterial; color?: string }
 
 const ft = (n: number) => n * CM_PER_FT
 const toFt = (cm: number) => Math.round((cm / CM_PER_FT) * 10) / 10
@@ -90,7 +90,7 @@ Each action is one of:
 - {"op":"remove_items","room":name,"type"?:catalogId}
 - {"op":"furnish_room","room":name}   (adds a sensible starter set for the room's type; prefer this over many add_item actions when asked to furnish a room)
 - {"op":"exterior","color":"#RRGGBB","finish"?:finishId}
-- {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12}
+- {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12,"material"?:"shingle"|"metal"|"tile"|"slate"|"membrane","color"?:"#RRGGBB"}
 Order matters: create rooms before adding doors, windows or items to them. Give every new room at least one door. Keep furniture sizes realistic for the room.
 
 FLOOR IDS: ${FLOORS.map((f) => `${f.id} (${f.name})`).join('; ')}
@@ -362,7 +362,9 @@ export function runActions(project: Project, levelId: string, actions: Action[])
         }
         case 'set_roof': {
           const style = (['none', 'flat', 'gable', 'hip', 'shed'] as const).includes(a.style) ? a.style : 'gable'
-          roof = { ...roof, style, ...(a.pitch ? { pitch: Math.min(2, Math.max(0, a.pitch / 12)) } : {}) }
+          const material = (['shingle', 'metal', 'tile', 'slate', 'membrane'] as const).find((m) => m === a.material)
+          const color = typeof a.color === 'string' && /^#[0-9a-f]{6}$/i.test(a.color) ? a.color : undefined
+          roof = { ...roof, style, ...(a.pitch ? { pitch: Math.min(2, Math.max(0, a.pitch / 12)) } : {}), ...(material ? { material } : {}), ...(color ? { color } : {}) }
           level = { ...level, roof }
           applied.push(`Roof: ${style}`)
           break

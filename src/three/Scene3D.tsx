@@ -9,7 +9,8 @@ import { dist, pointInPolygon, rectCorners, sub } from '../model/geometry'
 import { exteriorSides, levelBounds, paintRoomWalls, updateWall } from '../model/ops'
 import { jointKeys, pointKey, wallSpans } from '../plan/wallGeometry'
 import { buildParts } from './items3d'
-import { floorMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
+import { floorMat, roofMat, stdMat, unitBox, unitCone, unitCyl, unitSph, wallMat, worldUVBox } from './materials3d'
+import { roofMaterialOf } from '../model/roof'
 import { Walker } from './Walker'
 import { DraggableHome } from './ItemDrag'
 import { useHover } from './hover'
@@ -460,18 +461,74 @@ function roofGeometry(level: Level): THREE.BufferGeometry | null {
       tri(P(minX + o, y0, maxY - o), P(xm, y0 + rise * ((span / 2 - o) / (span / 2)), maxY - o), P(maxX - o, y0, maxY - o))
     }
   }
+  return withRoofUVs(v, r.style !== 'flat')
+}
+
+/**
+ * Split triangles into roof surfaces (group 0) and vertical gable or shed ends
+ * (group 1, clad like the outside walls), with UVs in metres: u along the
+ * eaves, v up the slope, so coverings run in true scale and direction.
+ */
+function withRoofUVs(v: number[], splitEnds: boolean): THREE.BufferGeometry {
+  const up = new THREE.Vector3(0, 1, 0)
+  const a = new THREE.Vector3()
+  const b = new THREE.Vector3()
+  const c = new THREE.Vector3()
+  const n = new THREE.Vector3()
+  const t = new THREE.Vector3()
+  const bt = new THREE.Vector3()
+  const buckets: [number[], number[]][] = [
+    [[], []],
+    [[], []],
+  ]
+  for (let i = 0; i < v.length; i += 9) {
+    a.fromArray(v, i)
+    b.fromArray(v, i + 3)
+    c.fromArray(v, i + 6)
+    n.subVectors(b, a).cross(c.clone().sub(a)).normalize()
+    if (Math.abs(n.y) > 0.999) {
+      t.set(1, 0, 0)
+      bt.set(0, 0, 1)
+    } else {
+      t.crossVectors(up, n).normalize()
+      bt.crossVectors(n, t).normalize()
+      if (bt.y < 0) bt.negate()
+    }
+    const end = splitEnds && Math.abs(n.y) < 0.05
+    const [pos, uv] = buckets[end ? 1 : 0]
+    for (const p of [a, b, c]) {
+      pos.push(p.x, p.y, p.z)
+      uv.push(p.dot(t), p.dot(bt))
+    }
+  }
   const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3))
+  g.setAttribute('position', new THREE.Float32BufferAttribute([...buckets[0][0], ...buckets[1][0]], 3))
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([...buckets[0][1], ...buckets[1][1]], 2))
+  const n0 = buckets[0][0].length / 3
+  g.addGroup(0, n0, 0)
+  g.addGroup(n0, buckets[1][0].length / 3, 1)
   g.computeVertexNormals()
   return g
 }
 
-function RoofMesh({ level, wallColor }: { level: Level; wallColor: string }) {
+const endMats = new Map<string, THREE.Material>()
+function roofEndMat(finish: string | undefined, color: string): THREE.Material {
+  const key = `${finish}|${color}`
+  let m = endMats.get(key)
+  if (!m) {
+    m = wallMat(finish, color).clone()
+    m.side = THREE.DoubleSide
+    endMats.set(key, m)
+  }
+  return m
+}
+
+function RoofMesh({ level, wallColor, endFinish }: { level: Level; wallColor: string; endFinish?: string }) {
   const geo = useMemo(() => roofGeometry(level), [level])
   useEffect(() => () => geo?.dispose(), [geo])
   if (!geo) return null
-  const isGableEnd = level.roof.style === 'gable'
-  return <mesh geometry={geo} material={stdMat(isGableEnd ? level.roof.color : level.roof.color, { side: THREE.DoubleSide, rough: 0.8 })} castShadow receiveShadow userData={{ hit: 'roof', wallColor }} />
+  const mats = [roofMat(roofMaterialOf(level), level.roof.color), roofEndMat(endFinish, wallColor)]
+  return <mesh geometry={geo} material={mats} castShadow receiveShadow userData={{ hit: 'roof', wallColor }} />
 }
 
 // ---------------------------------------------------------------------------
@@ -499,6 +556,14 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
     .join('|')
   const outside = useMemo(() => new Map(outsideKey ? outsideKey.split('|').map((x) => x.split(':') as [string, 'A' | 'B']) : []), [outsideKey])
   const trim = project.defaults.baseboards === false ? null : project.defaults.trimColor ?? '#F7F7F4'
+  // Gable ends take the cladding of the first outside wall face.
+  const firstOut = [...outside][0]
+  const firstWall = firstOut ? level.walls.find((w) => w.id === firstOut[0]) : undefined
+  const endCladding = firstWall
+    ? firstOut[1] === 'A'
+      ? { finish: firstWall.finishA, color: firstWall.colorA }
+      : { finish: firstWall.finishB, color: firstWall.colorB }
+    : { finish: undefined, color: project.defaults.exteriorColor }
   return (
     <Exploding base={[0, level.elevation * M, 0]} offset={[0, index * 3.4, 0]}>
       {!hide.includes('floors') && level.rooms.map((r) => (
@@ -517,7 +582,7 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
       <PartTag at={[(center.x - 0) * M, 0.3, center.y * M]} bounds={levelBounds(level)} text={level.name} />
       {showRoof && !cut && !hide.includes('roof') && (
         <Exploding offset={[0, 3.2, 0]}>
-          <RoofMesh level={level} wallColor={project.defaults.exteriorColor} />
+          <RoofMesh level={level} wallColor={endCladding.color} endFinish={endCladding.finish} />
           {level.roof.style !== 'none' && <PartTag at={[center.x * M, (level.height + 60) / 100, center.y * M]} bounds={null} text={`Roof (${level.roof.style})`} />}
         </Exploding>
       )}

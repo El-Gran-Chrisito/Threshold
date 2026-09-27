@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { activeLevel, addLevelAbove, addLevelBelow, useStore } from '../store/store'
 import { CATEGORIES, searchCatalog, type Category } from '../model/catalog'
-import { FLOORS, PAINTS } from '../model/materials'
+import { FLOORS, PAINTS, ROOF_SWATCHES } from '../model/materials'
 import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
 import { Icon } from './Icon'
 import type { Level, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
+import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
@@ -214,8 +215,17 @@ export function LevelsPanel() {
             </Field>
           </div>
           <Toggle id="roof-ridge" checked={active.roof.ridgeAlongLong} onChange={(v) => updLevel(active.id, { roof: { ...active.roof, ridgeAlongLong: v } })} label="Ridge runs along the long side" />
+          <Field label="Roof covering">
+            <div className="chip-wrap">
+              {ROOF_MATERIALS.filter((m) => (active.roof.style === 'flat' ? m.id === 'membrane' || m.id === 'metal' : m.id !== 'membrane')).map((m) => (
+                <button key={m.id} type="button" className={`chip${roofMaterialOf(active) === m.id ? ' is-on' : ''}`} aria-pressed={roofMaterialOf(active) === m.id} onClick={() => updLevel(active.id, { roof: { ...active.roof, material: m.id } })}>
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="Roof colour">
-            <Swatches label="Roof colour" swatches={PAINTS.slice(3, 18)} value={active.roof.color} onChange={(c) => updLevel(active.id, { roof: { ...active.roof, color: c } })} />
+            <Swatches label="Roof colour" swatches={ROOF_SWATCHES} value={active.roof.color} onChange={(c) => updLevel(active.id, { roof: { ...active.roof, color: c } })} />
           </Field>
         </>
       )}
@@ -329,7 +339,7 @@ export function BudgetPanel() {
 function CostView() {
   const project = useStore((s) => s.project)
   const { lines, total, byGroup } = useMemo(() => budget(project), [project])
-  const groups = ['Flooring', 'Walls & paint', 'Doors & windows', 'Furniture & fixtures']
+  const groups = ['Flooring', 'Walls & paint', 'Roof', 'Doors & windows', 'Furniture & fixtures'].filter((g) => g !== 'Roof' || byGroup.Roof)
   const max = Math.max(1, ...groups.map((g) => byGroup[g] ?? 0))
   const [open, setOpen] = useState<string | null>(null)
   return (

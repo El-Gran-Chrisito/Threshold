@@ -82,6 +82,23 @@ export const PAINTS: Swatch[] = [
   { name: 'Lavender', hex: '#CFC6DC' },
 ]
 
+/** Roofing colours as manufacturers name them. */
+export const ROOF_SWATCHES: Swatch[] = [
+  { name: 'Charcoal', hex: '#3E4246' },
+  { name: 'Weathered wood', hex: '#6E6557' },
+  { name: 'Driftwood', hex: '#8C8173' },
+  { name: 'Slate grey', hex: '#5B6168' },
+  { name: 'Black', hex: '#232427' },
+  { name: 'Terracotta', hex: '#B5603F' },
+  { name: 'Barn red', hex: '#7E2F26' },
+  { name: 'Forest green', hex: '#2F4A3A' },
+  { name: 'Colonial blue', hex: '#35506B' },
+  { name: 'Copper', hex: '#A8683D' },
+  { name: 'Galvalume', hex: '#B9BDC0' },
+  { name: 'Sandstone', hex: '#C8B79A' },
+]
+
+
 /** Fabric, wood and metal tones for furniture. */
 export const FINISHES: Swatch[] = [
   { name: 'Natural oak', hex: '#C29A6B' },

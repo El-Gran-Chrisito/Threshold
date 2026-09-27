@@ -104,6 +104,8 @@ export interface Dimension {
 
 export type RoofStyle = 'none' | 'flat' | 'gable' | 'hip' | 'shed'
 
+export type RoofMaterial = 'shingle' | 'metal' | 'tile' | 'slate' | 'membrane'
+
 export interface Roof {
   style: RoofStyle
   /** Rise over run, e.g. 0.5 = 6:12. */
@@ -112,6 +114,8 @@ export interface Roof {
   color: string
   /** Gable ridge runs along the longer side when true. */
   ridgeAlongLong: boolean
+  /** Covering; flat roofs default to a membrane, pitched roofs to shingles. */
+  material?: RoofMaterial
 }
 
 export interface Level {

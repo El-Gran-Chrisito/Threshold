@@ -5,14 +5,15 @@
  */
 import type { Level, Opening, Project, Room, UnitSystem } from './types'
 import { catalogEntry } from './catalog'
-import { FINISHES, floorMaterial, PAINTS, WALL_FINISH_BY_ID } from './materials'
+import { FINISHES, floorMaterial, PAINTS, ROOF_SWATCHES, WALL_FINISH_BY_ID } from './materials'
 import { exteriorSides, roomArea, roomWallSides, wallLength } from './ops'
 import { pointInPolygon, polygonPerimeter } from './geometry'
 import { CM2_PER_FT2, CM_PER_FT, formatLength } from './units'
+import { ROOF_MATERIAL_BY_ID, roofArea, roofMaterialOf, roofSquares } from './roof'
 
-export type TakeoffGroup = 'Paint' | 'Wall finishes' | 'Flooring' | 'Trim' | 'Doors & windows' | 'Furniture & fixtures'
+export type TakeoffGroup = 'Paint' | 'Wall finishes' | 'Flooring' | 'Trim' | 'Roofing' | 'Doors & windows' | 'Furniture & fixtures'
 
-export const TAKEOFF_GROUPS: TakeoffGroup[] = ['Paint', 'Flooring', 'Wall finishes', 'Trim', 'Doors & windows', 'Furniture & fixtures']
+export const TAKEOFF_GROUPS: TakeoffGroup[] = ['Paint', 'Flooring', 'Wall finishes', 'Trim', 'Roofing', 'Doors & windows', 'Furniture & fixtures']
 
 export interface TakeoffLine {
   group: TakeoffGroup
@@ -25,7 +26,7 @@ export interface TakeoffLine {
   where: string
 }
 
-const SWATCH_NAMES = new Map([...PAINTS, ...FINISHES].map((s) => [s.hex.toUpperCase(), s.name]))
+const SWATCH_NAMES = new Map([...PAINTS, ...FINISHES, ...ROOF_SWATCHES].map((s) => [s.hex.toUpperCase(), s.name]))
 
 export function colorName(hex: string): string {
   return SWATCH_NAMES.get(hex.toUpperCase()) ?? hex.toUpperCase()
@@ -154,6 +155,18 @@ export function takeoff(p: Project): TakeoffLine[] {
         where: list(where),
       })
     }
+  }
+
+  // Roofing: 10% extra for ridges, hips and cuts. Imperial roofing is sold in squares of 100 sq ft.
+  for (const l of p.levels) {
+    const cm2 = roofArea(l)
+    if (cm2 <= 0) continue
+    const rm = ROOF_MATERIAL_BY_ID[roofMaterialOf(l)]
+    const buy = cm2 * 1.1
+    // Asphalt shingles come 3 bundles to a square.
+    const sq = roofSquares(buy)
+    const qty = units === 'metric' ? area(buy, units) : rm.id === 'shingle' ? `${Math.ceil(sq * 3)} bundles` : `${Math.ceil(sq)} squares`
+    lines.push({ group: 'Roofing', item: rm.name, qty, detail: `${colorName(l.roof.color)} · ${area(cm2, units)} + 10% waste`, where: `${l.name} roof` })
   }
 
   // Doors and windows by type and size.

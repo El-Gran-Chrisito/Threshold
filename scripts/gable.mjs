@@ -1,0 +1,23 @@
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+const errors = []
+page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
+await page.goto('http://localhost:4173/')
+await page.waitForTimeout(800)
+if (await page.$('.welcome')) await page.click('text=Explore the example home')
+await page.waitForTimeout(1000)
+await page.click('button:has-text("Project")')
+await page.click('.template-card:has-text("Single-storey ranch")')
+await page.waitForTimeout(300)
+await page.click('.template-card:has-text("Click again")')
+await page.waitForTimeout(800)
+await page.click('.view-switch >> text=3D')
+await page.click('.bar3d >> text=Outside')
+await page.waitForTimeout(2500)
+await page.selectOption('#view-from', 'W')
+await page.waitForTimeout(2200)
+await page.screenshot({ path: `${out}/gable.png` })
+console.log(errors.join('\n') || 'no errors')
+await browser.close()

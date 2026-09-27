@@ -23,3 +23,21 @@ describe('shopping list', () => {
     expect(takeoffCsv(lines).split('\n')[0]).toBe('Group,Item,Buy,Details,For')
   })
 })
+
+describe('roofing', () => {
+  it('prices and lists a pitched roof by sloped area', async () => {
+    const { roofArea } = await import('./roof')
+    const p = buildTemplate('ranch')
+    const l = p.levels[0]
+    expect(l.roof.style).toBe('gable')
+    const f = { w: 0, d: 0 }
+    const xs = l.walls.flatMap((w) => [w.a.x, w.b.x])
+    const ys = l.walls.flatMap((w) => [w.a.y, w.b.y])
+    f.w = Math.max(...xs) - Math.min(...xs) + 2 * l.roof.overhang
+    f.d = Math.max(...ys) - Math.min(...ys) + 2 * l.roof.overhang
+    expect(roofArea(l)).toBeCloseTo(f.w * f.d * Math.sqrt(1 + l.roof.pitch ** 2), 3)
+    const line = takeoff(p).find((x) => x.group === 'Roofing')!
+    expect(line.item).toBe('Asphalt shingle')
+    expect(line.qty).toMatch(/^\d+ bundles$/)
+  })
+})

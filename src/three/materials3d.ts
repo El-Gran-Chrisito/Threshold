@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { floorMaterial } from '../model/materials'
-import { floorTexture, wallTexture } from './textures'
+import { floorTexture, roofTexture, wallTexture } from './textures'
 
 const matCache = new Map<string, THREE.MeshStandardMaterial>()
 
@@ -60,6 +60,22 @@ export function wallMat(finish: string | undefined, color: string, highlight = f
     tex.needsUpdate = true
     tex.repeat.set(1 / t.sx, 1 / t.sy)
     m = new THREE.MeshStandardMaterial({ map: tex, roughness: finish === 'tile' ? 0.3 : 0.9 })
+    matCache.set(key, m)
+  }
+  return m
+}
+
+/** Roof covering. Roof geometry UVs are in metres, v running down the slope. */
+export function roofMat(material: string, color: string): THREE.MeshStandardMaterial {
+  const key = `roofmat|${material}|${color}`
+  let m = matCache.get(key)
+  if (!m) {
+    const t = roofTexture(material, color)
+    if (!t) return stdMat(color, { side: THREE.DoubleSide, rough: 0.8 })
+    const tex = t.tex.clone()
+    tex.needsUpdate = true
+    tex.repeat.set(1 / t.sx, 1 / t.sy)
+    m = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: material === 'metal' ? 0.45 : 0.85, metalness: material === 'metal' ? 0.35 : 0 })
     matCache.set(key, m)
   }
   return m

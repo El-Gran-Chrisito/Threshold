@@ -3,6 +3,7 @@ import { catalogEntry } from './catalog'
 import { floorMaterial, PAINT_PRICE_PER_SQFT, WALL_BUILD_PRICE_PER_SQFT, WALL_FINISH_BY_ID } from './materials'
 import { roomArea, wallLength } from './ops'
 import { CM2_PER_FT2 } from './units'
+import { ROOF_MATERIAL_BY_ID, roofArea, roofMaterialOf } from './roof'
 
 export const OPENING_PRICES: Record<OpeningKind, number> = {
   door: 450,
@@ -14,7 +15,7 @@ export const OPENING_PRICES: Record<OpeningKind, number> = {
 }
 
 export interface BudgetLine {
-  group: 'Flooring' | 'Walls & paint' | 'Doors & windows' | 'Furniture & fixtures'
+  group: 'Flooring' | 'Walls & paint' | 'Roof' | 'Doors & windows' | 'Furniture & fixtures'
   label: string
   qty: string
   cost: number
@@ -46,6 +47,13 @@ export function budget(p: Project): { lines: BudgetLine[]; total: number; byGrou
         const price = p.prices[`finish-${f}`] ?? (f === 'paint' ? PAINT_PRICE_PER_SQFT : info?.pricePerSqFt ?? PAINT_PRICE_PER_SQFT)
         lines.push({ group: 'Walls & paint', label: `${l.name} · ${info?.name ?? f}`, qty: `${Math.round(sqft)} sq ft × $${price}`, cost: sqft * price })
       }
+    }
+    const roof = roofArea(l)
+    if (roof > 0) {
+      const rm = ROOF_MATERIAL_BY_ID[roofMaterialOf(l)]
+      const sqft = roof / CM2_PER_FT2
+      const price = p.prices[`roof-${rm.id}`] ?? rm.pricePerSqFt
+      lines.push({ group: 'Roof', label: `${l.name} · ${rm.name}`, qty: `${Math.round(sqft)} sq ft × $${price}`, cost: sqft * price })
     }
     const openingCounts = new Map<OpeningKind, number>()
     for (const o of l.openings) openingCounts.set(o.kind, (openingCounts.get(o.kind) ?? 0) + 1)

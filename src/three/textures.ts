@@ -477,3 +477,137 @@ export function wallTexture(finish: string, color: string): { tex: THREE.CanvasT
   cache.set(key, out)
   return out
 }
+
+/**
+ * Roof coverings. The texture's v axis runs down the slope, u along the eaves;
+ * (sx, sy) is the size in metres one repeat covers.
+ */
+export function roofTexture(material: string, color: string): { tex: THREE.CanvasTexture; sx: number; sy: number } | null {
+  const key = `roof|${material}|${color}`
+  const hit = cache.get(key)
+  if (hit) return hit
+  const rand = rng(material.split('').reduce((s, c) => s * 31 + c.charCodeAt(0), 7))
+  const W = 512
+  const H = 512
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  const base = color
+  let sx = 1
+  let sy = 1
+  switch (material) {
+    case 'shingle': {
+      // Three-tab asphalt: 36" strips, 5" exposure.
+      sx = 0.915
+      sy = 0.635
+      const rows = 5
+      const rh = H / rows
+      for (let r = 0; r < rows; r++) {
+        const off = (r % 2) * (W / 6)
+        for (let t = -1; t < 3; t++) {
+          const x = off + (t * W) / 3
+          ctx.fillStyle = shade(base, 0.82 + rand() * 0.3)
+          ctx.fillRect(x, r * rh, W / 3, rh)
+          ctx.fillStyle = shade(base, 0.55)
+          ctx.fillRect(x + W / 3 - 3, r * rh + rh * 0.35, 3, rh * 0.65)
+        }
+        ctx.fillStyle = shade(base, 0.5)
+        ctx.fillRect(0, (r + 1) * rh - 4, W, 4)
+      }
+      noise(ctx, W, H, 26, rand)
+      break
+    }
+    case 'metal': {
+      // Standing seams every 16".
+      sx = 0.4064 * 2
+      sy = 1
+      for (const x of [0, W / 2]) {
+        const g = ctx.createLinearGradient(x, 0, x + W / 2, 0)
+        g.addColorStop(0, shade(base, 0.9))
+        g.addColorStop(0.5, shade(base, 1.08))
+        g.addColorStop(1, shade(base, 0.95))
+        ctx.fillStyle = g
+        ctx.fillRect(x, 0, W / 2, H)
+      }
+      for (const x of [0, W / 2]) {
+        ctx.fillStyle = shade(base, 1.25)
+        ctx.fillRect(x, 0, 5, H)
+        ctx.fillStyle = shade(base, 0.6)
+        ctx.fillRect(x + 5, 0, 4, H)
+      }
+      noise(ctx, W, H, 4, rand)
+      break
+    }
+    case 'tile': {
+      // Barrel tiles: rounded courses.
+      sx = 0.6
+      sy = 0.6
+      const cols = 4
+      const rows = 3
+      const cw = W / cols
+      const rh = H / rows
+      ctx.fillStyle = shade(base, 0.55)
+      ctx.fillRect(0, 0, W, H)
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * cw
+          const g = ctx.createLinearGradient(x, 0, x + cw, 0)
+          const k = 0.9 + rand() * 0.2
+          g.addColorStop(0, shade(base, 0.62 * k))
+          g.addColorStop(0.45, shade(base, 1.15 * k))
+          g.addColorStop(1, shade(base, 0.6 * k))
+          ctx.fillStyle = g
+          ctx.beginPath()
+          ctx.moveTo(x + 2, r * rh)
+          ctx.lineTo(x + cw - 2, r * rh)
+          ctx.lineTo(x + cw - 2, (r + 1) * rh - 12)
+          ctx.quadraticCurveTo(x + cw / 2, (r + 1) * rh + 10, x + 2, (r + 1) * rh - 12)
+          ctx.closePath()
+          ctx.fill()
+        }
+      }
+      noise(ctx, W, H, 12, rand)
+      break
+    }
+    case 'slate': {
+      sx = 0.8
+      sy = 0.5
+      const rows = 4
+      const rh = H / rows
+      for (let r = 0; r < rows; r++) {
+        let x = r % 2 ? -W / 8 : 0
+        while (x < W) {
+          const sw = W / 4
+          ctx.fillStyle = shade(base, 0.78 + rand() * 0.34)
+          ctx.fillRect(x + 2, r * rh + 2, sw - 4, rh - 4)
+          x += sw
+        }
+      }
+      ctx.globalCompositeOperation = 'destination-over'
+      ctx.fillStyle = shade(base, 0.45)
+      ctx.fillRect(0, 0, W, H)
+      ctx.globalCompositeOperation = 'source-over'
+      noise(ctx, W, H, 16, rand)
+      break
+    }
+    case 'membrane': {
+      sx = sy = 2
+      ctx.fillStyle = base
+      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = shade(base, 0.9)
+      for (let i = 0; i < 4; i++) ctx.fillRect(0, (i * H) / 4, W, 3)
+      noise(ctx, W, H, 10, rand)
+      break
+    }
+    default:
+      return null
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 8
+  const out = { tex, sx, sy }
+  cache.set(key, out)
+  return out
+}

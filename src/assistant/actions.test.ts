@@ -22,7 +22,7 @@ describe('assistant actions', () => {
       { op: 'paint_walls', room: 'Bedroom', color: '#C9D6DE' },
       { op: 'set_floor', room: 'Living', floor: 'walnut' },
       { op: 'resize_room', room: 'Living', w: 18 },
-      { op: 'set_roof', style: 'gable', pitch: 6 },
+      { op: 'set_roof', style: 'gable', pitch: 6, material: 'metal', color: '#35506B' },
     ]
     const r = runActions(p, lvl, actions)
     const l = r.project.levels[0]
@@ -34,6 +34,8 @@ describe('assistant actions', () => {
     expect(l.openings.filter((o) => o.kind === 'window')).toHaveLength(2)
     expect(l.items.map((i) => i.type).sort()).toEqual(['bed-queen', 'sofa-3'])
     expect(l.roof.style).toBe('gable')
+    expect(l.roof.material).toBe('metal')
+    expect(l.roof.color).toBe('#35506B')
     expect(Math.round(polygonArea(l.rooms[0].points) / (CM_PER_FT * CM_PER_FT))).toBe(18 * 14)
     // Bed backed onto the east wall, facing west.
     expect(l.items.find((i) => i.type === 'bed-queen')!.rotation).toBe(90)
