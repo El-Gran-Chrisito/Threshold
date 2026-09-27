@@ -56,6 +56,21 @@ export function Inspector() {
       const i = level.items.find((x) => x.id === selection.id)
       return i ? <ItemInspector item={i} units={units} /> : <LevelSummary level={level} />
     }
+    case 'dim': {
+      const d = (level.dims ?? []).find((x) => x.id === selection.id)
+      if (!d) return <LevelSummary level={level} />
+      return (
+        <section className="inspector">
+          <InspectorHead kind="Dimension" title={formatLength(Math.hypot(d.b.x - d.a.x, d.b.y - d.a.y), units)} />
+          <p className="tip">A measurement kept on the plan. It appears in the floor plan image.</p>
+          <div className="btn-row">
+            <button type="button" className="btn btn-danger" onClick={() => deleteSelection()}>
+              <Icon name="trash" size={16} /> Delete
+            </button>
+          </div>
+        </section>
+      )
+    }
     case 'label': {
       const l = level.labels.find((x) => x.id === selection.id)
       if (!l) return <LevelSummary level={level} />
@@ -104,6 +119,8 @@ export function deleteSelection() {
         return { ...l, items: l.items.filter((o) => o.id !== sel.id) }
       case 'label':
         return { ...l, labels: l.labels.filter((o) => o.id !== sel.id) }
+      case 'dim':
+        return { ...l, dims: (l.dims ?? []).filter((o) => o.id !== sel.id) }
     }
   })
   s.select(null)

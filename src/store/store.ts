@@ -199,7 +199,8 @@ function fixLevelAndSelection() {
     (sel.kind === 'room' && l.rooms.some((r) => r.id === sel.id)) ||
     (sel.kind === 'item' && l.items.some((r) => r.id === sel.id)) ||
     (sel.kind === 'opening' && l.openings.some((r) => r.id === sel.id)) ||
-    (sel.kind === 'label' && l.labels.some((r) => r.id === sel.id))
+    (sel.kind === 'label' && l.labels.some((r) => r.id === sel.id)) ||
+    (sel.kind === 'dim' && (l.dims ?? []).some((r) => r.id === sel.id))
   if (!exists) useStore.setState({ selection: null })
 }
 

@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import type { Item, Label, Level, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
+import type { Dimension, Item, Label, Level, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
 import { add, angleDeg, bounds, dist, labelPoint, lerp, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
 import { exteriorSides, roomArea } from '../model/ops'
 import { formatArea, formatLength } from '../model/units'
@@ -265,6 +265,19 @@ export const LabelsLayer = memo(function LabelsLayer({ labels, px, selection }: 
 
 // ---------------------------------------------------------------------------
 // Dimensions
+
+export const KeptDims = memo(function KeptDims({ dims, px, units, selection }: { dims: Dimension[]; px: number; units: UnitSystem; selection: Selection | null }) {
+  return (
+    <g>
+      {dims.map((d) => (
+        <g key={d.id} data-hit={`ann:${d.id}`} className={selection?.kind === 'dim' && selection.id === d.id ? 'kept-dim is-selected' : 'kept-dim'}>
+          <DimLine a={d.a} b={d.b} px={px} units={units} />
+          <path d={`M ${d.a.x} ${d.a.y} L ${d.b.x} ${d.b.y}`} className="hit-line" strokeWidth={14 * px} />
+        </g>
+      ))}
+    </g>
+  )
+})
 
 export const WallDims = memo(function WallDims({ level, px, units, interactive = false }: { level: Level; px: number; units: UnitSystem; interactive?: boolean }) {
   const ext = new Map(exteriorSides(level).map((s) => [s.wall.id, s.side]))

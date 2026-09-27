@@ -20,13 +20,13 @@ import {
   updateWall,
   wallLength,
 } from '../model/ops'
-import { makeItem, makeLabel, makeOpening } from '../model/factory'
+import { makeItem, makeLabel, makeOpening, uid } from '../model/factory'
 import { catalogEntry } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { snapPoint, type SnapResult } from './snap'
 import { useUnderlay } from '../store/underlay'
 import { ContextMenu, type MenuState } from './ContextMenu'
-import { DimLine, ItemGlyph, ItemsLayer, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
+import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
 interface Camera {
@@ -116,7 +116,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const s = useStore.getState()
     if (hit && !hit.startsWith('h:') && !hit.startsWith('dim:')) {
       const [kind, id] = hit.split(':')
-      if (!(kind === 'item' && selectedItemIds(s).includes(id))) s.select({ kind, id } as never)
+      if (!(kind === 'item' && selectedItemIds(s).includes(id))) s.select({ kind: kind === 'ann' ? 'dim' : kind, id } as never)
     }
     setMenu({ x: Math.min(clientX - rect.left, rect.width - 230), y: Math.min(clientY - rect.top, rect.height - 260), hit: hit && !hit.startsWith('h:') ? hit : null, at })
   }
@@ -420,6 +420,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         if (e.shiftKey && !hit?.startsWith('item:')) {
           drag.current = { kind: 'marquee', start: p }
           setMarquee({ a: p, b: p })
+          return
+        }
+        if (hit?.startsWith('ann:')) {
+          drag.current = panDrag(() => s.select({ kind: 'dim', id: hit.slice(4) }))
           return
         }
         if (hit?.startsWith('dim:')) {
@@ -868,6 +872,8 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         }
         return
       case 'measure':
+        // Re-render so the "Keep on plan" bar appears now that the drag is over.
+        setMeasure((m) => (m ? { ...m } : m))
         return
       case 'marquee': {
         const m = marqueeRef.current
@@ -1019,6 +1025,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} />}
+        {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
         {showDims && !minimap && <WallDims level={level} px={px} units={units} interactive={tool === 'select'} />}
         {tool === 'select' && !minimap && multi.length < 2 && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
@@ -1112,6 +1119,26 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       )}
       {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
       {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
+      {!minimap && tool === 'measure' && measure && dist(measure.a, measure.b) > 5 && !drag.current && (
+        <div className="draw-actions">
+          <span className="measure-read">{formatLength(dist(measure.a, measure.b), units)}</span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              const d = { id: uid('d'), a: measure.a, b: measure.b }
+              useStore.getState().applyLevel((l) => ({ ...l, dims: [...(l.dims ?? []), d] }))
+              setMeasure(null)
+              useStore.getState().notify('Dimension kept on the plan')
+            }}
+          >
+            Keep on plan
+          </button>
+          <button type="button" className="btn" onClick={() => setMeasure(null)}>
+            Clear
+          </button>
+        </div>
+      )}
       {!minimap && underlayMode && <UnderlayBar />}
       {!minimap && (draft?.kind === 'chain' || draft?.kind === 'poly') && lengthInput === null && (
         <div className="draw-actions">

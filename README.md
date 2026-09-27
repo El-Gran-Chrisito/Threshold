@@ -1,28 +1,43 @@
 # Threshold
 
-Design every part of a home in the browser: floor plan, walls, doors, windows, furniture, finishes, floors and roof. See it in 3D, pull it apart in an exploded view, or walk through it.
+Design every part of a home in the browser: floor plan, walls, doors, windows, furniture, finishes, floors, lighting and roof. See it in 3D, pull it apart in an exploded view, or walk through it.
 
 ## Run
 
 ```bash
 bun install
 bun run dev          # local dev server
-bun run test         # model tests
+bun run test         # model, assistant and design-check tests
 bun run build        # static site in dist/
 bun run build:single # one self-contained HTML file in dist-single/
 ```
+
+`scripts/*.mjs` drive the built app in headless Chromium (Playwright) for end-to-end checks and screenshots.
 
 ## What it does
 
 | Area | Features |
 | --- | --- |
-| Plan (2D) | Rectangle and free-shape rooms, walls with typed lengths, shared walls, doors/windows/sliders/archways/garage doors, snapping (grid, corners, alignment guides, 15° angles), drag/resize/rotate handles, measure, text labels, auto-detect rooms from walls |
-| Furniture | 99 parametric items in 12 categories (incl. electrical), auto-backs onto walls, any size, two colours each, mirror, lock, swap, copy/paste |
-| Finishes | Paint per wall side or per room, 18 floor finishes with real-scale textures, ceilings, exterior colour, roof colour |
-| Levels | Multiple floors, basement, stair openings cut through floors, flat/gable/hip/shed roofs with pitch and overhang |
-| 3D | Orbit view, inside (cutaway) and outside views, exploded view, low-wall view, sun position by time of day, click-to-select and click-to-paint |
-| Walk | First-person walk-through with wall collision; doors are passable |
-| Budget | Live cost estimate: flooring, walls and paint, doors and windows, furniture; editable prices |
-| Files | Autosave in the browser, several designs, save/open design files, save 3D image |
+| Plan (2D) | Rectangle and free-shape rooms, floor-only areas (patios, decks, lawns), walls with typed lengths and chosen thickness, shared walls, closed wall loops become rooms, doors / double doors / sliders / archways / garage doors / windows, snapping (grid, corners, alignment guides, 15° angles), drag / resize / rotate handles, add corners to room edges, click a dimension to edit it, measure, text labels, multi-select with align and distribute, right-click and long-press quick actions, tracing image with scale calibration |
+| Furniture | 99 parametric items in 12 categories (living, bedroom, dining, kitchen, bath, office, laundry, lighting, electrical, decor, outdoor, structure); auto-backs onto walls; any size, two colours, mirror, lock, swap; one-click kitchen cabinet runs |
+| Finishes | Nine wall finishes per wall side (paint, wallpaper, tile, wood, brick, stone, siding, shingle, concrete), 18 floor finishes with real-scale textures and pattern direction, ceilings, trim and baseboards, door and window styles, exterior and roof colour |
+| Levels | Multiple floors, basement, stair openings cut through floors, flat / gable / hip / shed roofs with pitch and overhang |
+| 3D | Orbit view with inside and outside presets, exploded view with layer tags, low walls, sun by time of day, night lighting from lamps, click to select, click to paint, drag furniture, double-click to focus |
+| Walk | First-person walk-through with wall collision, open doors, mini-map with position and heading |
+| Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude, via the artifact `sample` capability) |
+| Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices |
+| Files | Autosave to the browser and, inside Claude, to the viewer's account; several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
+| Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing), light and dark themes, phone layout |
 
-All lengths are stored in centimetres; the UI shows feet-and-inches or metres and accepts inputs such as `12' 6"`, `12-6`, `3.5m`, `350cm`.
+All lengths are stored in centimetres; the UI accepts `12' 6"`, `12-6`, `6 1/2"`, `3.5m`, `350cm` and plain numbers.
+
+## Layout
+
+```text
+src/model      data model, geometry, editing operations, catalog, materials, templates, budget, design checks
+src/store      app state with undo/redo, browser and account persistence, file saving, tracing image
+src/plan       2D editor (SVG), symbols, snapping, context menu, plan export
+src/three      3D scene (react-three-fiber), procedural furniture and textures, walk mode, exploded view, glTF export
+src/assistant  design assistant prompt and action executor
+src/ui         panels, inspector and controls
+```

@@ -8,7 +8,7 @@ import type { Level, Project } from '../model/types'
 import { levelBounds, roomArea } from '../model/ops'
 import { formatArea, formatLength, CM_PER_FT } from '../model/units'
 import { catalogEntry } from '../model/catalog'
-import { ItemsLayer, LabelsLayer, OpeningsLayer, RoomLabelsLayer, RoomsLayer, WallDims, WallsLayer } from './PlanLayers'
+import { ItemsLayer, KeptDims, LabelsLayer, OpeningsLayer, RoomLabelsLayer, RoomsLayer, WallDims, WallsLayer } from './PlanLayers'
 
 // Fixed light-theme colours: the sheet is a document, not a themed UI.
 const SHEET_CSS = `
@@ -32,6 +32,8 @@ const SHEET_CSS = `
 .item.is-ceiling{opacity:.75}
 .free-label{fill:#1c2226;font-weight:700;paint-order:stroke;stroke:#ffffff}
 .dim-text{fill:#c2410c;paint-order:stroke;stroke:#ffffff;stroke-linejoin:round}
+.dimline path{stroke:#c2410c;fill:none}
+.dimline-text{fill:#c2410c;font-weight:600;paint-order:stroke;stroke:#ffffff;stroke-linejoin:round}
 text{font-family:'Atkinson Hyperlegible Next',system-ui,-apple-system,'Segoe UI',Arial,sans-serif}
 .sheet-title{fill:#1c2226;font-weight:700}
 .sheet-sub{fill:#56626a}
@@ -65,6 +67,7 @@ function PlanSheet({ project, level, width }: { project: Project; level: Level; 
       <RoomLabelsLayer level={level} px={px * 1.9} units={units} showDims />
       <LabelsLayer labels={level.labels} px={px * 1.9} selection={null} />
       <WallDims level={level} px={px * 1.7} units={units} />
+      {level.dims && <KeptDims dims={level.dims} px={px * 1.7} units={units} selection={null} />}
       {/* Title block */}
       <path d={`M ${x0 + 40 * px} ${ty - 6 * px} H ${x0 + w - 40 * px}`} className="sheet-rule" strokeWidth={px * 1.5} />
       <text x={tx} y={ty + 34 * px} fontSize={30 * px} className="sheet-title">

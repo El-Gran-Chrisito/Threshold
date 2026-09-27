@@ -102,6 +102,8 @@ function entriesFor(m: MenuState): Entry[] {
         { label: 'Delete room and its walls', danger: true, run: () => (applyLevel((l) => deleteRoom(l, r.id, true)), s.select(null)) },
       ]
     }
+    case 'ann':
+      return [{ label: 'Delete dimension', danger: true, run: () => (applyLevel((l) => ({ ...l, dims: (l.dims ?? []).filter((d) => d.id !== id) })), s.select(null)) }]
     default:
       return s.clipboard?.length
         ? [

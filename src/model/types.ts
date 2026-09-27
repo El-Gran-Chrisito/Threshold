@@ -95,6 +95,13 @@ export interface Label {
   size: number
 }
 
+/** A dimension line the user keeps on the plan. */
+export interface Dimension {
+  id: ID
+  a: Vec2
+  b: Vec2
+}
+
 export type RoofStyle = 'none' | 'flat' | 'gable' | 'hip' | 'shed'
 
 export interface Roof {
@@ -119,6 +126,7 @@ export interface Level {
   rooms: Room[]
   items: Item[]
   labels: Label[]
+  dims?: Dimension[]
   roof: Roof
 }
 
@@ -157,6 +165,7 @@ export type Selection =
   | { kind: 'room'; id: ID }
   | { kind: 'item'; id: ID }
   | { kind: 'label'; id: ID }
+  | { kind: 'dim'; id: ID }
 
 export type SelectionKind = Selection['kind']
 
