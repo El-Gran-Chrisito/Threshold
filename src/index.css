@@ -1620,7 +1620,7 @@ kbd {
   .sidepanel {
     border-left: 0;
     border-top: 1px solid var(--line);
-    max-height: 46vh;
+    max-height: 42vh;
   }
 
   .panel-tabs button span {

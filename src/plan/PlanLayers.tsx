@@ -39,7 +39,7 @@ export const RoomLabelsLayer = memo(function RoomLabelsLayer({ level, px, units,
   )
 })
 
-function RoomLabel({ room, px, units, showDims }: { room: Room; px: number; units: UnitSystem; showDims: boolean }) {
+const RoomLabel = memo(function RoomLabel({ room, px, units, showDims }: { room: Room; px: number; units: UnitSystem; showDims: boolean }) {
   const p = labelPoint(room.points)
   const b = bounds(room.points)
   const minSidePx = Math.min(b.maxX - b.minX, b.maxY - b.minY) / px
@@ -70,7 +70,7 @@ function RoomLabel({ room, px, units, showDims }: { room: Room; px: number; unit
       )}
     </g>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Walls and openings
@@ -109,7 +109,7 @@ export const OpeningsLayer = memo(function OpeningsLayer({ level, px, selection 
   )
 })
 
-export function OpeningSymbol({ o, w, px, selected, preview }: { o: Opening; w: Wall; px: number; selected?: boolean; preview?: boolean }): ReactNode {
+export const OpeningSymbol = memo(function OpeningSymbol({ o, w, px, selected, preview }: { o: Opening; w: Wall; px: number; selected?: boolean; preview?: boolean }): ReactNode {
   const d = norm(sub(w.b, w.a))
   const n = normalOf(w.a, w.b)
   const t = w.thickness
@@ -209,7 +209,7 @@ export function OpeningSymbol({ o, w, px, selected, preview }: { o: Opening; w: 
       <path d={`M ${hitA.x} ${hitA.y} L ${hitB.x} ${hitB.y}`} className="hit-line" strokeWidth={Math.max(t + 10, 16 * px)} />
     </g>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Items
@@ -224,7 +224,7 @@ export const ItemsLayer = memo(function ItemsLayer({ items, px, selection, filte
   )
 })
 
-export function ItemGlyph({ item, px, selected, ghost }: { item: Item; px: number; selected?: boolean; ghost?: boolean }) {
+export const ItemGlyph = memo(function ItemGlyph({ item, px, selected, ghost }: { item: Item; px: number; selected?: boolean; ghost?: boolean }) {
   const c = catalogEntry(item.type)
   return (
     <g
@@ -236,7 +236,7 @@ export function ItemGlyph({ item, px, selected, ghost }: { item: Item; px: numbe
       {selected && <rect x={-item.width / 2 - 3 * px} y={-item.depth / 2 - 3 * px} width={item.width + 6 * px} height={item.depth + 6 * px} className="sel-box" strokeWidth={px * 1.5} />}
     </g>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Labels

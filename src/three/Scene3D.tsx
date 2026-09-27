@@ -451,12 +451,16 @@ function stairHoles(project: Project, level: Level): Vec2[][] {
 }
 
 const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, showRoof, selectionId, active, index, multi }: { level: Level; project: Project; cut: number | null; showCeiling: boolean; showRoof: boolean; selectionId: string | null; active: boolean; index: number; multi: string[] }) {
-  const joints = useMemo(() => jointKeys(level), [level])
-  const holes = useMemo(() => stairHoles(project, level), [project, level])
-  const center = useMemo(() => {
-    const b = levelBounds(level)
-    return b ? { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 } : { x: 0, y: 0 }
-  }, [level])
+  // Derived inputs are keyed by value so that editing one object (dragging a
+  // chair) does not hand every wall and floor a "new" prop and rebuild them.
+  const jointsKey = [...jointKeys(level)].sort().join('|')
+  const joints = useMemo(() => new Set(jointsKey ? jointsKey.split('|') : []), [jointsKey])
+  const holesKey = JSON.stringify(stairHoles(project, level).map((h) => h.map((p) => [Math.round(p.x), Math.round(p.y)])))
+  const holes = useMemo(() => (JSON.parse(holesKey) as number[][][]).map((h) => h.map(([x, y]) => ({ x, y }))), [holesKey])
+  const b = levelBounds(level)
+  const cx = b ? Math.round((b.minX + b.maxX) / 2) : 0
+  const cy = b ? Math.round((b.minY + b.maxY) / 2) : 0
+  const center = useMemo(() => ({ x: cx, y: cy }), [cx, cy])
   return (
     <Exploding base={[0, level.elevation * M, 0]} offset={[0, index * 3.4, 0]}>
       {level.rooms.map((r) => (

@@ -397,7 +397,8 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
       const p = buildTemplate(id)
       useStore.getState().loadProject(p)
     }
-    if (id === 'blank') useStore.setState({ tool: 'room', view: 'split' })
+    const phone = window.matchMedia?.('(max-width: 820px)').matches
+    if (id === 'blank') useStore.setState({ tool: 'room', view: phone ? 'plan' : 'split' })
     onClose()
   }
   return (
@@ -420,7 +421,7 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
             <span>Empty plot. The Room tool is ready: drag to draw your first room.</span>
           </button>
         </div>
-        <p className="tip">Press ? at any time for shortcuts. Your work saves automatically in this browser.</p>
+        <p className="tip">Your work saves automatically. The ? button explains every tool.</p>
       </div>
     </div>
   )
