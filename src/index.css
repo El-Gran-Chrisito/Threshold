@@ -194,15 +194,35 @@ hr {
 }
 
 .project-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   border: 0;
   background: none;
-  padding: 6px 8px;
+  padding: 4px 8px;
   border-radius: 8px;
   color: var(--ink-2);
-  max-width: 24ch;
+  max-width: 28ch;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.project-name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+}
+
+.save-state {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.save-state.is-error {
+  color: var(--dim);
 }
 
 .project-title:hover {

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { activeLevel, addLevelAbove, addLevelBelow, useStore } from '../store/store'
 import { CATEGORIES, catalogEntry, searchCatalog, type Category } from '../model/catalog'
 import { FLOORS, PAINTS } from '../model/materials'
@@ -11,6 +11,7 @@ import { budget } from '../model/budget'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject } from '../store/persistence'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
+import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 
 // ---------------------------------------------------------------------------
 // Catalog
@@ -284,6 +285,24 @@ export function BudgetPanel() {
 export function ProjectPanel() {
   const project = useStore((s) => s.project)
   const [saved, setSaved] = useState(listSaved)
+  const cloudOn = useStore((s) => s.cloudStatus !== 'off')
+  useEffect(() => {
+    let alive = true
+    cloudList().then((remote) => {
+      if (!alive || !remote.length) return
+      setSaved((local) => {
+        const byId = new Map(local.map((m) => [m.id, m]))
+        for (const r of remote) {
+          const l = byId.get(r.id)
+          if (!l || r.updatedAt > l.updatedAt) byId.set(r.id, r)
+        }
+        return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+      })
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
   const fileRef = useRef<HTMLInputElement>(null)
   const [err, setErr] = useState<string | null>(null)
   const s = useStore.getState()
@@ -347,16 +366,19 @@ export function ProjectPanel() {
         </div>
       </Field>
       {saved.length > 1 && (
-        <Field label="Saved in this browser">
+        <Field label={cloudOn ? 'Your saved designs' : 'Saved in this browser'}>
           <ul className="saved-list">
             {saved.map((m) => (
               <li key={m.id}>
                 <button
                   type="button"
                   className={`saved-item${m.id === project.id ? ' is-on' : ''}`}
-                  onClick={() => {
-                    const p = loadSaved(m.id)
+                  onClick={async () => {
+                    const local = loadSaved(m.id)
+                    const remote = !local || local.updatedAt < m.updatedAt ? await cloudLoad(m.id) : null
+                    const p = remote ?? local
                     if (p) useStore.getState().loadProject(p)
+                    else useStore.getState().notify('That design could not be opened')
                   }}
                 >
                   <span>{m.name}</span>
@@ -369,7 +391,8 @@ export function ProjectPanel() {
                     aria-label={`Delete ${m.name}`}
                     onClick={() => {
                       deleteSaved(m.id)
-                      setSaved(listSaved())
+                      cloudDelete(m.id)
+                      setSaved((xs) => xs.filter((x) => x.id !== m.id))
                     }}
                   >
                     <Icon name="trash" size={16} />
@@ -428,7 +451,7 @@ export function ProjectPanel() {
       <Field label="North direction (compass bearing of plan up)">
         <NumberInput id="north" value={project.site.northAngle} min={-180} max={360} step={15} suffix="°" onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, northAngle: v } }))} />
       </Field>
-      <p className="tip">Your design saves automatically in this browser. Save a design file to keep a copy or move it to another device.</p>
+      <p className="tip">{cloudOn ? 'Your designs save automatically to your account and open on any device where you use this app.' : 'Your design saves automatically in this browser. Save a design file to keep a copy or move it to another device.'}</p>
     </section>
   )
 }

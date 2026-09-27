@@ -3,6 +3,7 @@ import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode, Wall
 import { buildTemplate } from '../model/templates'
 import { makeLevel, uid } from '../model/factory'
 import { loadLastProject, saveProject } from './persistence'
+import { cloud, cloudList, cloudLoad, cloudSave, onCloudStatus, type CloudStatus } from './cloud'
 
 const HISTORY_LIMIT = 200
 
@@ -36,6 +37,9 @@ export interface State {
   /** 0 = assembled, 1 = fully exploded (3D). */
   explode: number
   walker: { x: number; y: number; yaw: number } | null
+  cloudStatus: CloudStatus
+  /** An account design was opened at start-up. */
+  cloudLoaded: boolean
   panel: 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
   toast: { text: string; at: number } | null
   past: Project[]
@@ -73,7 +77,9 @@ function withLevel(p: Project, levelId: string, fn: (l: Level) => Level): Projec
   return { ...p, levels: p.levels.map((l) => (l.id === levelId ? fn(l) : l)), updatedAt: Date.now() }
 }
 
-const initial = loadLastProject() ?? buildTemplate('family')
+const savedLocally = loadLastProject()
+const hadLocalProject = !!savedLocally
+const initial = savedLocally ?? buildTemplate('family')
 
 export const useStore = create<State>((set, get) => ({
   project: initial,
@@ -95,6 +101,8 @@ export const useStore = create<State>((set, get) => ({
   sunHour: 15,
   explode: 0,
   walker: null,
+  cloudStatus: 'off',
+  cloudLoaded: false,
   panel: 'inspector',
   toast: null,
   past: [],
@@ -186,12 +194,40 @@ function fixLevelAndSelection() {
   if (!exists) useStore.setState({ selection: null })
 }
 
-// Autosave (debounced) whenever the project changes outside a drag.
+// Autosave (debounced) whenever the project changes outside a drag:
+// quickly to this browser, a little later to the viewer's account.
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+let cloudTimer: ReturnType<typeof setTimeout> | null = null
 useStore.subscribe((s, prev) => {
   if (s.project === prev.project || s.txBase) return
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => saveProject(useStore.getState().project), 400)
+  if (cloudTimer) clearTimeout(cloudTimer)
+  cloudTimer = setTimeout(() => cloudSave(useStore.getState().project), 1500)
+})
+onCloudStatus((cloudStatus) => useStore.setState({ cloudStatus }))
+
+// On start, prefer the account's copy when it is newer, or open the latest
+// account design when this browser has none. Never replaces work already
+// begun in this visit.
+cloud().then(async (c) => {
+  if (!c) return
+  useStore.setState({ cloudStatus: 'saved' })
+  const list = await cloudList()
+  const s = useStore.getState()
+  if (s.past.length > 0 || s.txBase) return
+  const local = hadLocalProject ? s.project : null
+  const same = local ? list.find((m) => m.id === local.id) : undefined
+  const target = local ? (same && same.updatedAt > local.updatedAt ? same : null) : list[0]
+  if (!target) {
+    if (local && !same) cloudSave(local)
+    return
+  }
+  const p = await cloudLoad(target.id)
+  const now = useStore.getState()
+  if (!p || now.past.length > 0 || now.txBase) return
+  now.loadProject(p)
+  useStore.setState({ cloudLoaded: true })
 })
 
 export function addLevelAbove(copyWalls: boolean) {

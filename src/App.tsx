@@ -71,6 +71,10 @@ export default function App() {
   })
 
   useShortcuts(() => setHelp((h) => !h))
+  const cloudLoaded = useStore((s) => s.cloudLoaded)
+  useEffect(() => {
+    if (cloudLoaded) setWelcome(false)
+  }, [cloudLoaded])
 
   // On phones, split view stacks; start in plan to keep things roomy.
   useEffect(() => {
@@ -195,9 +199,12 @@ export default function App() {
 
 function ProjectTitle() {
   const name = useStore((s) => s.project.name)
+  const status = useStore((s) => s.cloudStatus)
+  const label = status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved to your account' : status === 'error' ? 'Saved in this browser only' : 'Saved in this browser'
   return (
     <button type="button" className="project-title" onClick={() => useStore.getState().set({ panel: 'project' })} title="Project settings">
-      {name}
+      <span className="project-name">{name}</span>
+      <span className={`save-state is-${status}`}>{label}</span>
     </button>
   )
 }
