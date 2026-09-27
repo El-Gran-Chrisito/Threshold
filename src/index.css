@@ -2236,3 +2236,48 @@ kbd {
   font-size: 12.5px;
   overflow-wrap: anywhere;
 }
+
+.style-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  text-align: left;
+  font-size: 13px;
+}
+
+.style-card:hover {
+  border-color: var(--ink-3);
+}
+
+.style-card strong {
+  font-size: 14px;
+}
+
+.style-dots {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.style-dots span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  margin-left: -5px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.style-dots span:first-child {
+  margin-left: 0;
+}

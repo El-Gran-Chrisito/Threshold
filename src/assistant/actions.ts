@@ -14,6 +14,7 @@ import { bounds, lerp, pointInPolygon } from '../model/geometry'
 import { makeItem, makeOpening } from '../model/factory'
 import { furnishRoom } from '../model/furnish'
 import { CM_PER_FT } from '../model/units'
+import { applyHomeStyle, HOME_STYLES } from '../model/styles'
 
 type Side = 'N' | 'S' | 'E' | 'W'
 
@@ -33,6 +34,7 @@ export type Action =
   | { op: 'furnish_room'; room: string }
   | { op: 'exterior'; color: string; finish?: string }
   | { op: 'set_roof'; style: RoofStyle; pitch?: number; material?: RoofMaterial; color?: string }
+  | { op: 'apply_style'; style: string }
 
 const ft = (n: number) => n * CM_PER_FT
 const toFt = (cm: number) => Math.round((cm / CM_PER_FT) * 10) / 10
@@ -91,6 +93,7 @@ Each action is one of:
 - {"op":"furnish_room","room":name}   (adds a sensible starter set for the room's type; prefer this over many add_item actions when asked to furnish a room)
 - {"op":"exterior","color":"#RRGGBB","finish"?:finishId}
 - {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12,"material"?:"shingle"|"metal"|"tile"|"slate"|"membrane","color"?:"#RRGGBB"}
+- {"op":"apply_style","style":${HOME_STYLES.map((s) => `"${s.id}"`).join('|')}}  (restyles every room, floor, trim, outside, roof and furniture colour in the whole home; use first, then any specific changes)
 Order matters: create rooms before adding doors, windows or items to them. Give every new room at least one door. Keep furniture sizes realistic for the room.
 
 FLOOR IDS: ${FLOORS.map((f) => `${f.id} (${f.name})`).join('; ')}
@@ -184,6 +187,7 @@ export interface RunResult {
 export function runActions(project: Project, levelId: string, actions: Action[]): RunResult {
   const applied: string[] = []
   const skipped: string[] = []
+  let proj = project
   let level = project.levels.find((l) => l.id === levelId)!
   let roof = level.roof
 
@@ -369,6 +373,15 @@ export function runActions(project: Project, levelId: string, actions: Action[])
           applied.push(`Roof: ${style}`)
           break
         }
+        case 'apply_style': {
+          const st = HOME_STYLES.find((x) => x.id === a.style)
+          if (!st) throw new Error(`no style "${a.style}"`)
+          proj = applyHomeStyle({ ...proj, levels: proj.levels.map((l) => (l.id === levelId ? level : l)) }, st.id)
+          level = proj.levels.find((l) => l.id === levelId)!
+          roof = level.roof
+          applied.push(`Style: ${st.name}`)
+          break
+        }
         default:
           skipped.push(`Unknown action ${(raw as { op?: string }).op ?? '?'}`)
       }
@@ -377,6 +390,6 @@ export function runActions(project: Project, levelId: string, actions: Action[])
     }
   }
 
-  return { project: { ...project, levels: project.levels.map((l) => (l.id === levelId ? level : l)), updatedAt: Date.now() }, applied, skipped }
+  return { project: { ...proj, levels: proj.levels.map((l) => (l.id === levelId ? level : l)), updatedAt: Date.now() }, applied, skipped }
 }
 

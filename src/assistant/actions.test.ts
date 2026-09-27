@@ -41,6 +41,20 @@ describe('assistant actions', () => {
     expect(l.items.find((i) => i.type === 'bed-queen')!.rotation).toBe(90)
   })
 
+  it('applies a whole-home style, then specific changes on top', () => {
+    const p = buildTemplate('family')
+    const lvl = p.levels[0].id
+    const r = runActions(p, lvl, [
+      { op: 'apply_style', style: 'industrial' },
+      { op: 'set_floor', room: 'Den', floor: 'walnut' },
+    ])
+    expect(r.skipped).toEqual([])
+    const g = r.project.levels[0]
+    expect(g.rooms.find((x) => x.name === 'Den')!.floor).toBe('walnut')
+    expect(g.rooms.find((x) => x.name === 'Kitchen & dining')!.floor).toBe('concrete')
+    expect(r.project.levels[1].roof.material).toBe('metal')
+  })
+
   it('reports actions it cannot do instead of failing', () => {
     const p = buildTemplate('studio')
     const r = runActions(p, p.levels[0].id, [

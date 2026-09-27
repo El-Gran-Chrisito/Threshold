@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { activeLevel, addLevelAbove, addLevelBelow, useStore } from '../store/store'
 import { CATEGORIES, searchCatalog, type Category } from '../model/catalog'
-import { FLOORS, PAINTS, ROOF_SWATCHES } from '../model/materials'
+import { FLOORS, floorMaterial, PAINTS, ROOF_SWATCHES } from '../model/materials'
+import { applyHomeStyle, HOME_STYLES } from '../model/styles'
 import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
@@ -118,6 +119,30 @@ export function PaintPanel() {
           </div>
         </Field>
       )}
+      <hr />
+      <Field label="Whole-home style" hint="Restyles walls, floors, trim, doors, windows, outside, roof, cabinets and furniture colours. Layout stays. Undo to go back.">
+        <div className="style-list">
+          {HOME_STYLES.map((st) => (
+            <button
+              key={st.id}
+              type="button"
+              className="style-card"
+              onClick={() => {
+                useStore.getState().apply((p) => applyHomeStyle(p, st.id))
+                useStore.getState().notify(`Style applied: ${st.name}. Press Undo to go back.`)
+              }}
+            >
+              <span className="style-dots" aria-hidden>
+                {[st.walls.living, st.walls.bedroom, floorMaterial(st.floors.living).base, st.wood, st.fabric, st.exterior.color, st.roof.color].map((c, k) => (
+                  <span key={k} style={{ background: c }} />
+                ))}
+              </span>
+              <strong>{st.name}</strong>
+              <span className="muted">{st.blurb}</span>
+            </button>
+          ))}
+        </div>
+      </Field>
     </section>
   )
 }
