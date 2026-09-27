@@ -22,6 +22,7 @@ import { makeItem, makeLabel, makeOpening } from '../model/factory'
 import { catalogEntry } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { snapPoint, type SnapResult } from './snap'
+import { useUnderlay } from '../store/underlay'
 import { DimLine, ItemGlyph, ItemsLayer, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
@@ -36,6 +37,7 @@ type Drag =
   | { kind: 'item'; id: string; start: Vec2; orig: Item; moved: boolean }
   | { kind: 'group'; start: Vec2; origs: Item[]; moved: boolean }
   | { kind: 'marquee'; start: Vec2 }
+  | { kind: 'underlay'; start: Vec2; orig: Vec2 }
   | { kind: 'item-rot'; id: string; orig: Item }
   | { kind: 'item-size'; id: string; axis: 'w' | 'd'; sign: number; orig: Item }
   | { kind: 'wall'; id: string; start: Vec2; moved: boolean }
@@ -93,6 +95,12 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const marqueeRef = useRef<{ a: Vec2; b: Vec2 } | null>(null)
   marqueeRef.current = marquee
   const multi = useStore((s) => s.multi)
+  const underlay = useUnderlay((s) => s.byLevel[levelId])
+  const underlayMode = useUnderlay((s) => s.mode)
+  const calib = useUnderlay((s) => s.calib)
+  useEffect(() => {
+    useUnderlay.getState().load(levelId)
+  }, [levelId])
   const [lengthInput, setLengthInput] = useState<string | null>(null)
   const [altKey, setAltKey] = useState(false)
   const drag = useRef<Drag | null>(null)
@@ -114,7 +122,9 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const s = useStore.getState()
     const l = activeLevel(s)
     const all = s.project.levels.map(levelBounds).filter(Boolean) as NonNullable<ReturnType<typeof levelBounds>>[]
-    const b = levelBounds(l) ?? (all.length ? all[0] : null)
+    const u = useUnderlay.getState().byLevel[l.id]
+    const ub = u?.visible ? { minX: u.x, minY: u.y, maxX: u.x + u.width, maxY: u.y + u.width * u.aspect } : null
+    const b = levelBounds(l) ?? ub ?? (all.length ? all[0] : null)
     const el = wrapRef.current
     if (!el) return
     const w = el.clientWidth || 800
@@ -320,6 +330,16 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
 
     if (e.button === 1 || s.tool === 'pan') {
       drag.current = panDrag()
+      return
+    }
+    const ul = useUnderlay.getState()
+    if (ul.mode === 'move' && ul.byLevel[s.levelId]) {
+      const u = ul.byLevel[s.levelId]
+      drag.current = { kind: 'underlay', start: p, orig: { x: u.x, y: u.y } }
+      return
+    }
+    if (ul.mode === 'calibrate') {
+      ul.addCalib(p)
       return
     }
 
@@ -636,6 +656,10 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         setMarquee({ a: dr.start, b: p })
         return
       }
+      case 'underlay': {
+        useUnderlay.getState().patch(s.levelId, { x: dr.orig.x + p.x - dr.start.x, y: dr.orig.y + p.y - dr.start.y })
+        return
+      }
       case 'item-rot': {
         let ang = angleDeg(dr.orig, p) + 90
         if (!e.altKey) ang = Math.round(ang / 15) * 15
@@ -833,7 +857,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const ghostItem = tool === 'item' && rawHover && placeType ? itemGhost(rawHover, altKey) : null
   const ghostOpening = (tool === 'door' || tool === 'window') && rawHover ? openingPreview(rawHover) : null
 
-  const cursor = tool === 'pan' ? 'grab' : tool === 'select' ? 'default' : tool === 'paint' ? 'cell' : 'crosshair'
+  const cursor = underlayMode === 'move' ? 'move' : underlayMode === 'calibrate' ? 'crosshair' : tool === 'pan' ? 'grab' : tool === 'select' ? 'default' : tool === 'paint' ? 'cell' : 'crosshair'
 
   // Chain rubber band
   const chainLast = draft?.kind === 'chain' ? draft.points[draft.points.length - 1] : null
@@ -872,6 +896,26 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <rect x={cam.x0} y={cam.y0} width={viewW} height={viewH} className="plan-bg" />
         {showGrid && <rect x={cam.x0} y={cam.y0} width={viewW} height={viewH} fill="url(#grid-major)" pointerEvents="none" />}
 
+        {underlay?.visible && (
+          <image
+            href={underlay.src}
+            x={underlay.x}
+            y={underlay.y}
+            width={underlay.width}
+            height={underlay.width * underlay.aspect}
+            opacity={underlay.opacity}
+            preserveAspectRatio="none"
+            pointerEvents="none"
+          />
+        )}
+        {calib.length > 0 && (
+          <g pointerEvents="none">
+            {calib.length === 2 && <DimLine a={calib[0]} b={calib[1]} px={px} units={units} label="?" />}
+            {calib.map((c, i) => (
+              <circle key={i} cx={c.x} cy={c.y} r={6 * px} className="snap-dot is-vertex" strokeWidth={px * 1.5} />
+            ))}
+          </g>
+        )}
         {otherLevel && (
           <g className="other-level" pointerEvents="none">
             <WallsLayer level={otherLevel} px={px} selection={null} ghost />
@@ -976,9 +1020,56 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         </form>
       )}
       {!minimap && (tool === 'wall' || tool === 'room' || tool === 'polyroom') && !draft && lengthInput === null && <WallOptions />}
+      {!minimap && underlayMode && <UnderlayBar />}
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
       {!minimap && <ToolHint drawing={draft} />}
     </div>
+  )
+}
+
+function UnderlayBar() {
+  const mode = useUnderlay((s) => s.mode)
+  const calib = useUnderlay((s) => s.calib)
+  const levelId = useStore((s) => s.levelId)
+  const units = useStore((s) => s.project.units)
+  const [text, setText] = useState('')
+  const apply = () => {
+    const D = parseLength(text, units, units === 'metric' ? 'cm' : 'ft')
+    const u = useUnderlay.getState().byLevel[levelId]
+    if (!D || !u || calib.length < 2) return
+    const d = dist(calib[0], calib[1])
+    if (d < 1) return
+    const k = D / d
+    const c = calib[0]
+    useUnderlay.getState().patch(levelId, { width: u.width * k, x: c.x + (u.x - c.x) * k, y: c.y + (u.y - c.y) * k })
+    useUnderlay.getState().setMode(null)
+    useStore.getState().notify('Image scaled. Draw walls over it.')
+    window.dispatchEvent(new CustomEvent('plan-zoom', { detail: 'fit' }))
+    setText('')
+  }
+  return (
+    <form
+      className="length-entry underlay-bar"
+      onSubmit={(e) => {
+        e.preventDefault()
+        apply()
+      }}
+    >
+      {mode === 'move' && <span>Drag the image to line it up</span>}
+      {mode === 'calibrate' && calib.length < 2 && <span>Click two points on the image whose real distance you know ({calib.length}/2)</span>}
+      {mode === 'calibrate' && calib.length === 2 && (
+        <>
+          <label htmlFor="calib-len">Real distance</label>
+          <input id="calib-len" autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={units === 'imperial' ? `12' 6"` : '3.8 m'} />
+          <button type="submit" className="btn btn-primary">
+            Set scale
+          </button>
+        </>
+      )}
+      <button type="button" className="btn" onClick={() => useUnderlay.getState().setMode(null)}>
+        Done
+      </button>
+    </form>
   )
 }
 

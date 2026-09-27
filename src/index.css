@@ -1923,3 +1923,15 @@ kbd {
   padding: 3px 10px;
   font-size: 12.5px;
 }
+
+.underlay-bar {
+  max-width: calc(100% - 32px);
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.slider-flat {
+  box-shadow: none;
+  align-self: flex-start;
+}

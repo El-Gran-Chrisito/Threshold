@@ -13,6 +13,8 @@ import { deleteSaved, listSaved, loadSaved, normalizeProject } from '../store/pe
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
+import { readImage, useUnderlay } from '../store/underlay'
+import { levelBounds } from '../model/ops'
 
 // ---------------------------------------------------------------------------
 // Catalog
@@ -214,6 +216,8 @@ export function LevelsPanel() {
           </Field>
         </>
       )}
+      <hr />
+      <TracingImage levelId={active.id} />
       {project.levels.length > 1 && (
         <div className="btn-row">
           <ConfirmButton
@@ -230,6 +234,71 @@ export function LevelsPanel() {
         </div>
       )}
     </section>
+  )
+}
+
+function TracingImage({ levelId }: { levelId: string }) {
+  const u = useUnderlay((s) => s.byLevel[levelId])
+  const mode = useUnderlay((s) => s.mode)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [err, setErr] = useState<string | null>(null)
+  useEffect(() => useUnderlay.getState().load(levelId), [levelId])
+  const pick = async (f: File) => {
+    try {
+      const { src, aspect } = await readImage(f)
+      const l = activeLevel(useStore.getState())
+      const b = levelBounds(l)
+      const width = b ? Math.max(600, b.maxX - b.minX) : 1500
+      useUnderlay.getState().set(levelId, { src, aspect, x: b ? b.minX : 0, y: b ? b.minY : 0, width, opacity: 0.5, visible: true })
+      useStore.setState({ view: useStore.getState().view === '3d' || useStore.getState().view === 'walk' ? 'split' : useStore.getState().view, zoomRequest: useStore.getState().zoomRequest + 1 })
+      useUnderlay.getState().setMode('calibrate')
+      setErr(null)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not open that image')
+    }
+  }
+  return (
+    <Field label="Tracing image" hint="Put a photo or scan of an existing floor plan under this floor, set its scale, then draw walls over it. Kept in this browser.">
+      {!u ? (
+        <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
+          <Icon name="image" size={16} /> Add floor plan image
+        </button>
+      ) : (
+        <>
+          <label className="slider slider-flat" htmlFor="underlay-opacity">
+            <span>Opacity</span>
+            <input id="underlay-opacity" type="range" min={0.1} max={1} step={0.05} value={u.opacity} onChange={(e) => useUnderlay.getState().patch(levelId, { opacity: Number(e.target.value) })} />
+          </label>
+          <div className="btn-row">
+            <button type="button" className={`btn${mode === 'calibrate' ? ' btn-primary' : ''}`} onClick={() => useUnderlay.getState().setMode(mode === 'calibrate' ? null : 'calibrate')}>
+              <Icon name="measure" size={16} /> Set scale
+            </button>
+            <button type="button" className={`btn${mode === 'move' ? ' btn-primary' : ''}`} onClick={() => useUnderlay.getState().setMode(mode === 'move' ? null : 'move')}>
+              <Icon name="pan" size={16} /> Move image
+            </button>
+            <button type="button" className="btn" onClick={() => useUnderlay.getState().patch(levelId, { visible: !u.visible })}>
+              <Icon name="eye" size={16} /> {u.visible ? 'Hide' : 'Show'}
+            </button>
+            <button type="button" className="btn btn-danger" onClick={() => useUnderlay.getState().set(levelId, null)}>
+              <Icon name="trash" size={16} /> Remove
+            </button>
+          </div>
+        </>
+      )}
+      <input
+        ref={fileRef}
+        id="underlay-file"
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) pick(f)
+          e.target.value = ''
+        }}
+      />
+      {err && <p className="error">{err}</p>}
+    </Field>
   )
 }
 
