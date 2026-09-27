@@ -315,6 +315,7 @@ function View3DBar() {
   const sunHour = useStore((s) => s.sunHour)
   const lowQuality = useStore((s) => s.lowQuality)
   const hiddenParts = useStore((s) => s.hiddenParts)
+  const section = useStore((s) => s.section)
   const set = useStore.getState().set
   const hour = Math.floor(sunHour)
   const mins = Math.round((sunHour - hour) * 60)
@@ -332,6 +333,15 @@ function View3DBar() {
         </button>
         <button type="button" className={`pill${wallCut ? ' is-on' : ''}`} onClick={() => set({ wallCut: !wallCut })} title="Cut walls low to see furniture">
           <Icon name="lowwalls" size={16} /> Low walls
+        </button>
+        <button
+          type="button"
+          className={`pill${section.on ? ' is-on' : ''}`}
+          aria-pressed={section.on}
+          onClick={() => set(section.on ? { section: { ...section, on: false } } : { section: { ...section, on: true }, cutaway: false, showRoof: true, explode: 0, viewFrom: { dir: section.axis === 'z' ? 'S' : 'E', seq: useStore.getState().viewFrom.seq + 1 } })}
+          title="Slice through the house to see every floor from the side"
+        >
+          Section
         </button>
         <label className="pill pill-select" htmlFor="view-from">
           <Icon name="eye" size={16} />
@@ -392,6 +402,21 @@ function View3DBar() {
                 </button>
               )
             })}
+          </div>
+        )}
+        {section.on && (
+          <div className="part-toggles" role="group" aria-label="Section cut">
+            <span>Cut</span>
+            <button type="button" className={`chip${section.axis === 'z' ? ' is-on' : ''}`} aria-pressed={section.axis === 'z'} onClick={() => set({ section: { ...section, axis: 'z' }, viewFrom: { dir: 'S', seq: useStore.getState().viewFrom.seq + 1 } })}>
+              Front to back
+            </button>
+            <button type="button" className={`chip${section.axis === 'x' ? ' is-on' : ''}`} aria-pressed={section.axis === 'x'} onClick={() => set({ section: { ...section, axis: 'x' }, viewFrom: { dir: 'E', seq: useStore.getState().viewFrom.seq + 1 } })}>
+              Side to side
+            </button>
+            <input id="section-at" type="range" min={0.02} max={0.98} step={0.01} value={section.at} onChange={(e) => set({ section: { ...section, at: Number(e.target.value) } })} aria-label="Cut position" />
+            <button type="button" className={`chip${section.flip ? ' is-on' : ''}`} aria-pressed={section.flip} onClick={() => set({ section: { ...section, flip: !section.flip } })}>
+              Flip
+            </button>
           </div>
         )}
         <label className="slider" htmlFor="sun-hour">

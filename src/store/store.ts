@@ -46,6 +46,8 @@ export interface State {
   focus: { x: number; y: number; z: number; seq: number } | null
   /** Component types hidden while the 3D view is exploded. */
   hiddenParts: PartKind[]
+  /** Vertical cut through the house in 3D: axis, position (0–1 across the house) and which side stays. */
+  section: { on: boolean; axis: 'x' | 'z'; at: number; flip: boolean }
   /** Camera direction request for the 3D view. */
   viewFrom: { dir: 'corner' | 'top' | 'N' | 'E' | 'S' | 'W'; seq: number }
   /** Lower 3D quality (no shadows, 1x resolution) for slower devices. */
@@ -123,6 +125,7 @@ export const useStore = create<State>((set, get) => ({
   roomWalls: true,
   viewFrom: { dir: 'corner', seq: 0 },
   hiddenParts: [],
+  section: { on: false, axis: 'z', at: 0.5, flip: false },
   lowQuality: (() => {
     try {
       return localStorage.getItem('threshold:lowq') === '1'

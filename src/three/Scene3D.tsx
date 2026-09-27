@@ -673,6 +673,54 @@ function LotLines({ lot }: { lot: Lot }) {
   )
 }
 
+/**
+ * Section cut: a vertical clipping plane applied to every material in the
+ * house (not the ground), with faces drawn double-sided so cut walls read as
+ * solid. Materials added later are picked up on the next sweep.
+ */
+const sectionPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)
+const sectionPlanes = [sectionPlane]
+function SectionCut({ bounds, walk }: { bounds: { minX: number; maxX: number; minY: number; maxY: number } | null; walk: boolean }) {
+  const section = useStore((s) => s.section)
+  const active = section.on && !walk && !!bounds
+  const tick = useRef(0)
+  const touched = useRef(new Set<THREE.Material>())
+  useEffect(() => {
+    if (!bounds) return
+    const { axis, at, flip } = section
+    const lo = (axis === 'x' ? bounds.minX : bounds.minY) * M
+    const hi = (axis === 'x' ? bounds.maxX : bounds.maxY) * M
+    const pos = lo + (hi - lo) * at
+    const n = axis === 'x' ? new THREE.Vector3(flip ? 1 : -1, 0, 0) : new THREE.Vector3(0, 0, flip ? 1 : -1)
+    sectionPlane.set(n, flip ? -pos : pos)
+  }, [section, bounds])
+  useEffect(() => {
+    if (active) return
+    for (const m of touched.current) {
+      m.clippingPlanes = null
+      m.side = (m.userData.sideBeforeCut as THREE.Side | undefined) ?? m.side
+      m.needsUpdate = true
+    }
+    touched.current.clear()
+  }, [active])
+  useFrame(() => {
+    if (!active || tick.current++ % 15 !== 0) return
+    homeGroupRef.current?.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (touched.current.has(m)) continue
+        m.userData.sideBeforeCut = m.side
+        m.clippingPlanes = sectionPlanes
+        m.side = THREE.DoubleSide
+        m.needsUpdate = true
+        touched.current.add(m)
+      }
+    })
+  })
+  return null
+}
+
 function Ground({ color, radius }: { color: string; radius: number }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow userData={{ hit: 'ground' }}>
@@ -789,6 +837,11 @@ export function Scene3D({ walk }: { walk: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.levels.length, zoomRequest, active.id, walk, isEmpty, explode])
 
+  const houseBounds = useMemo(() => {
+    const all = project.levels.map(levelBounds).filter(Boolean) as NonNullable<ReturnType<typeof levelBounds>>[]
+    if (!all.length) return null
+    return { minX: Math.min(...all.map((b) => b.minX)), maxX: Math.max(...all.map((b) => b.maxX)), minY: Math.min(...all.map((b) => b.minY)), maxY: Math.max(...all.map((b) => b.maxY)) }
+  }, [project.levels])
   const nightNow = nightFactor(sunHour)
   const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
   const levels = [...project.levels].sort((a, b) => a.elevation - b.elevation)
@@ -841,6 +894,9 @@ export function Scene3D({ walk }: { walk: boolean }) {
       shadows={!lowQuality}
       dpr={lowQuality ? 1 : [1, 2]}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping }}
+      onCreated={({ gl }) => {
+        gl.localClippingEnabled = true
+      }}
       camera={{ fov: walk ? 70 : 42, near: 0.05, far: 2000, position: [12, 10, 14] }}
       onPointerMissed={(e) => {
         if (e.type === 'click' && useStore.getState().tool === 'select') useStore.getState().select(null)
@@ -851,6 +907,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
       <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} />
       {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
       {project.site.lot && !walk && <LotLines lot={project.site.lot} />}
+      <SectionCut bounds={houseBounds} walk={walk} />
       <group onClick={onClick} ref={(g) => void (homeGroupRef.current = g)}>
         <DraggableHome disabled={walk}>
         {visible.map((l) => (

@@ -2348,3 +2348,12 @@ kbd {
 :root[data-theme='dark'] .sym-elec-text {
   fill: #fdba74;
 }
+
+.part-toggles input[type='range'] {
+  width: 120px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--accent);
+  background: none;
+  box-shadow: none;
+}
