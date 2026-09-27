@@ -6,13 +6,13 @@ import type { Item, Level, Opening, OpeningKind, Project, Room, Vec2, WallFinish
 import { CM_PER_FT } from './units'
 import { addRoom, clampOpening, findWallAt, paintExterior, paintRoomWalls, wallLength } from './ops'
 import { makeItem, makeLevel, makeOpening, makeProject } from './factory'
-import { closestOnSegment } from './geometry'
+import { closestOnSegment, normalOf } from './geometry'
 import { catalogEntry } from './catalog'
 
-const ft = (n: number) => n * CM_PER_FT
+export const ft = (n: number) => n * CM_PER_FT
 const P = (x: number, y: number): Vec2 => ({ x: ft(x), y: ft(y) })
 
-type Side = 'N' | 'S' | 'E' | 'W'
+export type Side = 'N' | 'S' | 'E' | 'W'
 
 interface Rect {
   x0: number
@@ -21,7 +21,7 @@ interface Rect {
   y1: number
 }
 
-class Builder {
+export class Builder {
   level: Level
   rects = new Map<string, Rect>()
   constructor(level: Level) {
@@ -38,11 +38,17 @@ class Builder {
   }
 
   /** Put an opening on the wall passing through (x, y), centred there. */
-  opening(kind: OpeningKind, x: number, y: number, opts: { width?: number; hinge?: 'start' | 'end'; swing?: 'A' | 'B'; height?: number; sill?: number; style?: Opening['style'] } = {}): this {
+  opening(kind: OpeningKind, x: number, y: number, opts: { width?: number; hinge?: 'start' | 'end'; swing?: 'A' | 'B'; height?: number; sill?: number; style?: Opening['style']; into?: { x: number; y: number } } = {}): this {
     const at = P(x, y)
     const wall = findWallAt(this.level, at, 4)
     if (!wall) return this
     const { t } = closestOnSegment(at, wall.a, wall.b)
+    if (opts.into && !opts.swing) {
+      // Open towards the given point (feet), e.g. into the room the door serves.
+      const n = normalOf(wall.a, wall.b)
+      const q = P(opts.into.x, opts.into.y)
+      opts = { ...opts, swing: (q.x - at.x) * n.x + (q.y - at.y) * n.y > 0 ? 'A' : 'B' }
+    }
     const o = makeOpening(wall.id, kind, t * wallLength(wall), {
       ...(opts.width ? { width: ft(opts.width) } : {}),
       ...(opts.height ? { height: ft(opts.height) } : {}),

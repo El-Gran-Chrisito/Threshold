@@ -2281,3 +2281,19 @@ kbd {
 .style-dots span:first-child {
   margin-left: 0;
 }
+
+.brief-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brief-summary {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.brief-summary strong {
+  color: var(--ink);
+}

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
+import { BriefForm } from './ui/BriefForm'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
 import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/Inspector'
@@ -451,36 +452,60 @@ function Toast() {
 }
 
 function WelcomeSheet({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState<'choose' | 'brief'>('choose')
+  const phone = () => window.matchMedia?.('(max-width: 820px)').matches
   const start = (id: string | null) => {
     if (id) {
       const p = buildTemplate(id)
       useStore.getState().loadProject(p)
     }
-    const phone = window.matchMedia?.('(max-width: 820px)').matches
-    if (id === 'blank') useStore.setState({ tool: 'room', view: phone ? 'plan' : 'split' })
+    if (id === 'blank') useStore.setState({ tool: 'room', view: phone() ? 'plan' : 'split' })
     onClose()
   }
   return (
     <div className="sheet-backdrop">
       <div className="sheet welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <span className="eyebrow">Threshold</span>
-        <h2 id="welcome-title">Design your home, every part of it.</h2>
-        <p className="muted">Draw rooms, add doors and windows, furnish, choose finishes, then see it in 3D or walk through it.</p>
-        <div className="welcome-grid">
-          <button type="button" className="welcome-card is-primary" onClick={() => start(null)}>
-            <strong>Explore the example home</strong>
-            <span>Two storeys, 3 bedrooms, fully furnished. Change anything.</span>
-          </button>
-          <button type="button" className="welcome-card" onClick={() => start('studio')}>
-            <strong>Start with a studio</strong>
-            <span>One room, bath and kitchen. Small and quick to learn on.</span>
-          </button>
-          <button type="button" className="welcome-card" onClick={() => start('blank')}>
-            <strong>Start from scratch</strong>
-            <span>Empty plot. The Room tool is ready: drag to draw your first room.</span>
-          </button>
-        </div>
-        <p className="tip">Your work saves automatically. The ? button explains every tool.</p>
+        {step === 'brief' ? (
+          <>
+            <h2 id="welcome-title">Tell us what you need</h2>
+            <p className="muted">You get a furnished starting plan. Change any part of it after.</p>
+            <BriefForm
+              onMake={(p) => {
+                useStore.getState().loadProject(p)
+                useStore.setState({ view: phone() ? 'plan' : 'split' })
+                onClose()
+              }}
+            />
+            <button type="button" className="btn" onClick={() => setStep('choose')}>
+              Back
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 id="welcome-title">Design your home, every part of it.</h2>
+            <p className="muted">Draw rooms, add doors and windows, furnish, choose finishes, then see it in 3D or walk through it.</p>
+            <div className="welcome-grid">
+              <button type="button" className="welcome-card is-primary" onClick={() => start(null)}>
+                <strong>Explore the example home</strong>
+                <span>Two storeys, 3 bedrooms, fully furnished. Change anything.</span>
+              </button>
+              <button type="button" className="welcome-card" onClick={() => setStep('brief')}>
+                <strong>Plan from your needs</strong>
+                <span>Pick bedrooms, bathrooms, floors and garage. Get a furnished plan.</span>
+              </button>
+              <button type="button" className="welcome-card" onClick={() => start('studio')}>
+                <strong>Start with a studio</strong>
+                <span>One room, bath and kitchen. Small and quick to learn on.</span>
+              </button>
+              <button type="button" className="welcome-card" onClick={() => start('blank')}>
+                <strong>Start from scratch</strong>
+                <span>Empty plot. The Room tool is ready: drag to draw your first room.</span>
+              </button>
+            </div>
+            <p className="tip">Your work saves automatically. The ? button explains every tool.</p>
+          </>
+        )}
       </div>
     </div>
   )

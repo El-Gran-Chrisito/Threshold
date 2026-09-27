@@ -18,6 +18,7 @@ bun run build:single # one self-contained HTML file in dist-single/
 
 | Area | Features |
 | --- | --- |
+| Start | Example home, templates, or a furnished plan made from your needs (bedrooms, bathrooms, one or two floors, garage, office, open plan) that passes the design check |
 | Plan (2D) | Rectangle and free-shape rooms, floor-only areas (patios, decks, lawns), walls with typed lengths and chosen thickness, shared walls, closed wall loops become rooms, doors / double doors / sliders / archways / garage doors / windows, snapping (grid, corners, alignment guides, 15° angles), drag / resize / rotate handles, add corners to room edges, click a dimension to edit it, measure, text labels, multi-select with align and distribute, right-click and long-press quick actions, tracing image with scale calibration |
 | Furniture | 99 parametric items in 12 categories (living, bedroom, dining, kitchen, bath, office, laundry, lighting, electrical, decor, outdoor, structure); auto-backs onto walls; any size, two colours, mirror, lock, swap; one-click kitchen cabinet runs |
 | Finishes | Six whole-home styles (modern farmhouse, Scandinavian, mid-century, industrial, coastal, traditional) in one click; nine wall finishes per wall side (paint, wallpaper, tile, wood, brick, stone, siding, shingle, concrete), 18 floor finishes with real-scale textures and pattern direction, ceilings, trim and baseboards, door and window styles, exterior and roof colour |

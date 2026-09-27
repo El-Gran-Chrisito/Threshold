@@ -10,6 +10,7 @@ import { Icon } from './Icon'
 import type { Level, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
+import { BriefForm } from './BriefForm'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
@@ -465,6 +466,7 @@ function ShoppingList() {
 export function ProjectPanel() {
   const project = useStore((s) => s.project)
   const [saved, setSaved] = useState(listSaved)
+  const [showBrief, setShowBrief] = useState(false)
   const cloudOn = useStore((s) => s.cloudStatus !== 'off')
   useEffect(() => {
     let alive = true
@@ -569,6 +571,24 @@ export function ProjectPanel() {
           <Icon name="copy" size={16} /> Duplicate this design
         </button>
       </div>
+      <Field label="Plan from your needs">
+        {showBrief ? (
+          <BriefForm
+            submitLabel="Make this plan (current design stays saved)"
+            onMake={(p) => {
+              useStore.getState().loadProject({ ...p, units: project.units })
+              setSaved(listSaved())
+              setShowBrief(false)
+              useStore.getState().notify(`Started: ${p.name}`)
+            }}
+          />
+        ) : (
+          <button type="button" className="template-card" onClick={() => setShowBrief(true)}>
+            <strong>Choose bedrooms, bathrooms, floors, garage</strong>
+            <span className="muted">Get a furnished starting plan</span>
+          </button>
+        )}
+      </Field>
       <Field label="New design from a starting point">
         <div className="template-list">
           {TEMPLATES.map((t) => (
