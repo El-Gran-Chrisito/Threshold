@@ -11,7 +11,7 @@ import { jointKeys, polyPath, spanPolygon, wallSpans } from './wallGeometry'
 // ---------------------------------------------------------------------------
 // Rooms
 
-export const RoomsLayer = memo(function RoomsLayer({ level, px, units, selection, showDims }: { level: Level; px: number; units: UnitSystem; selection: Selection | null; showDims: boolean }) {
+export const RoomsLayer = memo(function RoomsLayer({ level, px, selection }: { level: Level; px: number; selection: Selection | null }) {
   return (
     <g>
       {level.rooms.map((r) => (
@@ -24,6 +24,14 @@ export const RoomsLayer = memo(function RoomsLayer({ level, px, units, selection
           strokeWidth={px * 2}
         />
       ))}
+    </g>
+  )
+})
+
+/** Room names and areas, drawn above furniture so they stay readable. */
+export const RoomLabelsLayer = memo(function RoomLabelsLayer({ level, px, units, showDims }: { level: Level; px: number; units: UnitSystem; showDims: boolean }) {
+  return (
+    <g pointerEvents="none">
       {level.rooms.map((r) => (
         <RoomLabel key={r.id} room={r} px={px} units={units} showDims={showDims} />
       ))}

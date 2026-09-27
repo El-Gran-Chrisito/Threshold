@@ -12,6 +12,7 @@ import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject } from '../store/persistence'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
+import { planPng } from '../plan/exportPlan'
 
 // ---------------------------------------------------------------------------
 // Catalog
@@ -317,6 +318,17 @@ export function ProjectPanel() {
     const r = await saveFile(`${slug(project.name)}-3d.png`, dataUrlToBlob(canvas.toDataURL('image/png')), 'image/png')
     s.notify(r === 'saved' ? 'Image saved' : 'Image not saved')
   }
+  const exportPlan = async () => {
+    const st = useStore.getState()
+    const level = activeLevel(st)
+    try {
+      const blob = await planPng(st.project, level)
+      const r = await saveFile(`${slug(project.name)}-${slug(level.name)}-plan.png`, blob, 'image/png')
+      s.notify(r === 'saved' ? 'Floor plan saved' : 'Floor plan not saved')
+    } catch {
+      s.notify('Could not draw the floor plan image')
+    }
+  }
   const copyJson = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(project))
@@ -410,6 +422,9 @@ export function ProjectPanel() {
           </button>
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             <Icon name="upload" size={16} /> Open design file
+          </button>
+          <button type="button" className="btn" onClick={exportPlan}>
+            <Icon name="plan" size={16} /> Save floor plan image
           </button>
           <button type="button" className="btn" onClick={exportImage}>
             <Icon name="image" size={16} /> Save 3D image

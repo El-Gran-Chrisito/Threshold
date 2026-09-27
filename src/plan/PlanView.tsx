@@ -22,7 +22,7 @@ import { makeItem, makeLabel, makeOpening } from '../model/factory'
 import { catalogEntry } from '../model/catalog'
 import { formatLength, gridStep, parseLength, CM_PER_FT } from '../model/units'
 import { snapPoint, type SnapResult } from './snap'
-import { DimLine, ItemGlyph, ItemsLayer, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
+import { DimLine, ItemGlyph, ItemsLayer, LabelsLayer, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
 
 interface Camera {
@@ -878,11 +878,12 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
           </g>
         )}
 
-        <RoomsLayer level={level} px={px} units={units} selection={selection} showDims={showDims} />
+        <RoomsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount !== 'ceiling'} />
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling'} />
+        {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
         {showDims && !minimap && <WallDims level={level} px={px} units={units} />}
         {tool === 'select' && !minimap && multi.length < 2 && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
