@@ -660,9 +660,24 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
                 <strong>Plan from your needs</strong>
                 <span>Pick bedrooms, bathrooms, floors and garage. Get a furnished plan.</span>
               </button>
-              <button type="button" className="welcome-card" onClick={() => start('studio')}>
-                <strong>Start with a studio</strong>
-                <span>One room, bath and kitchen. Small and quick to learn on.</span>
+              <button
+                type="button"
+                className="welcome-card"
+                onClick={() => {
+                  useStore.setState({ panel: 'project' })
+                  onClose()
+                  // The panel mounts after the sheet closes; try until the library is on the page.
+                  // Scroll the side panel only, never the page.
+                  const reveal = () => {
+                    const el = document.querySelector<HTMLElement>('.library-field')
+                    const box = el?.closest<HTMLElement>('.panel-scroll')
+                    if (el && box) box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - 8
+                  }
+                  for (const ms of [150, 450, 900]) setTimeout(reveal, ms)
+                }}
+              >
+                <strong>Pick a ready-made home</strong>
+                <span>Cottages, ranches, farmhouses and family homes, furnished and styled.</span>
               </button>
               <button type="button" className="welcome-card" onClick={() => start('blank')}>
                 <strong>Start from scratch</strong>

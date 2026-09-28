@@ -881,6 +881,7 @@ export function ProjectPanel() {
           ))}
         </div>
       </Field>
+      <div className="library-field">
       <Field label="Plan library" hint="Ready-made homes, furnished and styled. Start from one and change anything.">
         <div className="template-list">
           {LIBRARY.map((l) => (
@@ -908,6 +909,7 @@ export function ProjectPanel() {
           ))}
         </div>
       </Field>
+      </div>
       {saved.length > 1 && (
         <Field label={cloudOn ? 'Your saved designs' : 'Saved in this browser'}>
           <ul className="saved-list">
