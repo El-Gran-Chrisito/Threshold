@@ -6,6 +6,7 @@ import type { Project } from './types'
 import { roomArea } from './ops'
 import { floorMaterial } from './materials'
 import { formatArea, formatLength } from './units'
+import { roomDaylight } from './daylight'
 
 const OUTDOOR = /garage|patio|deck|lawn|outdoor|porch|terrace/i
 
@@ -35,6 +36,16 @@ export interface ScheduleRow {
   size: string
   finish: string
   ceiling: string
+  /** Compass points the outside windows face, e.g. "S, W"; "–" without windows. */
+  windows: string
+  /** Hours of direct sun at midwinter, e.g. "6½ h" (the most possible). */
+  winterSun: string
+}
+
+/** "6½ h" from hours, to the nearest half hour. */
+export function hoursLabel(h: number): string {
+  const r = Math.round(h * 2) / 2
+  return `${Math.floor(r)}${r % 1 ? '½' : ''} h`
 }
 
 export function roomSchedule(p: Project): ScheduleRow[] {
@@ -51,6 +62,11 @@ export function roomSchedule(p: Project): ScheduleRow[] {
         size: `${formatLength(w, p.units)} × ${formatLength(d, p.units)}`,
         finish: floorMaterial(r.floor).name,
         ceiling: formatLength(l.height, p.units),
+        ...(() => {
+          if (floorMaterial(r.floor).outdoor) return { windows: '–', winterSun: '–' }
+          const d = roomDaylight(l, r, p.site)
+          return { windows: d.faces.length ? d.faces.join(', ') : '–', winterSun: d.windows ? hoursLabel(d.winter.hours) : '–' }
+        })(),
       }
     }),
   )

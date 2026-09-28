@@ -13,6 +13,7 @@ import { budget } from '../model/budget'
 import { formatMoney } from '../model/units'
 import { planCanvas } from './exportPlan'
 import { buildPdf, paperFor, type PdfImage, type PdfPage } from './pdf'
+import { DEFAULT_LATITUDE } from '../model/sun'
 
 const DPI = 200
 const INK = '#1c2226'
@@ -195,14 +196,19 @@ export async function planSetPdf(project: Project, opts: PlanSetOptions = {}): P
       'S',
       'Room schedule',
       [
-        { label: 'Floor', share: 0.14 },
-        { label: 'Room', share: 0.22 },
-        { label: 'Area', share: 0.12 },
-        { label: 'Size', share: 0.2 },
-        { label: 'Floor finish', share: 0.22 },
-        { label: 'Ceiling', share: 0.1 },
+        { label: 'Floor', share: 0.11 },
+        { label: 'Room', share: 0.19 },
+        { label: 'Area', share: 0.1 },
+        { label: 'Size', share: 0.17 },
+        { label: 'Floor finish', share: 0.16 },
+        { label: 'Ceiling', share: 0.08 },
+        { label: 'Windows', share: 0.1 },
+        { label: 'Winter sun', share: 0.09 },
       ],
-      schedule.map((r) => ({ cells: [r.floor, r.room, r.area, r.size, r.finish, r.ceiling] })),
+      [
+        ...schedule.map((r) => ({ cells: [r.floor, r.room, r.area, r.size, r.finish, r.ceiling, r.windows, r.winterSun] })),
+        { cells: [`Winter sun: the most hours of direct sun at midwinter, latitude ${Math.round(project.site.latitude ?? DEFAULT_LATITUDE)}°. Trees, neighbours and eaves are not counted.`], note: true },
+      ],
       Math.floor((H - 1.75 * DPI) / (DPI * 0.19)),
     ),
   )

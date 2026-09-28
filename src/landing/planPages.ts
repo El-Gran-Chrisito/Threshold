@@ -63,12 +63,12 @@ figure.plan{margin:0;padding:20px;background:var(--panel);border:1px solid var(-
 figure.plan svg{display:block;width:100%;max-width:100%;height:auto;max-height:380px}
 figcaption{margin-top:10px;color:var(--ink-2);font-size:14px}
 .cta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin:22px 0 32px}
-.scroll{overflow-x:auto}table{width:100%;min-width:520px;border-collapse:collapse;font-size:15px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.scroll{overflow-x:auto}table{width:100%;min-width:680px;border-collapse:collapse;font-size:15px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}thead th{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin:14px 0 40px}
 .card{display:flex;flex-direction:column;gap:6px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);text-decoration:none}
 .card figure.plan{padding:8px;border:0}.card strong{font-size:17px}.card span{color:var(--ink-2);font-size:14px}
-h2{margin:36px 0 10px;font-size:24px}footer{padding:30px 0 40px;color:var(--ink-2);font-size:14px}
+h2{margin:36px 0 10px;font-size:24px}.note{color:var(--ink-2);font-size:14px;margin:10px 0 0;max-width:72ch}footer{padding:30px 0 40px;color:var(--ink-2);font-size:14px}
 `
 
 function shell(title: string, description: string, body: string, canonical: string): string {
@@ -108,7 +108,7 @@ export function planPageHtml(l: LibraryPlan, o: PlanPageOptions): string {
   const title = `${l.name}: ${b.bedrooms} bed, ${b.bathrooms} bath house plan · Threshold`
   const description = `${l.name}, a ${homeSummary(p)} home plan: ${l.for.toLowerCase()}. Open it free in Threshold, change anything and walk through it in 3D.`
   const rows = roomSchedule(p)
-    .map((r) => `<tr><td>${esc(r.floor)}</td><td>${esc(r.room)}</td><td>${esc(r.area)}</td><td>${esc(r.size)}</td><td>${esc(r.finish)}</td></tr>`)
+    .map((r) => `<tr><td>${esc(r.floor)}</td><td>${esc(r.room)}</td><td>${esc(r.area)}</td><td>${esc(r.size)}</td><td>${esc(r.finish)}</td><td>${esc(r.windows)}</td><td>${esc(r.winterSun)}</td></tr>`)
     .join('')
   const others = LIBRARY.filter((x) => x.id !== l.id).map(card).join('')
   const body = `${header(o)}
@@ -119,7 +119,8 @@ export function planPageHtml(l: LibraryPlan, o: PlanPageOptions): string {
 ${planSvg(l, 380, true)}
 <div class="cta"><a class="btn" href="${esc(openLink(o.appPath, l.id))}">Open this plan in Threshold</a><span>Furnished and styled. Move walls, change rooms and finishes, and walk through it in 3D.</span></div>
 <h2>Rooms</h2>
-<div class="scroll"><table><thead><tr><th>Floor</th><th>Room</th><th>Area</th><th>Size</th><th>Floor finish</th></tr></thead><tbody>${rows}</tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Floor</th><th>Room</th><th>Area</th><th>Size</th><th>Floor finish</th><th>Windows face</th><th>Winter sun</th></tr></thead><tbody>${rows}</tbody></table></div>
+<p class="note">Winter sun: the most hours of direct sun through a room's windows at midwinter, with the front of the house facing south at 40° north. In Threshold, set your own latitude and north direction to see it for your plot.</p>
 <h2>More ready-made homes</h2>
 <div class="grid">${others}</div>
 </main>`

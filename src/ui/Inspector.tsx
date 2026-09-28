@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Item, Level, Opening, OpeningKind, Room, Wall } from '../model/types'
 import { activeLevel, useStore } from '../store/store'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Swatches, Toggle } from './controls'
@@ -31,6 +32,9 @@ import { PlanTag } from './Paywall'
 import { GettingStarted } from './GettingStarted'
 import { formatArea, formatLength, formatMoney } from '../model/units'
 import { Icon } from './Icon'
+import { roomDaylight, sunPeriod, type CompassPoint, type SunWindow } from '../model/daylight'
+import { clockLabel } from '../model/sun'
+import { hoursLabel } from '../model/schedule'
 
 const applyLevel = (fn: (l: Level) => Level) => useStore.getState().applyLevel(fn)
 
@@ -273,6 +277,42 @@ function isAxisRect(r: Room) {
   return Math.abs(a.y - b.y) < 0.5 && Math.abs(b.x - c.x) < 0.5 && Math.abs(c.y - d.y) < 0.5 && Math.abs(d.x - a.x) < 0.5
 }
 
+const POINT_NAMES: Record<CompassPoint, string> = { N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }
+
+/** Rooms where codes usually ask for glass of at least 8% of the floor area. */
+const HABITABLE = /bed|living|family|kitchen|dining|den|office|study|lounge|great|nursery|guest|studio|playroom/i
+
+function sunLine(s: SunWindow): string {
+  if (!s.hours || !s.spans.length) return 'no direct sun'
+  return `${hoursLabel(s.hours)}, ${sunPeriod(s)} (${s.spans.map(([a, b]) => `${clockLabel(a)} to ${clockLabel(b)}`).join(' and ')})`
+}
+
+/** Which way the room's windows face and when the sun comes in. */
+function DaylightInfo({ r, level }: { r: Room; level: Level }) {
+  const site = useStore((s) => s.project.site)
+  const d = useMemo(() => roomDaylight(level, r, site), [level, r, site])
+  return (
+    <Field label="Daylight" hint="Direct sun through the windows, for the latitude in Project › Site. Trees, neighbours and eaves can cut it down.">
+      {d.windows ? (
+        <div className="daylight">
+          <p>
+            Windows face {d.faces.map((f) => POINT_NAMES[f]).join(', ')} · glass is {Math.round(d.glassRatio * 100)}% of the floor
+            {d.glassRatio < 0.08 && HABITABLE.test(r.name) ? ' (codes usually ask for at least 8% in living spaces)' : ''}
+          </p>
+          <dl>
+            <dt>Midsummer</dt>
+            <dd>{sunLine(d.summer)}</dd>
+            <dt>Midwinter</dt>
+            <dd>{sunLine(d.winter)}</dd>
+          </dl>
+        </div>
+      ) : (
+        <p className="muted daylight">No outside windows, so no direct sun.</p>
+      )}
+    </Field>
+  )
+}
+
 function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imperial' | 'metric' }) {
   const upd = (patch: Partial<Room>) => applyLevel((l) => ({ ...l, rooms: l.rooms.map((x) => (x.id === r.id ? { ...x, ...patch } : x)) }))
   const rect = isAxisRect(r)
@@ -316,6 +356,7 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
           </Field>
         </div>
       )}
+      {!fm.outdoor && <DaylightInfo r={r} level={level} />}
       <Field label={`Floor · ${fm.name}`}>
         <div className="floor-grid" role="radiogroup" aria-label="Floor finish">
           {FLOORS.map((f) => (
