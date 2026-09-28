@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FEATURES, PASS, PLANS, planInfo, type Feature, type PlanId } from '../product/plans'
 import { daysLeft, isPass, requestKeyEmail, trialState, useEntitlements } from '../product/entitlements'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
+import { useAudience } from '../product/audience'
 import { track } from '../product/analytics'
 import { Segmented } from './controls'
 import { Icon } from './Icon'
@@ -45,6 +46,7 @@ export function PaywallSheet() {
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const storedKey = useEntitlements((s) => s.key)
+  const audience = useAudience((s) => s.audience)
   useEffect(() => {
     if (!paywall.open) {
       setMsg(null)
@@ -61,7 +63,8 @@ export function PaywallSheet() {
   if (!paywall.open) return null
   const f = paywall.feature ? FEATURES[paywall.feature] : null
   const bestSaving = Math.max(...PLANS.filter((p) => p.monthly).map((p) => Math.round((1 - p.yearly / (p.monthly * 12)) * 100)))
-  const need: PlanId = f?.plan ?? 'pro'
+  // A feature asks for its own plan; otherwise professionals are shown Studio.
+  const need: PlanId = f?.plan ?? (audience === 'pro' ? 'studio' : 'pro')
   const trial = trialState(started)
   return (
     <div className="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && closePaywall()}>
@@ -133,7 +136,7 @@ export function PaywallSheet() {
             )
           })}
         </div>
-        {plan === 'free' || source === 'trial' || (isPass(license) && (daysLeft(license) ?? 99) <= 14) ? <PassOffer email={license?.email ?? lapsed?.email} /> : null}
+        {(audience !== 'pro' && (plan === 'free' || source === 'trial')) || (isPass(license) && (daysLeft(license) ?? 99) <= 14) ? <PassOffer email={license?.email ?? lapsed?.email} /> : null}
         {!trial.used && source === 'free' && !lapsed && (
           <button type="button" className="btn btn-primary paywall-trial" onClick={() => startTrial()}>
             Try Pro free for {productConfig.trialDays} days

@@ -55,6 +55,8 @@ Check: `bun run license issue --plan pro --email you@example.com --days 30` prin
 5. Optional, for people planning one home: create a product **Threshold Pro Build Pass** with a **one-time** price of $49. Add metadata `plan = pro` and `days = 183` to the product (the server also treats any price whose lookup key or product name contains "pass" as 183 days). Make a Payment Link for it with the same redirect, and put it in `VITE_CHECKOUT_PRO_PASS`. Buyers get a key that ends after 183 days and never renews; a one-time price without `days` gives a key that never ends (a lifetime deal).
 6. Turn on the **customer portal** (Settings → Billing → Customer portal) and copy its login link. Subscribers use it to cancel or change their card.
 
+If you must charge sales tax or VAT, turn on **Stripe Tax** (Settings → Tax) and tick *Collect tax automatically* on each Payment Link. Prices in `plans.ts` are shown before tax.
+
 Do all of this in **test mode** first.
 
 ## Step 3: deploy the license server
@@ -157,7 +159,7 @@ Every line of the shopping list (paint, flooring, tile, roofing, doors, windows,
 - `VITE_SHOP_URLS` sends groups to different stores: `{"Paint":"https://paint-store.example/search?q={q}","Furniture & fixtures":"https://furniture.example/s?q={q}"}`. Group names are the headings in the list.
 - When either is set, the list says that store links may earn a commission. Affiliate programmes require this notice; keep it.
 
-`shop_click` events (with the group) show which groups people buy from.
+`shop_click` events (with the group) show which groups people buy from. `audience` events record the first-visit answer (a home for me, or homes for clients); professionals are shown Studio as the recommended plan.
 
 ## Changing what each plan includes
 

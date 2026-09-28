@@ -8,6 +8,7 @@ import { uid } from './model/factory'
 import { track } from './product/analytics'
 import { watchOnboarding } from './product/onboarding'
 import { requireFeature, showTrialEndedOnce, useEntitlements } from './product/entitlements'
+import { useAudience, type Audience } from './product/audience'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
@@ -16,7 +17,7 @@ import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/In
 import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from './ui/Panels'
 import { Icon } from './ui/Icon'
 import { AssistantPanel } from './assistant/AssistantPanel'
-import { Toggle } from './ui/controls'
+import { Segmented, Toggle } from './ui/controls'
 import { walkKeys } from './three/Walker'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
@@ -590,6 +591,8 @@ function Toast() {
 
 function WelcomeSheet({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<'choose' | 'brief'>('choose')
+  const audience = useAudience((s) => s.audience)
+  const setAudience = useAudience((s) => s.setAudience)
   const phone = () => window.matchMedia?.('(max-width: 820px)').matches
   const start = (id: string | null) => {
     if (id) {
@@ -622,6 +625,16 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
           <>
             <h2 id="welcome-title">Design your home, every part of it.</h2>
             <p className="muted">Draw rooms, add doors and windows, furnish, choose finishes, then see it in 3D or walk through it.</p>
+            <span className="field-label welcome-who">I am designing</span>
+            <Segmented<Audience>
+              label="I am designing"
+              value={audience ?? 'home'}
+              onChange={(a) => setAudience(a)}
+              options={[
+                { value: 'home', label: 'A home for me' },
+                { value: 'pro', label: 'Homes for clients' },
+              ]}
+            />
             <div className="welcome-grid">
               <button type="button" className="welcome-card is-primary" onClick={() => start(null)}>
                 <strong>Explore the example home</strong>
