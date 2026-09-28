@@ -246,7 +246,8 @@ onCloudStatus((cloudStatus) => useStore.setState({ cloudStatus }))
 // On start, prefer the account's copy when it is newer, or open the latest
 // account design when this browser has none. Never replaces work already
 // begun in this visit.
-cloud().then(async (c) => {
+export async function syncFromCloud() {
+  const c = await cloud()
   if (!c) return
   useStore.setState({ cloudStatus: 'saved' })
   const list = await cloudList()
@@ -264,7 +265,8 @@ cloud().then(async (c) => {
   if (!p || now.past.length > 0 || now.txBase) return
   now.loadProject(p)
   useStore.setState({ cloudLoaded: true })
-})
+}
+void syncFromCloud()
 
 export function addLevelAbove(copyWalls: boolean) {
   const s = useStore.getState()

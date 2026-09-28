@@ -37,7 +37,46 @@ export interface CloudMeta {
 
 let ready: Promise<{ coll: Coll } | null> | null = null
 
-export function cloud(): Promise<{ coll: Coll } | null> {
+/** Where synced designs go: the Claude account inside Claude, else a paid license's sync. */
+export async function cloud(): Promise<{ coll: Coll } | null> {
+  return (await artifactCloud()) ?? licenseCloud()
+}
+
+let licenseSource: (() => { api: string; key: string } | null) | null = null
+
+/** Set by the product layer: how to reach the license server for design sync, when allowed. */
+export function setLicenseSync(fn: () => { api: string; key: string } | null) {
+  licenseSource = fn
+}
+
+function licenseCloud(): { coll: Coll } | null {
+  const src = licenseSource?.()
+  if (!src) return null
+  const call = async (route: string, body: unknown) => {
+    const res = await fetch(`${src.api}/designs/${route}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `License ${src.key}` }, body: JSON.stringify(body) })
+    if (!res.ok && res.status !== 404) throw new Error(`sync ${res.status}`)
+    return res.status === 404 ? null : ((await res.json()) as Record<string, unknown>)
+  }
+  const snap = (id: string, data: Record<string, unknown> | null): DocSnap => ({ id, exists: !!data, data: () => data ?? undefined })
+  const coll: Coll = {
+    doc: (id) => ({
+      get: async () => {
+        const r = await call('get', { id })
+        return snap(id, r ? { json: r.json } : null)
+      },
+      set: async (data) => void (await call('put', { id, ...data })),
+      delete: async () => void (await call('delete', { id })),
+    }),
+    get: async () => {
+      const r = await call('list', {})
+      const list = (r?.designs as Array<{ id: string; name?: string; updatedAt?: number }> | undefined) ?? []
+      return { docs: list.map((d) => snap(d.id, { name: d.name, updatedAt: d.updatedAt })) }
+    },
+  }
+  return { coll }
+}
+
+function artifactCloud(): Promise<{ coll: Coll } | null> {
   if (!ready) {
     ready = (async () => {
       if (typeof window === 'undefined' || !window.claude?.use) return null

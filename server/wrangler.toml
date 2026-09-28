@@ -8,3 +8,10 @@ compatibility_date = "2026-09-01"
 # Stripe price ids to plans, if the prices have no "plan" metadata:
 # PRICE_PLANS = '{"price_123":"pro","price_456":"studio"}'
 # ALLOWED_ORIGIN = "https://your-site.example"
+
+# Design sync for paying customers (optional). Create the namespace with
+#   npx wrangler kv namespace create DESIGNS
+# and paste its id here.
+# [[kv_namespaces]]
+# binding = "DESIGNS"
+# id = "<namespace id>"

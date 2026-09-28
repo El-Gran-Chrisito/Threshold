@@ -69,3 +69,36 @@ describe('license server', () => {
     expect(planForPrice({ id: 'x' }, env)).toBeNull()
   })
 })
+
+describe('design sync', () => {
+  function memoryKV() {
+    const m = new Map<string, { value: string; metadata?: unknown }>()
+    return {
+      m,
+      get: async (k: string) => m.get(k)?.value ?? null,
+      put: async (k: string, value: string, o?: { metadata?: unknown }) => void m.set(k, { value, metadata: o?.metadata }),
+      delete: async (k: string) => void m.delete(k),
+      list: async ({ prefix }: { prefix: string }) => ({ keys: [...m.entries()].filter(([k]) => k.startsWith(prefix)).map(([name, v]) => ({ name, metadata: v.metadata })) }),
+    }
+  }
+
+  it('stores designs per customer and keeps customers apart', async () => {
+    const { privateJwk } = await generateKeyPair()
+    const kv = memoryKV()
+    const env: Env = { STRIPE_SECRET_KEY: '', LICENSE_PRIVATE_KEY: JSON.stringify(privateJwk), DESIGNS: kv }
+    const ann = await signLicense({ v: 1, plan: 'pro', ref: 'sub_ann', iat: Date.now(), exp: Date.now() + 86_400_000 }, privateJwk)
+    const bob = await signLicense({ v: 1, plan: 'pro', ref: 'sub_bob', iat: Date.now(), exp: Date.now() + 86_400_000 }, privateJwk)
+    const call = (path: string, key: string, body: unknown) =>
+      handle(new Request(`https://lic.example${path}`, { method: 'POST', headers: { authorization: `License ${key}` }, body: JSON.stringify(body) }), env)
+    expect((await call('/designs/put', ann, { id: 'prj_1', name: 'Cabin', updatedAt: 5, json: '{"a":1}' })).status).toBe(200)
+    const list = (await (await call('/designs/list', ann, {})).json()) as { designs: Array<{ id: string; name: string }> }
+    expect(list.designs).toEqual([{ id: 'prj_1', name: 'Cabin', updatedAt: 5 }])
+    expect(((await (await call('/designs/list', bob, {})).json()) as { designs: unknown[] }).designs).toEqual([])
+    expect(((await (await call('/designs/get', ann, { id: 'prj_1' })).json()) as { json: string }).json).toBe('{"a":1}')
+    expect((await call('/designs/get', bob, { id: 'prj_1' })).status).toBe(404)
+    expect((await call('/designs/list', 'nope', {})).status).toBe(401)
+    expect((await call('/designs/put', ann, { id: '../x', json: '{}' })).status).toBe(400)
+    await call('/designs/delete', ann, { id: 'prj_1' })
+    expect(kv.m.size).toBe(0)
+  })
+})

@@ -14,15 +14,36 @@
  *   PRICE_PLANS           optional JSON map of Stripe price ids to plans,
  *                         e.g. {"price_123":"pro","price_456":"studio"}
  *   ALLOWED_ORIGIN        optional; the site allowed to call this (default *)
+ *   DESIGNS               optional key-value store (Cloudflare KV) for syncing
+ *                         paid customers' designs across devices:
+ *
+ *   POST /designs/list    -> { designs: [{ id, name, updatedAt }] }
+ *   POST /designs/get     { id }                        -> { json }
+ *   POST /designs/put     { id, name, updatedAt, json }  -> { ok }
+ *   POST /designs/delete  { id }                         -> { ok }
+ *
+ * Design routes take the customer's license key as `Authorization: License THR1...`.
  */
 import { signLicense, verifyLicense, type LicensePayload } from '../src/product/license'
+
+/** The part of a Cloudflare KV namespace this server uses. */
+export interface KV {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string, opts?: { metadata?: unknown }): Promise<void>
+  delete(key: string): Promise<void>
+  list(opts: { prefix: string; limit?: number }): Promise<{ keys: Array<{ name: string; metadata?: unknown }> }>
+}
 
 export interface Env {
   STRIPE_SECRET_KEY: string
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
   ALLOWED_ORIGIN?: string
+  DESIGNS?: KV
 }
+
+const MAX_DESIGN_BYTES = 2_000_000
+const MAX_DESIGNS = 300
 
 type Fetch = typeof fetch
 type Plan = LicensePayload['plan']
@@ -59,7 +80,7 @@ function cors(env: Env): Record<string, string> {
   return {
     'access-control-allow-origin': env.ALLOWED_ORIGIN || '*',
     'access-control-allow-methods': 'POST, OPTIONS',
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': 'content-type, authorization',
   }
 }
 
@@ -157,5 +178,49 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     return json(env, { key: await signLicense({ ...v.payload, iat: now, exp: end + GRACE_MS }, privateJwk) })
   }
 
+  if (path.includes('/designs/')) return designs(request, path, body, env, publicFromPrivate(privateJwk))
+
+  return json(env, { error: 'Not found' }, 404)
+}
+
+async function ownerKey(payload: LicensePayload): Promise<string> {
+  const who = payload.ref || payload.email || ''
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(who)))
+  return Array.from(digest.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function designs(request: Request, path: string, body: Record<string, unknown>, env: Env, publicJwk: JsonWebKey): Promise<Response> {
+  if (!env.DESIGNS) return json(env, { error: 'Design sync is not set up' }, 501)
+  const key = (request.headers.get('authorization') ?? '').replace(/^License\s+/i, '')
+  const v = await verifyLicense(key, publicJwk)
+  if (!v.ok) return json(env, { error: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
+  if (!v.payload.ref && !v.payload.email) return json(env, { error: 'This license cannot sync' }, 403)
+  const prefix = `d:${await ownerKey(v.payload)}:`
+  const kv = env.DESIGNS
+  const id = String(body.id ?? '')
+  const validId = /^prj_[A-Za-z0-9_-]{1,64}$/.test(id)
+
+  if (path.endsWith('/designs/list')) {
+    const { keys } = await kv.list({ prefix, limit: MAX_DESIGNS })
+    const list = keys.map((k) => ({ id: k.name.slice(prefix.length), ...(k.metadata as { name?: string; updatedAt?: number }) }))
+    return json(env, { designs: list })
+  }
+  if (!validId) return json(env, { error: 'Missing design id' }, 400)
+  if (path.endsWith('/designs/get')) {
+    const value = await kv.get(prefix + id)
+    return value === null ? json(env, { error: 'Not found' }, 404) : json(env, { json: value })
+  }
+  if (path.endsWith('/designs/put')) {
+    const text = String(body.json ?? '')
+    if (!text || text.length > MAX_DESIGN_BYTES) return json(env, { error: 'Design too large' }, 413)
+    const { keys } = await kv.list({ prefix, limit: MAX_DESIGNS + 1 })
+    if (keys.length >= MAX_DESIGNS && !keys.some((k) => k.name === prefix + id)) return json(env, { error: 'Too many designs' }, 409)
+    await kv.put(prefix + id, text, { metadata: { name: String(body.name ?? 'Home').slice(0, 120), updatedAt: Number(body.updatedAt) || Date.now() } })
+    return json(env, { ok: true })
+  }
+  if (path.endsWith('/designs/delete')) {
+    await kv.delete(prefix + id)
+    return json(env, { ok: true })
+  }
   return json(env, { error: 'Not found' }, 404)
 }

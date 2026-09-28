@@ -11,7 +11,7 @@ This guide takes Threshold from this repository to a paid product. It uses Strip
 | Feature gates (designs limit, watermark, exports, electrical, assistant, styles, surroundings, branding, presentation) | `src/product/gates.ts` and the buttons that call `requireFeature` |
 | Signed license keys, checked offline in the app | `src/product/license.ts` |
 | License key tool (create keys, issue keys by hand) | `scripts/license-keys.ts`, run with `bun run license` |
-| License server: checkout → license, renewals | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
+| License server: checkout → license, renewals, design sync | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
 | Marketing page with pricing | `home.html`, `src/landing/` |
 | Legal page templates | `public/legal/` |
 | Host routes (`/` = marketing page, `/app` = app) | `public/_redirects` (Netlify), `vercel.json` (Vercel) |
@@ -69,6 +69,18 @@ npx wrangler deploy
 ```
 
 Set `ALLOWED_ORIGIN` in `wrangler.toml` to your site's address, and `PRICE_PLANS` if you used price ids in step 2.
+
+### Design sync (Pro and Studio)
+
+Paying customers' designs follow them to every device where they enter their key. The license server stores them in a Cloudflare KV namespace:
+
+```bash
+npx wrangler kv namespace create DESIGNS
+```
+
+Paste the printed id into the `[[kv_namespaces]]` block in `wrangler.toml`, remove the `#` marks, and deploy again. Without it, the app keeps designs in the browser only and the server answers design requests with `501`.
+
+Limits per customer: 300 designs, 2 MB each. A customer is identified by their Stripe subscription (or email for keys issued by hand), so a renewed key keeps the same designs.
 
 The same handler (`handle` in `server/license-server.ts`) also runs on Vercel, Netlify, Deno or Bun: call it from that platform's request handler and pass the same settings.
 

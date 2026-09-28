@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { activeLevel, selectedItemIds, useStore, type PartKind } from './store/store'
+import { activeLevel, selectedItemIds, syncFromCloud, useStore, type PartKind } from './store/store'
 import { BriefForm } from './ui/BriefForm'
 import { PaywallSheet, PlanBadge, PlanTag } from './ui/Paywall'
 import { Presentation } from './ui/Presentation'
@@ -74,10 +74,19 @@ export default function App() {
   const [help, setHelp] = useState(false)
   const presenting = useStore((s) => s.presenting)
   useEffect(() => watchOnboarding(), [])
+  // A license activated in this visit starts syncing designs straight away.
+  useEffect(
+    () =>
+      useEntitlements.subscribe((s, prev) => {
+        if (s.source === 'license' && prev.source !== 'license' && prev.ready) void syncFromCloud()
+      }),
+    [],
+  )
   useEffect(() => {
     void (async () => {
       const ent = useEntitlements.getState()
       await ent.init()
+      void syncFromCloud()
       // Back from a hosted checkout: ?checkout_session=cs_... (Stripe's {CHECKOUT_SESSION_ID}).
       // Opened from a share link: load the design as this person's own copy.
       const code = sharedCode()

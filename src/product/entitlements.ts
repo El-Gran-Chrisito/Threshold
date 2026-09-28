@@ -9,6 +9,7 @@ import { allows, FEATURES, type Feature, type PlanId } from './plans'
 import { peekLicense, verifyLicense, type LicensePayload } from './license'
 import { productConfig } from './config'
 import { track } from './analytics'
+import { setLicenseSync } from '../store/cloud'
 
 const LICENSE_KEY = 'threshold:license'
 const TRIAL_KEY = 'threshold:trial'
@@ -176,3 +177,10 @@ export function featureName(f: Feature) {
 export function resetEntitlements() {
   useEntitlements.setState({ plan: 'free', source: 'free', license: null, key: null, trialStartedAt: null, paywall: { open: false, feature: null }, ready: false })
 }
+
+// Design sync for licensed customers outside Claude (see server/license-server.ts).
+setLicenseSync(() => {
+  const s = useEntitlements.getState()
+  if (!productConfig.licenseApi || s.source !== 'license' || !s.key || !allows(s.plan, 'sync')) return null
+  return { api: productConfig.licenseApi, key: s.key }
+})
