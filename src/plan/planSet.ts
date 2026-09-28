@@ -26,6 +26,8 @@ export interface PlanSetOptions {
   brand?: Brand | null
   /** Include the shopping list pages. */
   shopping?: boolean
+  /** Pictures from set 3D viewpoints: the first goes on the cover, all on a "3D views" sheet. */
+  views?: Array<{ name: string; canvas: HTMLCanvasElement }> | null
 }
 
 interface Sheet {
@@ -146,6 +148,43 @@ export async function planSetPdf(project: Project, opts: PlanSetOptions = {}): P
     })
   })
 
+  const views = (opts.views ?? []).slice(0, 4)
+  if (views.length > 1) {
+    sheets.push({
+      id: 'V-1',
+      title: '3D views',
+      photo: true,
+      draw: (ctx, w, h) => {
+        const m = 0.5 * DPI
+        const top = 0.95 * DPI
+        const gap = 0.2 * DPI
+        const label = 0.28 * DPI
+        ctx.fillStyle = INK
+        ctx.font = font(700, 48)
+        ctx.fillText('3D views', m, 0.62 * DPI)
+        const cols = 2
+        const rows = Math.ceil(views.length / cols)
+        const cw = (w - 2 * m - gap * (cols - 1)) / cols
+        const ch = (h - top - 0.55 * DPI - gap * (rows - 1)) / rows - label
+        views.forEach((v, i) => {
+          const x = m + (i % cols) * (cw + gap)
+          const y = top + Math.floor(i / cols) * (ch + label + gap)
+          // Fill the cell with the middle of the picture.
+          const k = Math.max(cw / v.canvas.width, ch / v.canvas.height)
+          const sw = cw / k
+          const sh = ch / k
+          ctx.drawImage(v.canvas, (v.canvas.width - sw) / 2, (v.canvas.height - sh) / 2, sw, sh, x, y, cw, ch)
+          ctx.strokeStyle = RULE
+          ctx.lineWidth = 3
+          ctx.strokeRect(x, y, cw, ch)
+          ctx.fillStyle = INK_2
+          ctx.font = font(600, 28)
+          ctx.fillText(v.name, x, y + ch + label - 14)
+        })
+      },
+    })
+  }
+
   const schedule = roomSchedule(project)
   sheets.push(
     ...tablePages(
@@ -210,9 +249,10 @@ export async function planSetPdf(project: Project, opts: PlanSetOptions = {}): P
       const boxY = m + 205
       const boxH = h - boxY - 1.15 * DPI
       const boxW = w - 2 * m
-      if (opts.cover3d && opts.cover3d.width > 0) {
+      const coverPic = views[0]?.canvas ?? opts.cover3d
+      if (coverPic && coverPic.width > 0) {
         // Fill the box with the middle of the 3D view.
-        const src = opts.cover3d
+        const src = coverPic
         const k = Math.max(boxW / src.width, boxH / src.height)
         const sw = boxW / k
         const sh = boxH / k

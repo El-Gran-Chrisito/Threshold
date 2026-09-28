@@ -1,7 +1,7 @@
 // Makes a PDF plan set in the browser with a paid key and saves it for inspection.
 // Usage: node scripts/plan-set-check.mjs <key file> <out.pdf> [example]
 // With "example": no studio brand, and the cover uses a full-width 3D corner view.
-// public/shots/set-*.jpg are pages 1, 2 and 5 of the "example" output, rendered at 100 dpi.
+// public/shots/set-*.jpg are pages 1, 2 and 4 (cover, ground floor, 3D views) of the "example" output, rendered at 100 dpi.
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
 const key = readFileSync(process.argv[2], 'utf8').trim().split('\n')[0]
@@ -29,7 +29,7 @@ await page.evaluate((ex) => {
 await page.waitForTimeout(example ? 6000 : 2500)
 await page.click('.panel-tabs >> text=Project')
 const t0 = Date.now()
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('button:has-text("Save plan set")')])
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 240000 }), page.click('button:has-text("Save plan set")')])
 await dl.saveAs(out)
 console.log('saved', dl.suggestedFilename(), 'in', Date.now() - t0, 'ms')
 console.log(errors.join('\n') || 'no errors')

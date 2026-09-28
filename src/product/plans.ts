@@ -35,7 +35,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   surroundings: { name: 'Garden and countryside settings', blurb: 'See the home in a private garden or in the countryside, not only on a street.', plan: 'pro' },
   'all-styles': { name: 'All whole-home styles', blurb: 'Every designer style for walls, floors, roof, cabinets and furniture in one click.', plan: 'pro' },
   'plan-library': { name: 'Full plan library', blurb: 'Every ready-made home in the library, furnished and styled, to start from and change as you like.', plan: 'pro' },
-  'plan-set': { name: 'PDF plan set', blurb: 'One PDF with a cover, every floor plan, the room schedule and the shopping list, ready to print or send to a builder.', plan: 'pro' },
+  'plan-set': { name: 'PDF plan set', blurb: 'One PDF with a cover, 3D views, every floor plan, the room schedule and the shopping list, ready to print or send to a builder.', plan: 'pro' },
   sync: { name: 'Designs on all your devices', blurb: 'Your designs follow your license to every browser you use, and survive cleared browser data.', plan: 'pro' },
   branding: { name: 'Your brand on plan sheets', blurb: 'Your company name, contact and logo in the title block of every floor plan.', plan: 'studio' },
   presentation: { name: 'Client presentations', blurb: 'A full-screen, guided 3D tour of the home with your branding, and client links that open straight into it. Clients need no account.', plan: 'studio' },

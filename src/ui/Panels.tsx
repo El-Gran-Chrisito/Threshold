@@ -32,6 +32,7 @@ import { canShareLinks, shareLink } from '../store/share'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
 import { planSetPdf } from '../plan/planSet'
+import { capture3dViews } from '../three/captureViews'
 import { exportGlb } from '../three/exportModel'
 import { readImage, useUnderlay } from '../store/underlay'
 import { levelBounds } from '../model/ops'
@@ -744,7 +745,13 @@ export function ProjectPanel() {
     s.notify('Drawing the plan set…')
     try {
       const canvas = document.querySelector('.view-3d canvas') as HTMLCanvasElement | null
-      const blob = await planSetPdf(useStore.getState().project, { cover3d: canvas, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
+      const views = await capture3dViews([
+        { dir: 'street', name: 'From the street' },
+        { dir: 'corner', name: 'Front corner' },
+        { dir: 'N', name: 'Garden side' },
+        { dir: 'top', name: 'From above' },
+      ])
+      const blob = await planSetPdf(useStore.getState().project, { cover3d: canvas, views, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
       track('export', { kind: 'plan-set' })
       const r = await saveFile(`${slug(project.name)}-plan-set.pdf`, blob, 'application/pdf')
       s.notify(r === 'saved' ? 'Plan set saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')
@@ -969,7 +976,7 @@ export function ProjectPanel() {
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             <Icon name="upload" size={16} /> Open design file
           </button>
-          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover (uses the 3D view on screen), every floor plan, room schedule and shopping list">
+          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover, 3D views (open 3D or Split first), every floor plan, room schedule and shopping list">
             <Icon name="sheets" size={16} /> {making ? 'Making plan set…' : 'Save plan set (PDF)'} <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportPlan}>
