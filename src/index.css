@@ -1692,6 +1692,10 @@ a.btn:not(.btn-primary) {
   }
 }
 
+.walk-hint.is-quiet {
+  opacity: 0;
+}
+
 .walk-hint {
   position: absolute;
   top: 12px;
@@ -1706,6 +1710,7 @@ a.btn:not(.btn-primary) {
   color: var(--ink-2);
   text-align: center;
   pointer-events: none;
+  transition: opacity 0.4s;
 }
 
 .walkpad {

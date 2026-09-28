@@ -695,9 +695,15 @@ function WalkPad() {
     onPointerCancel: () => (walkKeys[k] = false),
     onPointerLeave: () => (walkKeys[k] = false),
   })
+  // The instructions step aside after a few seconds; the pad stays.
+  const [quiet, setQuiet] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setQuiet(true), 8000)
+    return () => clearTimeout(t)
+  }, [])
   return (
     <>
-      <div className="walk-hint">Drag to look · W A S D or arrows to walk · Shift to run · doors are open</div>
+      <div className={`walk-hint${quiet ? ' is-quiet' : ''}`}>Drag to look · W A S D or arrows to walk · Shift to run · doors are open</div>
       <div className="walkpad" aria-label="Walk controls">
         <button type="button" className="wp-up" aria-label="Walk forward" {...hold('f')}>
           ▲
