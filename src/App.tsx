@@ -14,6 +14,7 @@ import { useAudience, type Audience } from './product/audience'
 import { captureInvite } from './product/invite'
 import { productConfig } from './product/config'
 import { allows } from './product/plans'
+import { DEFAULT_LATITUDE, MONTHS, clockLabel, dateLabel, dayOfYear, monthOfDay, sunTimes, todayOfYear } from './model/sun'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
 import { PlanView } from './plan/PlanView'
@@ -407,15 +408,12 @@ function View3DBar() {
   const showRoof = useStore((s) => s.showRoof)
   const wallCut = useStore((s) => s.wallCut)
   const explode = useStore((s) => s.explode)
-  const sunHour = useStore((s) => s.sunHour)
   const lowQuality = useStore((s) => s.lowQuality)
   const hiddenParts = useStore((s) => s.hiddenParts)
   const section = useStore((s) => s.section)
   const surroundings = useStore((s) => (s.project.site.showGround ? s.project.site.surroundings ?? 'suburb' : 'plain'))
   const plan = useEntitlements((s) => s.plan)
   const set = useStore.getState().set
-  const hour = Math.floor(sunHour)
-  const mins = Math.round((sunHour - hour) * 60)
   return (
     <div className="bar3d">
       <div className="bar3d-row">
@@ -549,15 +547,100 @@ function View3DBar() {
             </button>
           </div>
         )}
-        <label className="slider" htmlFor="sun-hour">
-          <Icon name="sun" size={16} />
-          <input id="sun-hour" type="range" min={5} max={23} step={0.25} value={sunHour} onChange={(e) => set({ sunHour: Number(e.target.value) })} aria-label="Time of day" />
-          <span className="num">
-            {((hour + 11) % 12) + 1}:{String(mins).padStart(2, '0')} {hour < 12 ? 'am' : 'pm'}
-          </span>
-        </label>
+        <SunControls />
       </div>
     </div>
+  )
+}
+
+/** Time of day, day of the year, and playing a whole day (sun study, Pro). */
+function SunControls() {
+  const sunHour = useStore((s) => s.sunHour)
+  const sunDay = useStore((s) => s.sunDay)
+  const latitude = useStore((s) => s.project.site.latitude ?? DEFAULT_LATITUDE)
+  const plan = useEntitlements((s) => s.plan)
+  const [playing, setPlaying] = useState(false)
+  const study = allows(plan, 'sun-study')
+  const times = sunTimes(sunDay, latitude)
+  const today = todayOfYear()
+
+  useEffect(() => {
+    if (!playing) return
+    const t = sunTimes(useStore.getState().sunDay, latitude)
+    const from = t ? Math.max(4, t.rise - 0.4) : 4
+    const to = t ? Math.min(23, t.set + 0.9) : 23
+    let h = useStore.getState().sunHour
+    if (h < from || h >= to - 0.1) h = from
+    let last = performance.now()
+    let raf = 0
+    // The whole day in about 16 seconds.
+    const tick = (now: number) => {
+      h += ((now - last) / 1000) * ((to - from) / 16)
+      last = now
+      if (h >= to) {
+        useStore.setState({ sunHour: to })
+        setPlaying(false)
+        return
+      }
+      useStore.setState({ sunHour: h })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [playing, latitude])
+
+  return (
+    <>
+      <label className="slider" htmlFor="sun-hour" title={times ? `Sunrise ${clockLabel(times.rise)}, sunset ${clockLabel(times.set)} (solar time)` : undefined}>
+        <Icon name="sun" size={16} />
+        <input
+          id="sun-hour"
+          type="range"
+          min={4}
+          max={23}
+          step={0.25}
+          value={sunHour}
+          onChange={(e) => {
+            setPlaying(false)
+            useStore.setState({ sunHour: Number(e.target.value) })
+          }}
+          aria-label="Time of day"
+        />
+        <span className="num">{clockLabel(sunHour)}</span>
+      </label>
+      <label className="pill pill-select" htmlFor="sun-day" title="Day of the year for the sun">
+        <select
+          id="sun-day"
+          value={sunDay === today ? 'today' : String(monthOfDay(sunDay))}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v !== 'today' && !requireFeature('sun-study')) return
+            useStore.setState({ sunDay: v === 'today' ? today : dayOfYear(Number(v), 21) })
+          }}
+          aria-label="Day of the year"
+        >
+          <option value="today">Today ({dateLabel(today)})</option>
+          {MONTHS.map((m, i) => (
+            <option key={m} value={String(i + 1)}>
+              {m} 21{study ? '' : ' (Pro)'}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        className={`pill${playing ? ' is-on' : ''}`}
+        aria-pressed={playing}
+        onClick={() => {
+          if (!playing && !requireFeature('sun-study')) return
+          setPlaying(!playing)
+        }}
+        title="Play the day from sunrise to sunset and watch the light move through the rooms"
+      >
+        {playing ? 'Pause' : 'Play day'}
+        {!study && <PlanTag plan="pro" />}
+      </button>
+    </>
   )
 }
 

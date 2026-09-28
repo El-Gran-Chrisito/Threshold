@@ -3,6 +3,7 @@ import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode, Wall
 import type { Brand } from '../product/brand'
 import { buildTemplate } from '../model/templates'
 import { makeLevel, uid } from '../model/factory'
+import { todayOfYear } from '../model/sun'
 import { listSaved, loadLastProject, loadSaved, saveProject } from './persistence'
 import { cloud, cloudList, cloudLoad, cloudPut, cloudSave, onCloudStatus, type CloudMeta, type CloudStatus } from './cloud'
 
@@ -38,7 +39,10 @@ export interface State {
   showCeilings: boolean
   /** Walls drawn at ~1 m so furniture is visible from above. */
   wallCut: boolean
+  /** Local solar time in the 3D view. */
   sunHour: number
+  /** Day of the year for the sun in 3D (1–365). */
+  sunDay: number
   /** 0 = assembled, 1 = fully exploded (3D). */
   explode: number
   walker: { x: number; y: number; yaw: number } | null
@@ -124,6 +128,7 @@ export const useStore = create<State>((set, get) => ({
   showCeilings: false,
   wallCut: false,
   sunHour: 15,
+  sunDay: todayOfYear(),
   explode: 0,
   walker: null,
   cloudStatus: 'off',

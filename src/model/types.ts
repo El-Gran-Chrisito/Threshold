@@ -154,6 +154,8 @@ export interface Site {
   groundColor: string
   /** Compass bearing of plan "up", degrees. 0 = north is up. */
   northAngle: number
+  /** Degrees north of the equator (negative in the south), for the sun. Defaults to 40. */
+  latitude?: number
   lot?: Lot
   /** What surrounds the house in 3D. Defaults to a suburban street. */
   surroundings?: 'suburb' | 'garden' | 'country' | 'plain'

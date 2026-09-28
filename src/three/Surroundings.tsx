@@ -10,6 +10,7 @@ import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Landscape, Neighbour, Rect, Shrub, Tree } from '../model/landscape'
 import { rng } from '../model/landscape'
+import { sceneDirection } from '../model/sun'
 import { floorMaterial } from '../model/materials'
 import { floorTexture } from './textures'
 import { asphaltTexture, concreteTexture, fieldTexture, grassTexture, gravelTexture, mulchTexture } from './groundTextures'
@@ -22,11 +23,8 @@ const M = 0.01
 // Sun and sky colours
 
 /** The sun's true direction, below the horizon at night (the lighting uses moonlight then). */
-export function solarDirection(hour: number, north: number): THREE.Vector3 {
-  const t = (hour - 6) / 14
-  const elev = Math.sin(t * Math.PI) * ((62 * Math.PI) / 180)
-  const az = ((90 + t * 180 + north) * Math.PI) / 180
-  return new THREE.Vector3(Math.sin(az) * Math.cos(elev), Math.sin(elev), -Math.cos(az) * Math.cos(elev)).normalize()
+export function solarDirection(azimuth: number, elevation: number, north: number): THREE.Vector3 {
+  return new THREE.Vector3(...sceneDirection(azimuth, elevation, north)).normalize()
 }
 
 const STOPS: Array<[number, { top: string; horizon: string; ground: string; sun: string }]> = [
@@ -118,7 +116,7 @@ void main() {
   #include <colorspace_fragment>
 }`
 
-export const SkyDome = memo(function SkyDome({ hour, north, clouds = 0.56, radius = 1500 }: { hour: number; north: number; clouds?: number; radius?: number }) {
+export const SkyDome = memo(function SkyDome({ azimuth, elevation, north, clouds = 0.56, radius = 1500 }: { azimuth: number; elevation: number; north: number; clouds?: number; radius?: number }) {
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -144,7 +142,7 @@ export const SkyDome = memo(function SkyDome({ hour, north, clouds = 0.56, radiu
   )
   useEffect(() => () => mat.dispose(), [mat])
   useEffect(() => {
-    const dir = solarDirection(hour, north)
+    const dir = solarDirection(azimuth, elevation, north)
     const c = skyColors(dir.y)
     const u = mat.uniforms
     u.uTop.value.copy(c.top)
@@ -152,10 +150,11 @@ export const SkyDome = memo(function SkyDome({ hour, north, clouds = 0.56, radiu
     u.uGround.value.copy(c.ground)
     u.uSun.value.copy(c.sun)
     u.uSunDir.value.copy(dir)
-    u.uMoonDir.value.copy(solarDirection(14.5, north + 180)).setY(Math.abs(solarDirection(14.5, north + 180).y)).normalize()
+    // The moon hangs high in the north, where the usual views look.
+    u.uMoonDir.value.copy(solarDirection(20, 58, north))
     u.uNight.value = c.night
     u.uCloud.value = clouds
-  }, [hour, north, clouds, mat])
+  }, [azimuth, elevation, north, clouds, mat])
   useFrame((_, dt) => {
     mat.uniforms.uTime.value += dt
   })
@@ -663,8 +662,7 @@ function Fences({ fences }: { fences: Array<[{ x: number; y: number }, { x: numb
 
 // ---------------------------------------------------------------------------
 
-export const Surroundings = memo(function Surroundings({ L, groundColor, hour, lowQuality }: { L: Landscape; groundColor: string; hour: number; lowQuality: boolean }) {
-  const night = Math.min(1, Math.max(0, hour >= 18.5 ? (hour - 18.5) / 1.75 : hour <= 7 ? (7 - hour) / 1.5 : 0))
+export const Surroundings = memo(function Surroundings({ L, groundColor, night, lowQuality }: { L: Landscape; groundColor: string; night: number; lowQuality: boolean }) {
   const shadowTrees = useMemo(() => L.trees.filter((t) => t.shadow), [L])
   const otherTrees = useMemo(() => [...L.trees.filter((t) => !t.shadow), ...(lowQuality ? L.farTrees.filter((_, i) => i % 3 === 0) : L.farTrees)], [L, lowQuality])
   const near = useMemo(() => new THREE.Vector3((L.lot.x + L.lot.w / 2) * M, 0, L.front * M), [L])

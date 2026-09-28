@@ -5,6 +5,7 @@
  */
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/store'
+import { DEFAULT_LATITUDE, afternoonHour, eveningHour } from '../model/sun'
 import { useBrand, hasBrand } from '../product/brand'
 import { homeSummary } from '../model/schedule'
 import { Icon } from './Icon'
@@ -51,7 +52,9 @@ export function Presentation({ onExit }: { onExit: () => void }) {
   }, [i])
 
   useEffect(() => {
-    useStore.setState({ sunHour: evening ? 19.75 : 15 })
+    const s = useStore.getState()
+    const lat = s.project.site.latitude ?? DEFAULT_LATITUDE
+    useStore.setState({ sunHour: evening ? eveningHour(s.sunDay, lat) : afternoonHour(s.sunDay, lat) })
   }, [evening])
 
   useEffect(() => {

@@ -24,6 +24,7 @@ export type Feature =
   | 'plan-set'
   | 'plan-library'
   | 'versions'
+  | 'sun-study'
 
 export const FEATURES: Record<Feature, { name: string; blurb: string; plan: PlanId }> = {
   'unlimited-designs': { name: 'Unlimited designs', blurb: 'Free keeps up to 3 designs. Keep every idea and version with Pro, or delete a design in Project to make room.', plan: 'pro' },
@@ -35,6 +36,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   assistant: { name: 'Design assistant', blurb: 'Describe a change in plain words, or upload a photo of a floor plan, and it is drawn for you.', plan: 'pro' },
   surroundings: { name: 'Garden and countryside settings', blurb: 'See the home in a private garden or in the countryside, not only on a street.', plan: 'pro' },
   'all-styles': { name: 'All whole-home styles', blurb: 'Every designer style for walls, floors, roof, cabinets and furniture in one click.', plan: 'pro' },
+  'sun-study': { name: 'Sun study', blurb: 'See sunlight and shadows on any day of the year, and play a whole day from sunrise to sunset.', plan: 'pro' },
   versions: { name: 'Design versions', blurb: 'Keep up to 20 named versions of each design and go back to any of them. Free keeps one.', plan: 'pro' },
   'plan-library': { name: 'Full plan library', blurb: 'Every ready-made home in the library, furnished and styled, to start from and change as you like.', plan: 'pro' },
   'plan-set': { name: 'PDF plan set', blurb: 'One PDF with a cover, 3D views, every floor plan, the room schedule, a cost estimate and the shopping list, ready to print or send to a builder.', plan: 'pro' },

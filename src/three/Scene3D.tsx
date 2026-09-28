@@ -17,6 +17,7 @@ import { useHover } from './hover'
 import { homeGroupRef } from './exportModel'
 import { explodeState, useExplodeOffset } from './explode'
 import { SkyDome, Surroundings, skyColors, solarDirection } from './Surroundings'
+import { DEFAULT_LATITUDE, nightAmount, sceneDirection, sunPosition, type SunPosition } from '../model/sun'
 import { buildLandscape, groundLevel } from '../model/landscape'
 
 const M = 0.01 // cm → m
@@ -143,7 +144,7 @@ function OpeningMesh({ o, w, cut }: { o: Opening; w: Wall; cut: number | null })
   const s0 = o.offset - o.width / 2
   const s1 = o.offset + o.width / 2
   const frame = stdMat(o.frameColor, { rough: 0.6 })
-  const night = useStore((s) => Math.round(nightFactor(s.sunHour) * 4) / 4)
+  const night = useStore((s) => Math.round(storeNight(s) * 4) / 4)
   const glass = night > 0 ? stdMat('#FFD9A0', { opacity: 0.35 + night * 0.4, rough: 0.05, emissive: night * 1.4 }) : stdMat('#BFD9E3', { opacity: 0.28, rough: 0.05, metal: 0.1 })
   const ft = 5 // frame thickness cm
   const fd = Math.min(t, 10) // frame depth
@@ -349,8 +350,7 @@ function PartTag({ at, bounds, text }: { at: [number, number, number]; bounds: R
 const LAMP_SHAPES: Record<string, number> = { 'floor-lamp': 0.85, 'table-lamp': 0.72, pendant: 0.1, chandelier: 0.5, 'ceiling-light': 0, sconce: 0.6, 'fire-pit': 1.2 }
 
 function LampLights({ items }: { items: Item[] }) {
-  const hour = useStore((s) => s.sunHour)
-  const night = nightFactor(hour)
+  const night = useStore(storeNight)
   const lamps = items.filter((i) => catalogEntry(i.type).shape in LAMP_SHAPES).slice(0, 10)
   return (
     <>
@@ -597,26 +597,34 @@ const LevelModel = memo(function LevelModel({ level, project, cut, showCeiling, 
 // ---------------------------------------------------------------------------
 // Lighting and camera
 
-function sunDirection(hour: number, north: number): THREE.Vector3 {
-  // After dark the "sun" becomes moonlight from high in the south-west.
-  if (hour > 20.25 || hour < 5.75) hour = 14.5
-  const t = Math.min(1, Math.max(0, (hour - 6) / 14))
-  const elev = Math.max(0.08, Math.sin(t * Math.PI)) * (Math.PI / 180) * 62
-  const az = ((90 + t * 180 + north) * Math.PI) / 180
-  return new THREE.Vector3(Math.sin(az) * Math.cos(elev), Math.sin(elev), -Math.cos(az) * Math.cos(elev)).normalize()
+/** Where the light comes from: the sun, or after dark moonlight from high in the south-west. */
+function lightDirection(sun: SunPosition, north: number): THREE.Vector3 {
+  if (sun.elevation < -4) return new THREE.Vector3(...sceneDirection(200, 45, north))
+  return new THREE.Vector3(...sceneDirection(sun.azimuth, Math.max(5, sun.elevation), north))
+}
+
+/** The sun for the 3D view's day, time and latitude. */
+function storeSun(s: { sunHour: number; sunDay: number; project: Project }): SunPosition {
+  return sunPosition(s.sunHour, s.sunDay, s.project.site.latitude ?? DEFAULT_LATITUDE)
+}
+
+let lastSun: { key: string; sun: SunPosition } | null = null
+/** storeSun that returns the same object while nothing changes, for use as a store selector. */
+function selectSun(s: { sunHour: number; sunDay: number; project: Project }): SunPosition {
+  const key = `${s.sunHour}:${s.sunDay}:${s.project.site.latitude ?? DEFAULT_LATITUDE}`
+  if (lastSun?.key !== key) lastSun = { key, sun: storeSun(s) }
+  return lastSun.sun
 }
 
 /** 0 in daylight, 1 at night; eases through dusk and dawn. */
-export function nightFactor(hour: number): number {
-  if (hour >= 7 && hour <= 18.5) return 0
-  if (hour > 18.5) return Math.min(1, (hour - 18.5) / 1.75)
-  return Math.min(1, (7 - hour) / 1.5)
+function storeNight(s: { sunHour: number; sunDay: number; project: Project }): number {
+  return nightAmount(storeSun(s).elevation)
 }
 
-function Sun({ center, radius, hour, north, indoor, ibl = false, shadowRadius }: { center: THREE.Vector3; radius: number; hour: number; north: number; indoor: boolean; ibl?: boolean; shadowRadius?: number }) {
+function Sun({ center, radius, sun, north, indoor, ibl = false, shadowRadius }: { center: THREE.Vector3; radius: number; sun: SunPosition; north: number; indoor: boolean; ibl?: boolean; shadowRadius?: number }) {
   const light = useRef<THREE.DirectionalLight>(null)
-  const night = nightFactor(hour)
-  const dir = sunDirection(hour, north)
+  const night = nightAmount(sun.elevation)
+  const dir = lightDirection(sun, north)
   const pos = center.clone().add(dir.clone().multiplyScalar(radius * 2 + 10))
   const low = dir.y < 0.35
   useEffect(() => {
@@ -885,7 +893,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const cutaway = useStore((s) => s.cutaway)
   const showRoof = useStore((s) => s.showRoof)
   const wallCut = useStore((s) => s.wallCut)
-  const sunHour = useStore((s) => s.sunHour)
+  const sun = useStore(selectSun)
   const zoomRequest = useStore((s) => s.zoomRequest)
   const explode = useStore((s) => (s.explode > 0 ? 1 : 0))
   const lowQuality = useStore((s) => s.lowQuality)
@@ -930,7 +938,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
   const landKey = JSON.stringify([project.site, ground?.walls, ground?.openings, ground?.rooms.map((r) => [r.points, r.floor])])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const land = useMemo(() => buildLandscape(project), [landKey])
-  const sky = useMemo(() => skyColors(solarDirection(sunHour, project.site.northAngle).y), [sunHour, project.site.northAngle])
+  const sky = useMemo(() => skyColors(solarDirection(sun.azimuth, sun.elevation, project.site.northAngle).y), [sun, project.site.northAngle])
   const lotRadius = land ? (Math.hypot(land.lot.w, land.lot.d) * M) / 2 + 4 : 0
   const streetView = useMemo(() => {
     if (!land || !houseBounds) return null
@@ -939,7 +947,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
     const z = land.street ? ((land.street.far[2] + land.street.far[3]) / 2) * M : land.lane ? land.lane[1] * M + 2 : land.front * M + 6
     return { eye: new THREE.Vector3(hx, 1.65, z), target: new THREE.Vector3(hx, 2.6, hz) }
   }, [land, houseBounds])
-  const nightNow = nightFactor(sunHour)
+  const nightNow = nightAmount(sun.elevation)
   const skyColor = useMemo(() => '#' + new THREE.Color(bg).lerp(new THREE.Color('#0B1220'), nightNow * 0.92).getHexString(), [bg, nightNow])
   const levels = [...project.levels].sort((a, b) => a.elevation - b.elevation)
   const visible = walk ? levels : cutaway ? levels.filter((l) => l.elevation <= active.elevation) : levels
@@ -1008,13 +1016,13 @@ export function Scene3D({ walk }: { walk: boolean }) {
         <>
           <color attach="background" args={[sky.horizon]} />
           <fog attach="fog" args={[sky.horizon, Math.max(110, radius * 7), 1500]} />
-          <SkyDome hour={sunHour} north={project.site.northAngle} />
+          <SkyDome azimuth={sun.azimuth} elevation={sun.elevation} north={project.site.northAngle} />
           {!lowQuality && (
-            <Environment key={Math.round(sunHour * 2)} frames={1} resolution={64} environmentIntensity={0.6 * (1 - sky.night * 0.85)}>
-              <SkyDome hour={sunHour} north={project.site.northAngle} clouds={0.15} radius={60} />
+            <Environment key={`${Math.round(sun.elevation / 5)}:${Math.round(sun.azimuth / 15)}`} frames={1} resolution={64} environmentIntensity={0.6 * (1 - sky.night * 0.85)}>
+              <SkyDome azimuth={sun.azimuth} elevation={sun.elevation} north={project.site.northAngle} clouds={0.15} radius={60} />
             </Environment>
           )}
-          <Surroundings L={land} groundColor={project.site.groundColor} hour={sunHour} lowQuality={lowQuality} />
+          <Surroundings L={land} groundColor={project.site.groundColor} night={nightNow} lowQuality={lowQuality} />
         </>
       ) : (
         <>
@@ -1023,7 +1031,7 @@ export function Scene3D({ walk }: { walk: boolean }) {
           {project.site.showGround && <Ground color={project.site.groundColor} radius={radius} />}
         </>
       )}
-      <Sun center={center} radius={radius} hour={sunHour} north={project.site.northAngle} indoor={walk} ibl={!!land && !lowQuality} shadowRadius={Math.min(45, lotRadius)} />
+      <Sun center={center} radius={radius} sun={sun} north={project.site.northAngle} indoor={walk} ibl={!!land && !lowQuality} shadowRadius={Math.min(45, lotRadius)} />
       {project.site.lot && !walk && <LotLines lot={project.site.lot} />}
       <SectionCut bounds={houseBounds} walk={walk} />
       <group onClick={onClick} ref={(g) => void (homeGroupRef.current = g)}>

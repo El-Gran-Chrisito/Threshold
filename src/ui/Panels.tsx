@@ -18,6 +18,7 @@ import { allows, FREE_LIMITS } from '../product/plans'
 import { track } from '../product/analytics'
 import { brandForLink, readLogo, useBrand } from '../product/brand'
 import { defaultLot } from '../model/site'
+import { DEFAULT_LATITUDE } from '../model/sun'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { shopConfig, shopUrl } from '../product/shop'
@@ -1138,6 +1139,9 @@ export function ProjectPanel() {
       <BrandingSettings />
       <Field label="North direction (compass bearing of plan up)">
         <NumberInput id="north" value={project.site.northAngle} min={-180} max={360} step={15} suffix="°" onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, northAngle: v } }))} />
+      </Field>
+      <Field label="Latitude (for the sun in 3D)" hint="Negative south of the equator. For example: London 51, New York 41, Los Angeles 34, Sydney −34.">
+        <NumberInput id="latitude" value={project.site.latitude ?? DEFAULT_LATITUDE} min={-80} max={80} step={1} suffix="°" onChange={(v) => useStore.getState().apply((p) => ({ ...p, site: { ...p.site, latitude: v } }))} />
       </Field>
       <p className="tip">{cloudOn ? 'Your designs save automatically to your account and open on any device where you use this app.' : 'Your design saves automatically in this browser. Save a design file to keep a copy or move it to another device.'}</p>
     </section>
