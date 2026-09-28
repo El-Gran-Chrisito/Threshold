@@ -15,6 +15,7 @@ bun run test         # model, assistant and design-check tests
 bun run build        # static site in dist/
 bun run build:single # one self-contained HTML file in dist-single/
 bun run license init # create license signing keys (once; see docs/MONETIZATION.md)
+bun run launch-check # before going live: checks every selling setting (--live also calls the license server)
 ```
 
 `scripts/*.mjs` drive the built app in headless Chromium (Playwright) for end-to-end checks and screenshots.

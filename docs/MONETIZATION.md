@@ -2,6 +2,16 @@
 
 This guide takes Threshold from this repository to a paid product. It uses Stripe for payments, a small license server on Cloudflare Workers, and any static host for the site. Each step lists what to do and how to check it.
 
+## Go-live checklist
+
+1. `bun run license init`: signing keys (step 1).
+2. Stripe products, prices and Payment Links in test mode (step 2).
+3. License server deployed with its secrets; optional: key emails, design sync store, hosted assistant (step 3).
+4. Site settings in your host, then build and deploy (step 4).
+5. `bun run launch-check --live`: every line should be ✓, or ! that you have decided to accept.
+6. One test purchase from start to finish (step 5), then switch Stripe to live mode, replace the Payment Links, and run the check again.
+7. Fill in the legal pages (step 6); the check lists what is still in [brackets].
+
 ## What is already built
 
 | Part | Where |

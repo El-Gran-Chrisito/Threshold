@@ -10,7 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "lint": "oxlint",
-    "license": "bun scripts/license-keys.ts"
+    "license": "bun scripts/license-keys.ts",
+    "launch-check": "bun scripts/launch-check.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
