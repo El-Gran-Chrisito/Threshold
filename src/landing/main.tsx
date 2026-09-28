@@ -1,7 +1,7 @@
 import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './landing.css'
-import { PASS, PLANS, type PlanId } from '../product/plans'
+import { FEATURES, FREE_LIMITS, PASS, PLANS, allows, type Feature, type PlanId } from '../product/plans'
 import { FAQ } from './faq'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { registerServiceWorker } from '../product/pwa'
@@ -102,6 +102,58 @@ const EXTRAS: Array<[string, string]> = [
 ]
 
 
+/** Every feature by plan, from the same list the app uses to unlock them. */
+const BASICS = ['Floor plans, walls, doors, windows and stairs', '3D, walk-through and exploded view', 'Furniture, finishes and whole-home styles (2 free)', 'Design check and cost estimate', 'Share links and design files']
+const ORDER: Feature[] = ['unlimited-designs', 'plan-set', 'clean-exports', 'hd-exports', 'model-export', 'shopping-export', 'electrical', 'assistant', 'all-styles', 'surroundings', 'plan-library', 'sync', 'branding', 'presentation']
+
+function Compare() {
+  const cols: PlanId[] = ['free', 'pro', 'studio']
+  const mark = (on: boolean) => (on ? <span className="yes" aria-label="Included">✓</span> : <span className="no" aria-label="Not included">–</span>)
+  return (
+    <details className="compare">
+      <summary>Compare every feature</summary>
+      <div className="compare-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Feature</th>
+              {cols.map((c) => (
+                <th key={c} scope="col">
+                  {PLANS.find((p) => p.id === c)!.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {BASICS.map((b) => (
+              <tr key={b}>
+                <th scope="row">{b}</th>
+                {cols.map((c) => (
+                  <td key={c}>{mark(true)}</td>
+                ))}
+              </tr>
+            ))}
+            <tr>
+              <th scope="row">Designs kept</th>
+              <td>{FREE_LIMITS.designs}</td>
+              <td>Unlimited</td>
+              <td>Unlimited</td>
+            </tr>
+            {ORDER.filter((f) => f !== 'unlimited-designs').map((f) => (
+              <tr key={f}>
+                <th scope="row">{FEATURES[f].name}</th>
+                {cols.map((c) => (
+                  <td key={c}>{mark(allows(c, f))}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  )
+}
+
 function Pricing() {
   const [billing, setBilling] = useState<Billing>('yearly')
   const cta = (id: PlanId) => (id === 'free' ? APP : checkoutUrl(id, billing) ?? APP)
@@ -157,6 +209,7 @@ function Pricing() {
             Get the pass
           </a>
         </aside>
+        <Compare />
         <p className="fine">Prices in US dollars. Pro includes a {productConfig.trialDays}-day free trial inside the app, no card needed.</p>
       </div>
     </section>
