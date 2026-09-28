@@ -40,6 +40,14 @@ describe('plans and entitlements', () => {
     expect(useEntitlements.getState().paywall).toEqual({ open: true, feature: 'electrical' })
   })
 
+  it('gives professionals a Studio trial', () => {
+    resetEntitlements()
+    expect(useEntitlements.getState().startTrial('studio')).toBe(true)
+    expect(useEntitlements.getState().plan).toBe('studio')
+    expect(can('branding')).toBe(true)
+    resetEntitlements()
+  })
+
   it('says once that a trial has ended', () => {
     resetEntitlements()
     expect(showTrialEndedOnce()).toBe(false)

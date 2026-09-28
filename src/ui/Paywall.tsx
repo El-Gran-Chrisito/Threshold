@@ -22,7 +22,7 @@ export function PlanBadge() {
   const left = isPass(license) ? daysLeft(license) : null
   const plural = (n: number) => `${n} day${n === 1 ? '' : 's'} left`
   const label =
-    source === 'trial' ? `Pro trial · ${plural(t.daysLeft)}` : plan === 'free' ? 'Upgrade' : left !== null && left <= 14 ? `${planInfo(plan).name} · ${plural(left)}` : planInfo(plan).name
+    source === 'trial' ? `${planInfo(plan).name} trial · ${plural(t.daysLeft)}` : plan === 'free' ? 'Upgrade' : left !== null && left <= 14 ? `${planInfo(plan).name} · ${plural(left)}` : planInfo(plan).name
   return (
     <button type="button" className={`plan-badge is-${plan}${source === 'trial' ? ' is-trial' : ''}`} onClick={() => open(null)} title="Plans and license">
       {plan === 'free' ? <Icon name="magic" size={15} /> : null}
@@ -66,6 +66,7 @@ export function PaywallSheet() {
   const bestSaving = Math.max(...PLANS.filter((p) => p.monthly).map((p) => Math.round((1 - p.yearly / (p.monthly * 12)) * 100)))
   // A feature asks for its own plan; otherwise professionals are shown Studio.
   const need: PlanId = f?.plan ?? (audience === 'pro' ? 'studio' : 'pro')
+  const trialFor: 'pro' | 'studio' = need === 'studio' ? 'studio' : 'pro'
   const trial = trialState(started)
   return (
     <div className="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && closePaywall()}>
@@ -89,7 +90,7 @@ export function PaywallSheet() {
         </h2>
         {f && <p className="paywall-lede">{f.blurb}</p>}
         {!f && !lapsed && source === 'free' && trial.used && !trial.active && (
-          <p className="paywall-lede">Every design you made is still here. Clean exports, the 3D model, the shopping list, electrical layout, the assistant and all styles are paused until you choose Pro.</p>
+          <p className="paywall-lede">Every design you made is still here. Clean exports, the 3D model, the shopping list, electrical layout, the assistant and all styles are paused until you choose a plan.</p>
         )}
         {!f && lapsed && source !== 'license' && lapsed.ref?.startsWith('sub_') && (
           <p className="paywall-lede">Still subscribed? Your key renews by itself when this device is online. If it does not, choose “I have a license key”, then “Email me my key”.</p>
@@ -142,8 +143,8 @@ export function PaywallSheet() {
         </div>
         {(audience !== 'pro' && (plan === 'free' || source === 'trial')) || (isPass(license) && (daysLeft(license) ?? 99) <= 14) ? <PassOffer email={license?.email ?? lapsed?.email} /> : null}
         {!trial.used && source === 'free' && !lapsed && (
-          <button type="button" className="btn btn-primary paywall-trial" onClick={() => startTrial()}>
-            Try Pro free for {productConfig.trialDays} days
+          <button type="button" className="btn btn-primary paywall-trial" onClick={() => startTrial(trialFor)}>
+            Try {planInfo(trialFor).name} free for {productConfig.trialDays} days
           </button>
         )}
         {source === 'license' && license ? (
@@ -376,9 +377,9 @@ export function LockedFeature({ feature }: { feature: Feature }) {
       </header>
       <p>{f.blurb}</p>
       <div className="btn-row">
-        {!trial.used && f.plan === 'pro' && (
-          <button type="button" className="btn btn-primary" onClick={() => startTrial()}>
-            Try Pro free for {productConfig.trialDays} days
+        {!trial.used && f.plan !== 'free' && (
+          <button type="button" className="btn btn-primary" onClick={() => startTrial(f.plan === 'studio' ? 'studio' : 'pro')}>
+            Try {planInfo(f.plan).name} free for {productConfig.trialDays} days
           </button>
         )}
         <button type="button" className="btn" onClick={() => openPaywall(feature)}>

@@ -1,6 +1,7 @@
 import { STEPS, useOnboarding } from '../product/onboarding'
 import { trialState, useEntitlements } from '../product/entitlements'
 import { productConfig } from '../product/config'
+import { useAudience } from '../product/audience'
 import { Icon } from './Icon'
 
 /** A short checklist for first sessions; each step ticks itself. */
@@ -9,6 +10,7 @@ export function GettingStarted() {
   const dismissed = useOnboarding((s) => s.dismissed)
   const plan = useEntitlements((s) => s.plan)
   const started = useEntitlements((s) => s.trialStartedAt)
+  const forPros = useAudience((s) => s.audience) === 'pro'
   if (dismissed) return null
   const all = done.length >= STEPS.length
   const offerTrial = all && plan === 'free' && !trialState(started).used
@@ -30,8 +32,8 @@ export function GettingStarted() {
       {all ? (
         <div className="gs-done">
           <p>Next: export clean plans, a 3D model and the shopping list, and let the assistant draw changes for you.</p>
-          <button type="button" className="btn btn-primary" onClick={() => useEntitlements.getState().startTrial()}>
-            Try Pro free for {productConfig.trialDays} days
+          <button type="button" className="btn btn-primary" onClick={() => useEntitlements.getState().startTrial(forPros ? 'studio' : 'pro')}>
+            Try {forPros ? 'Studio' : 'Pro'} free for {productConfig.trialDays} days
           </button>
         </div>
       ) : (

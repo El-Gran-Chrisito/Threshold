@@ -33,7 +33,7 @@ interface Actions {
   /** After a hosted checkout: trade the checkout session for a license key. */
   claimCheckout: (sessionId: string) => Promise<{ ok: boolean; message: string }>
   activate: (key: string) => Promise<{ ok: boolean; message: string }>
-  startTrial: () => boolean
+  startTrial: (plan?: 'pro' | 'studio') => boolean
   signOut: () => void
   openPaywall: (feature?: Feature | null) => void
   closePaywall: () => void
@@ -71,9 +71,17 @@ export function trialState(startedAt: number | null, now = Date.now()) {
   return { active: now < end, used: true, daysLeft: Math.max(0, Math.ceil((end - now) / DAY)) }
 }
 
+const TRIAL_PLAN_KEY = 'threshold:trial-plan'
+let trialPlanMem: 'pro' | 'studio' | null = null
+
+/** Which plan the free trial unlocks: Pro, or Studio for people who design for clients. */
+export function trialPlan(): 'pro' | 'studio' {
+  return (trialPlanMem ?? read(TRIAL_PLAN_KEY)) === 'studio' ? 'studio' : 'pro'
+}
+
 function derive(license: LicensePayload | null, trialStartedAt: number | null): Pick<Entitlements, 'plan' | 'source'> {
   if (license) return { plan: license.plan, source: license.trial ? 'trial' : 'license' }
-  if (trialState(trialStartedAt).active) return { plan: 'pro', source: 'trial' }
+  if (trialState(trialStartedAt).active) return { plan: trialPlan(), source: 'trial' }
   return { plan: 'free', source: 'free' }
 }
 
@@ -85,10 +93,10 @@ const REASONS: Record<string, string> = {
 }
 
 /** A signed 7-day trial key from the license server, if it gives one. */
-async function trialKey(): Promise<string | null> {
+async function trialKey(plan: 'pro' | 'studio'): Promise<string | null> {
   if (!productConfig.licenseApi || !productConfig.licensePublicKey) return null
   try {
-    const res = await fetch(`${productConfig.licenseApi}/trial`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    const res = await fetch(`${productConfig.licenseApi}/trial`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ plan }) })
     if (!res.ok) return null
     return ((await res.json()) as { key?: string }).key ?? null
   } catch {
@@ -166,15 +174,17 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
     }
   },
 
-  startTrial: () => {
+  startTrial: (plan = 'pro') => {
     if (get().trialStartedAt || get().license) return false
     const now = Date.now()
+    trialPlanMem = plan
+    write(TRIAL_PLAN_KEY, plan)
     write(TRIAL_KEY, String(now))
     set({ trialStartedAt: now, ...derive(null, now), paywall: { open: false, feature: null } })
-    track('trial_started')
+    track('trial_started', { plan })
     // The trial starts at once; a signed trial key from the server, when it comes, adds the hosted assistant.
     void (async () => {
-      const key = await trialKey()
+      const key = await trialKey(plan)
       if (!key) return
       const v = await verifyLicense(key, productConfig.licensePublicKey)
       if (!v.ok || !v.payload.trial || get().license) return
@@ -239,6 +249,7 @@ export function showTrialEndedOnce(): boolean {
 
 /** For tests: reset to a fresh free state. */
 export function resetEntitlements() {
+  trialPlanMem = null
   useEntitlements.setState({ plan: 'free', source: 'free', license: null, lapsed: null, key: null, trialStartedAt: null, paywall: { open: false, feature: null }, ready: false })
 }
 

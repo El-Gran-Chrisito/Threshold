@@ -6,7 +6,7 @@
  *                   Subscriptions get keys that renew; one-time payments get
  *                   keys that last `days` (price metadata) or forever.
  *   POST /refresh   { "key": "THR1...." }     ->  { key }
- *   POST /trial     {}                          ->  { key } a 7-day Pro trial key, one per
+ *   POST /trial     { plan? }                   ->  { key } a 7-day Pro (or Studio) trial key, one per
  *                   network per 30 days (needs DESIGNS for the count)
  *   POST /referral  (license)                   ->  { code, count } invite code (see referral.ts)
  *   POST /send-design, /leads                   ->  email a design link; tips list (leads.ts)
@@ -248,7 +248,8 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     if (last && now - last < 30 * 86_400_000) return json(env, { error: 'This network has already had a trial recently' }, 429)
     await env.DESIGNS.put(mark, String(now))
     const ref = `trial_${Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => b.toString(16).padStart(2, '0')).join('')}`
-    const key = await signLicense({ v: 1, plan: 'pro', ref, iat: now, exp: now + TRIAL_DAYS * 86_400_000, trial: true }, privateJwk)
+    const plan: Plan = body.plan === 'studio' ? 'studio' : 'pro'
+    const key = await signLicense({ v: 1, plan, ref, iat: now, exp: now + TRIAL_DAYS * 86_400_000, trial: true }, privateJwk)
     await count(env.DESIGNS, 'trial', now)
     return json(env, { key })
   }
