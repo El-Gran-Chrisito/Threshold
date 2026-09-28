@@ -30,7 +30,7 @@ bun run license init # create license signing keys (once; see docs/MONETIZATION.
 | Levels | Multiple floors, basement, straight, L-shaped and U-shaped stairs with matching openings cut through the floor above, flat / gable / hip / shed roofs with pitch, overhang and covering (asphalt shingle, standing-seam metal, clay tile, slate, membrane); gable ends take the wall cladding |
 | 3D | Orbit view with inside and outside presets, views from top and each compass side, section cut front-to-back or side-to-side, exploded view with layer tags and show/hide for roof, walls, floors and furniture, low walls, sun by time of day, night lighting from lamps, click to select, click to paint, drag furniture, double-click to focus, Fast 3D mode for slower devices |
 | Walk | First-person walk-through with wall collision, open doors, mini-map with position and heading |
-| Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude, via the artifact `sample` capability) |
+| Assistant | Plain-language requests or a photo of a floor plan become undoable edits (inside Claude through the viewer's Claude; on a hosted site through the license server and the Claude API) |
 | Surroundings | Painted sky with sun, moon, drifting clouds, sunset colours and stars; rolling ground that fades into hazy hills; four settings: suburban street (road, sidewalks, kerbs, street trees and lamps, neighbours' houses, parked cars), private garden (hedges and trees), countryside (fields, gravel lane, fences, woods) or plain ground. Driveways run from garage doors, a path from the front door, planting beds with shrubs and flowers line the walls, and trees fill the yard, all laid out from the design. Street-level view from across the road; street lamps and neighbours' windows light up after dark; sky reflections on glass and metal |
 | Site | Lot with property lines and front, side and rear setbacks on the plan, the plan sheet and in 3D; ground colour; north direction |
 | Electrical | One click per room or per floor: ceiling lights on a grid, a switch on the latch side of each doorway, outlets no more than 12 ft apart, smoke alarms in bedrooms, halls and entries; standard plan symbols; show or hide on the plan |
@@ -51,6 +51,6 @@ src/assistant  design assistant prompt and action executor
 src/ui         panels, inspector, controls, upgrade sheet, presentation mode
 src/product    plans, license keys, entitlements, gates, branding, funnel events
 src/landing    marketing page (home.html)
-server         license server (Stripe checkout -> license key, renewals, design sync)
+server         license server (Stripe checkout -> license key, renewals, key emails, design sync, hosted assistant)
 docs           selling setup guide
 ```

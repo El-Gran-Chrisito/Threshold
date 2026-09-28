@@ -5,6 +5,8 @@ import { Icon } from '../ui/Icon'
 import { useEntitlements } from '../product/entitlements'
 import { allows } from '../product/plans'
 import { LockedFeature } from '../ui/Paywall'
+import { hostedAssistant } from './hosted'
+import { productConfig } from '../product/config'
 
 interface SampleError {
   code: string
@@ -63,11 +65,13 @@ function AssistantWorkspace() {
   const [error, setError] = useState<string | null>(null)
   const ctl = useRef<AbortController | null>(null)
   const isEmpty = useStore((s) => activeLevel(s).rooms.length === 0)
+  const licensed = useEntitlements((s) => s.source === 'license')
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const s = window.claude?.use ? ((await window.claude.use('sample').catch(() => null)) as SampleFn | null) : null
+      // Inside Claude: the viewer's own Claude. On the hosted site: the license server.
+      const s = (window.claude?.use ? ((await window.claude.use('sample').catch(() => null)) as SampleFn | null) : null) ?? hostedAssistant()
       if (!alive) return
       setSample(s)
       if (s) {
@@ -79,7 +83,7 @@ function AssistantWorkspace() {
       alive = false
       ctl.current?.abort()
     }
-  }, [])
+  }, [licensed])
 
   const run = async () => {
     if (!sample || (!text.trim() && !image)) return
@@ -111,6 +115,7 @@ function AssistantWorkspace() {
       const err = e as SampleError
       if (err?.code === 'cancelled') return
       if (HIDE.has(err?.code)) setSample(null)
+      else if (err?.code === 'daily_limit' && err.message) setError(err.message)
       else setError(copyFor(err?.code ?? 'upstream_error'))
     } finally {
       if (ctl.current === c) ctl.current = null
@@ -128,7 +133,11 @@ function AssistantWorkspace() {
       </header>
       {sample === undefined && <p className="tip">Connecting…</p>}
       {sample === null && (
-        <p className="tip">The assistant works when Threshold is opened inside Claude. Every change it makes can also be done with the tools on the left.</p>
+        <p className="tip">
+          {productConfig.licenseApi
+            ? 'On this site the assistant works with a Pro or Studio license (it is not part of the free trial here). Every change it makes can also be done with the tools on the left.'
+            : 'The assistant works when Threshold is opened inside Claude. Every change it makes can also be done with the tools on the left.'}
+        </p>
       )}
       {sample && (
         <>

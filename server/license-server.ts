@@ -21,6 +21,8 @@
  *   RESEND_API_KEY        optional; emails each buyer their key (resend.com)
  *   EMAIL_FROM            sender for those emails, e.g. "Threshold <keys@your-site>"
  *   SUPPORT_EMAIL         optional reply-to address for those emails
+ *   ANTHROPIC_API_KEY     optional; runs the design assistant for paying
+ *                         customers outside Claude (see assistant.ts)
  *   DESIGNS               optional key-value store (Cloudflare KV) for syncing
  *                         paid customers' designs across devices:
  *
@@ -32,7 +34,8 @@
  * Design routes take the customer's license key as `Authorization: License THR1...`.
  */
 import { signLicense, verifyLicense, type LicensePayload } from '../src/product/license'
-import { PASS } from '../src/product/plans'
+import { allows, PASS } from '../src/product/plans'
+import { askClaude, checkRequest, type AssistantEnv } from './assistant'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -42,7 +45,7 @@ export interface KV {
   list(opts: { prefix: string; limit?: number }): Promise<{ keys: Array<{ name: string; metadata?: unknown }> }>
 }
 
-export interface Env {
+export interface Env extends AssistantEnv {
   STRIPE_SECRET_KEY: string
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
@@ -226,6 +229,23 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
   }
 
   if (path.includes('/designs/')) return designs(request, path, body, env, publicFromPrivate(privateJwk))
+
+  if (path.endsWith('/assistant')) {
+    const v = await verifyLicense((request.headers.get('authorization') ?? '').replace(/^License\s+/i, ''), publicFromPrivate(privateJwk))
+    if (!v.ok) return json(env, { code: 'not_granted', message: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
+    if (!allows(v.payload.plan, 'assistant')) return json(env, { code: 'not_granted', message: 'The assistant is part of Pro' }, 403)
+    const req = checkRequest(body)
+    if ('ok' in req) return json(env, { code: req.code, message: req.message }, req.status)
+    if (env.DESIGNS) {
+      const limit = Number(env.ASSISTANT_DAILY_LIMIT) || 60
+      const k = `m:ai:${await ownerKey(v.payload)}:${Math.floor(now / 86_400_000)}`
+      const used = Number(await env.DESIGNS.get(k)) || 0
+      if (used >= limit) return json(env, { code: 'daily_limit', message: `You have used today's ${limit} assistant requests. They reset at midnight UTC.` }, 429)
+      await env.DESIGNS.put(k, String(used + 1))
+    }
+    const r = await askClaude(env, req, fetchImpl)
+    return r.ok ? json(env, { json: r.json }) : json(env, { code: r.code, message: r.message }, r.status)
+  }
 
   return json(env, { error: 'Not found' }, 404)
 }

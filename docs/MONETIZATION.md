@@ -11,7 +11,7 @@ This guide takes Threshold from this repository to a paid product. It uses Strip
 | Feature gates (designs limit, watermark, exports, electrical, assistant, styles, surroundings, branding, presentation) | `src/product/gates.ts` and the buttons that call `requireFeature` |
 | Signed license keys, checked offline in the app | `src/product/license.ts` |
 | License key tool (create keys, issue keys by hand) | `scripts/license-keys.ts`, run with `bun run license` |
-| License server: checkout → license, renewals, design sync | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
+| License server: checkout → license, renewals, key emails, design sync, hosted assistant | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
 | Marketing page with pricing | `home.html`, `src/landing/` |
 | Legal page templates | `public/legal/` |
 | Host routes (`/` = marketing page, `/app` = app) | `public/_redirects` (Netlify), `vercel.json` (Vercel) |
@@ -80,6 +80,16 @@ Without this, a buyer gets their key only in the browser they paid in. With it, 
 3. In `wrangler.toml` under `[vars]`, set `EMAIL_FROM = "Threshold <keys@your-site.example>"` and, optionally, `SUPPORT_EMAIL` for replies.
 
 With the design-sync store (below) in place, each purchase is emailed once and recovery is limited to 3 requests per address per hour. The recovery answer is the same whether or not the address bought anything.
+
+### Design assistant on your site (Pro and Studio)
+
+Inside Claude the assistant uses the viewer's own Claude. On your site it goes through the license server, which checks the customer's key and calls the Claude API with your API key.
+
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com).
+2. `npx wrangler secret put ANTHROPIC_API_KEY`
+3. Optional, under `[vars]`: `ASSISTANT_MODEL` (default `claude-sonnet-5`; `claude-opus-5-5` is stronger and costs more) and `ASSISTANT_DAILY_LIMIT` (requests per customer per day, default 60; counted only when the design-sync store is set up).
+
+Each request sends the current floor and the instructions, about 8,000 to 20,000 input tokens, plus a photo if one is attached. Check the model's price and set the daily limit so a busy customer stays well inside what they pay you. Trial users do not get the hosted assistant, because a trial has no key for the server to check.
 
 ### Design sync (Pro and Studio)
 
@@ -161,7 +171,7 @@ Change a price in Stripe and in `PLANS` together.
 
 ## Good to know
 
-- All checks run in the browser. A determined person can bypass them by editing the code; license keys stop casual sharing and keep honest customers on the right plan. Features that cost you money to run (for example a hosted AI assistant) should be checked on a server too.
+- All checks run in the browser. A determined person can bypass them by editing the code; license keys stop casual sharing and keep honest customers on the right plan. Features that cost you money to run are checked on the server: the hosted assistant needs a valid Pro or Studio key and has a daily limit.
 - Nothing leaves the device by default. Funnel events (`paywall_shown`, `upgrade_clicked`, `trial_started`, `license_activated`) go to Plausible if you add its script to `home.html` and `index.html`; otherwise they stay in memory.
 - The 7-day trial is stored in the browser, so clearing site data restarts it. Accept this for the first launch or move trials to the server later.
 - `bun run build:single` still makes the one-file version used as a Claude artifact. It has no checkout or license server settings unless you build it with them.

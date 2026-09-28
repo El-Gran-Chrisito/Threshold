@@ -11,6 +11,9 @@ compatibility_date = "2026-09-01"
 # Emailing keys to buyers (also run: wrangler secret put RESEND_API_KEY):
 # EMAIL_FROM = "Threshold <keys@your-site.example>"
 # SUPPORT_EMAIL = "support@your-site.example"
+# Design assistant for paying customers (also run: wrangler secret put ANTHROPIC_API_KEY):
+# ASSISTANT_MODEL = "claude-sonnet-5"
+# ASSISTANT_DAILY_LIMIT = "60"
 
 # Design sync for paying customers (optional). Create the namespace with
 #   npx wrangler kv namespace create DESIGNS
