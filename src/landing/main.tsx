@@ -104,7 +104,7 @@ const FAQ: Array<[string, string]> = [
   ['Can I cancel anytime?', 'Yes. Monthly plans end at the end of the month you cancel in; yearly plans at the end of the year.'],
   ['I only need it for one house. Do I have to subscribe?', `No. The ${PASS.name} is one payment of $${PASS.price} for 6 months of Pro. Nothing renews, and your designs stay when it ends.`],
   ['Can I use the plans with my builder or architect?', 'Yes. Export floor plan sheets, 3D images, a 3D model and the materials list. For a permit, a licensed professional still needs to prepare the construction drawings.'],
-  ['Can I use Threshold for client work?', 'Yes, on the Studio plan: your brand on every sheet, a presentation mode for clients, and commercial use of everything you export.'],
+  ['Can I use Threshold for client work?', 'Yes, on the Studio plan: your brand on every sheet, a guided 3D presentation, client links that open straight into it (no account needed), and commercial use of everything you export.'],
 ]
 
 function Pricing() {

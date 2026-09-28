@@ -34,7 +34,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   'all-styles': { name: 'All whole-home styles', blurb: 'Every designer style for walls, floors, roof, cabinets and furniture in one click.', plan: 'pro' },
   sync: { name: 'Designs on all your devices', blurb: 'Your designs follow your license to every browser you use, and survive cleared browser data.', plan: 'pro' },
   branding: { name: 'Your brand on plan sheets', blurb: 'Your company name, contact and logo in the title block of every floor plan.', plan: 'studio' },
-  presentation: { name: 'Client presentation mode', blurb: 'A full-screen, guided 3D tour of the home to show clients, with your branding.', plan: 'studio' },
+  presentation: { name: 'Client presentations', blurb: 'A full-screen, guided 3D tour of the home with your branding, and client links that open straight into it. Clients need no account.', plan: 'studio' },
 }
 
 /** What the free plan allows before asking to upgrade. */
@@ -73,7 +73,7 @@ export const PLANS: PlanInfo[] = [
     tagline: 'For designers, builders and agents',
     monthly: 29,
     yearly: 288,
-    bullets: ['Everything in Pro', 'Your brand on every plan sheet', 'Client presentation mode', 'Commercial use of all outputs', 'Priority support'],
+    bullets: ['Everything in Pro', 'Your brand on every plan sheet', 'Client presentations and client links', 'Commercial use of all outputs', 'Priority support'],
   },
 ]
 

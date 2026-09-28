@@ -25,7 +25,11 @@ const VIEWS: Array<{ name: string; dir: Dir; inside?: boolean }> = [
 
 export function Presentation({ onExit }: { onExit: () => void }) {
   const project = useStore((s) => s.project)
-  const brand = useBrand()
+  const client = useStore((s) => s.clientView)
+  const own = useBrand()
+  // A client sees the sender's brand from the link, never the viewer's own settings.
+  const brand = client ? (client.brand ?? { company: '', contact: '', logo: null }) : own
+  const title = project.name.replace(/\s*\(shared\)$/, '')
   const [i, setI] = useState(0)
   const [auto, setAuto] = useState(false)
   const [evening, setEvening] = useState(false)
@@ -78,7 +82,7 @@ export function Presentation({ onExit }: { onExit: () => void }) {
   }, [project])
 
   return (
-    <div className="present" role="dialog" aria-modal="true" aria-label={`Presentation: ${project.name}`}>
+    <div className="present" role="dialog" aria-modal="true" aria-label={`Presentation: ${title}`}>
       <div className="present-stage">
         <Suspense fallback={<div className="loading3d">Building 3D view…</div>}>
           <Scene3D walk={false} />
@@ -88,11 +92,18 @@ export function Presentation({ onExit }: { onExit: () => void }) {
         {brand.logo ? <img src={brand.logo} alt={brand.company || 'Logo'} /> : null}
         {hasBrand(brand) ? (brand.logo ? null : <strong>{brand.company}</strong>) : <strong>Threshold</strong>}
       </div>
-      <button type="button" className="present-exit" onClick={onExit} aria-label="End presentation">
-        <Icon name="close" /> <span>End</span>
+      <button type="button" className="present-exit" onClick={onExit} aria-label={client ? 'Explore this home yourself' : 'End presentation'}>
+        {client ? (
+          <span>Explore it yourself</span>
+        ) : (
+          <>
+            <Icon name="close" /> <span>End</span>
+          </>
+        )}
       </button>
+      {client && <p className="present-made">Made with Threshold</p>}
       <div className="present-card">
-        <h1>{project.name}</h1>
+        <h1>{title}</h1>
         <p>{summary}</p>
         {hasBrand(brand) && (brand.company || brand.contact) && <p className="present-contact">{[brand.company, brand.contact].filter(Boolean).join(' · ')}</p>}
       </div>

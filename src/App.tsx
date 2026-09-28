@@ -3,7 +3,7 @@ import { activeLevel, selectedItemIds, syncFromCloud, useStore, type PartKind } 
 import { BriefForm } from './ui/BriefForm'
 import { PaywallSheet, PlanBadge, PlanTag } from './ui/Paywall'
 import { Presentation } from './ui/Presentation'
-import { decodeDesign, sharedCode } from './store/share'
+import { decodeShared, sharedCode } from './store/share'
 import { uid } from './model/factory'
 import { track } from './product/analytics'
 import { watchOnboarding } from './product/onboarding'
@@ -92,11 +92,16 @@ export default function App() {
       const code = sharedCode()
       if (code) {
         try {
-          const shared = await decodeDesign(code)
+          const { project: shared, present, brand } = await decodeShared(code)
           useStore.getState().loadProject({ ...shared, id: uid('prj'), name: shared.name.endsWith('(shared)') ? shared.name : `${shared.name} (shared)`, updatedAt: Date.now() })
-          useStore.getState().setView('split')
-          useStore.getState().notify('Opened a shared design. This is your own copy: change anything.')
-          track('design_created', { from: 'share' })
+          if (present) {
+            useStore.setState({ presenting: true, clientView: { brand } })
+            track('design_created', { from: 'client-link' })
+          } else {
+            useStore.getState().setView('split')
+            useStore.getState().notify('Opened a shared design. This is your own copy: change anything.')
+            track('design_created', { from: 'share' })
+          }
         } catch {
           useStore.getState().notify('That share link is incomplete. Ask for it again.')
         }
@@ -150,7 +155,15 @@ export default function App() {
   if (presenting)
     return (
       <>
-        <Presentation onExit={() => useStore.setState({ presenting: false })} />
+        <Presentation
+          onExit={() => {
+            if (useStore.getState().clientView) {
+              useStore.setState({ presenting: false, clientView: null })
+              useStore.getState().setView(narrow ? '3d' : 'split')
+              useStore.getState().notify('This copy of the home is yours to explore and change. Nothing you change reaches the designer.')
+            } else useStore.setState({ presenting: false })
+          }}
+        />
         <Toast />
         <PaywallSheet />
       </>

@@ -2676,6 +2676,27 @@ kbd {
   font-weight: 700;
 }
 
+.present-made {
+  position: absolute;
+  right: 16px;
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 22, 25, 0.5);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .present-made {
+    top: calc(60px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+}
+
 .present-card {
   position: absolute;
   left: 16px;
@@ -2722,6 +2743,35 @@ kbd {
   background: rgba(15, 22, 25, 0.66);
   backdrop-filter: blur(6px);
   max-width: calc(100% - 32px);
+}
+
+@media (max-width: 640px) {
+  .present-controls {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    max-width: none;
+    border-radius: 16px;
+  }
+
+  .present-controls .present-view {
+    flex: 1 1 calc(100% - 92px);
+  }
+
+  .present-controls .present-btn.wide {
+    flex: 1 1 40%;
+  }
+
+  .present-card {
+    right: 16px;
+    bottom: calc(126px + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+    padding: 12px 14px;
+  }
+
+  .present-card h1 {
+    font-size: 22px;
+  }
 }
 
 .present-btn {

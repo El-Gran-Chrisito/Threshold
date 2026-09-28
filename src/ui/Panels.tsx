@@ -16,7 +16,7 @@ import { can, requireFeature, useEntitlements } from '../product/entitlements'
 import { canStartNewDesign, watermarked } from '../product/gates'
 import { allows, FREE_LIMITS } from '../product/plans'
 import { track } from '../product/analytics'
-import { readLogo, useBrand } from '../product/brand'
+import { brandForLink, readLogo, useBrand } from '../product/brand'
 import { defaultLot } from '../model/site'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
@@ -687,6 +687,18 @@ export function ProjectPanel() {
       s.notify('Could not copy the link here')
     }
   }
+  const copyClient = async () => {
+    if (!requireFeature('presentation')) return
+    try {
+      const brand = await brandForLink(useBrand.getState())
+      const link = await shareLink(useStore.getState().project, undefined, { brand })
+      await navigator.clipboard.writeText(link)
+      track('export', { kind: 'client-link' })
+      s.notify('Client link copied. It opens this home as a guided 3D tour with your brand.')
+    } catch {
+      s.notify('Could not copy the link here')
+    }
+  }
   const copyJson = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(project))
@@ -812,10 +824,13 @@ export function ProjectPanel() {
         </Field>
       )}
       {canShareLinks() && (
-        <Field label="Share" hint="The link holds the whole design. Nothing is uploaded; whoever opens it gets their own copy.">
+        <Field label="Share" hint="The link holds the whole design. Nothing is uploaded; whoever opens it gets their own copy. A client link opens as a guided 3D tour.">
           <div className="btn-row">
             <button type="button" className="btn btn-primary" onClick={copyShare}>
               <Icon name="copy" size={16} /> Copy share link
+            </button>
+            <button type="button" className="btn" onClick={copyClient} title="Opens as a full-screen 3D tour with your brand">
+              <Icon name="copy" size={16} /> Copy client link <PlanTag plan="studio" />
             </button>
           </div>
         </Field>

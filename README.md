@@ -4,7 +4,7 @@ Design every part of a home in the browser: floor plan, walls, doors, windows, f
 
 ## Selling it
 
-Threshold ships with Free, Pro and Studio plans, a 7-day Pro trial, offline-checked license keys, a license server for Stripe checkout, renewals and design sync across devices, a marketing page with pricing, and legal page templates. Setup takes about an hour: see [docs/MONETIZATION.md](docs/MONETIZATION.md).
+Threshold ships with Free, Pro and Studio plans, a 7-day Pro trial, a one-time 6-month Build Pass, offline-checked license keys, a license server for Stripe checkout, renewals and design sync across devices, a marketing page with pricing, and legal page templates. Setup takes about an hour: see [docs/MONETIZATION.md](docs/MONETIZATION.md).
 
 ## Run
 
@@ -35,7 +35,7 @@ bun run license init # create license signing keys (once; see docs/MONETIZATION.
 | Site | Lot with property lines and front, side and rear setbacks on the plan, the plan sheet and in 3D; ground colour; north direction |
 | Electrical | One click per room or per floor: ceiling lights on a grid, a switch on the latch side of each doorway, outlets no more than 12 ft apart, smoke alarms in bedrooms, halls and entries; standard plan symbols; show or hide on the plan |
 | Checks and cost | Design check (rooms without doors, bedrooms without windows, overlaps, blocked doors, walls past the property line or inside a setback); live cost estimate by flooring, walls and finishes, openings and furniture, with editable prices; shopping list (paint cans, flooring and finishes with waste, baseboard, doors, windows, furniture) as CSV or text |
-| Files | Autosave to the browser, to the viewer's account inside Claude, and to the license server on Pro and Studio (designs on every device); several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb) |
+| Files | Autosave to the browser, to the viewer's account inside Claude, and to the license server on Pro and Studio (designs on every device); several designs; duplicate; save and open design files; floor-plan PNG sheet; 3D image; 3D model (.glb); share links that hold the whole design; Studio client links that open as a branded 3D tour |
 | Access | Feet-and-inches or metres, reading-comfort settings (larger text, extra spacing, Lexend or Atkinson Hyperlegible font), light and dark themes, phone layout; installable, works offline once opened |
 
 All lengths are stored in centimetres; the UI accepts `12' 6"`, `12-6`, `6 1/2"`, `3.5m`, `350cm` and plain numbers.

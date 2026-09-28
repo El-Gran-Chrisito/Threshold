@@ -4,7 +4,15 @@
  * own copy. Works wherever the app is hosted on its own address.
  */
 import type { Project } from '../model/types'
+import type { Brand } from '../product/brand'
 import { normalizeProject } from './persistence'
+
+/** What a link carries: the design, and for a client link the sender's brand and "open as a presentation". */
+export interface Shared {
+  project: Project
+  present: boolean
+  brand: Brand | null
+}
 
 const PREFIX = '#design='
 
@@ -27,19 +35,34 @@ async function pipe(data: Uint8Array<ArrayBuffer>, stream: CompressionStream | D
   return new Uint8Array(await new Response(out).arrayBuffer())
 }
 
-export async function encodeDesign(p: Project): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(p))
+async function pack(value: unknown): Promise<string> {
+  const json = new TextEncoder().encode(JSON.stringify(value))
   return toB64url(await pipe(json, new CompressionStream('gzip')))
 }
 
-export async function decodeDesign(code: string): Promise<Project> {
+export const encodeDesign = (p: Project) => pack(p)
+
+/** A client link: the design opens as a presentation with the sender's brand. */
+export const encodePresentation = (p: Project, brand: Brand | null) => pack({ v: 2, present: true, brand, project: p })
+
+export async function decodeShared(code: string): Promise<Shared> {
   const bytes = await pipe(fromB64url(code), new DecompressionStream('gzip'))
-  return normalizeProject(JSON.parse(new TextDecoder().decode(bytes)))
+  const data = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>
+  if (data.v === 2 && data.project) {
+    const b = data.brand as Partial<Brand> | null
+    const brand = b ? { company: String(b.company ?? '').slice(0, 120), contact: String(b.contact ?? '').slice(0, 200), logo: typeof b.logo === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(b.logo) ? b.logo : null } : null
+    return { project: normalizeProject(data.project), present: !!data.present, brand }
+  }
+  return { project: normalizeProject(data), present: false, brand: null }
 }
 
-/** A link to this page that opens the design. */
-export async function shareLink(p: Project, base = window.location.href.split('#')[0]): Promise<string> {
-  return `${base}${PREFIX}${await encodeDesign(p)}`
+export async function decodeDesign(code: string): Promise<Project> {
+  return (await decodeShared(code)).project
+}
+
+/** A link to this page that opens the design (as a branded presentation when `brand` is given). */
+export async function shareLink(p: Project, base = window.location.href.split('#')[0], present?: { brand: Brand | null }): Promise<string> {
+  return `${base}${PREFIX}${present ? await encodePresentation(p, present.brand) : await encodeDesign(p)}`
 }
 
 /** The design in the current address, if any. */

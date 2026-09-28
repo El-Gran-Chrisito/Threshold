@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode, WallFinish } from '../model/types'
+import type { Brand } from '../product/brand'
 import { buildTemplate } from '../model/templates'
 import { makeLevel, uid } from '../model/factory'
 import { loadLastProject, saveProject } from './persistence'
@@ -54,6 +55,8 @@ export interface State {
   lowQuality: boolean
   /** Full-screen client presentation (Studio). */
   presenting: boolean
+  /** Opened from a client link: the presentation shows the sender's brand, and this person may not use Threshold yet. */
+  clientView: { brand: Brand | null } | null
   /** Room tools build walls around the new room (off = floor-only areas: patios, decks, lawns). */
   roomWalls: boolean
   /** An account design was opened at start-up. */
@@ -128,6 +131,7 @@ export const useStore = create<State>((set, get) => ({
   viewFrom: { dir: 'corner', seq: 0 },
   hiddenParts: [],
   presenting: false,
+  clientView: null,
   section: { on: false, axis: 'z', at: 0.5, flip: false },
   lowQuality: (() => {
     try {
