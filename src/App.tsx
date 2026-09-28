@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { activeLevel, selectedItemIds, syncFromCloud, useStore, type PartKind } from './store/store'
 import { BriefForm } from './ui/BriefForm'
 import { PaywallSheet, PlanBadge, PlanTag } from './ui/Paywall'
@@ -162,6 +162,22 @@ export default function App() {
     if (narrow) useStore.setState({ panel: null })
   }, [narrow])
 
+  // On phones the tool rail scrolls sideways; a fade marks the side with more tools.
+  const railRef = useRef<HTMLElement>(null)
+  const [railEdge, setRailEdge] = useState({ start: true, end: true })
+  const updateRailEdge = () => {
+    const el = railRef.current
+    if (!el) return
+    const start = el.scrollLeft <= 2
+    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2
+    setRailEdge((e) => (e.start === start && e.end === end ? e : { start, end }))
+  }
+  useEffect(() => {
+    updateRailEdge()
+    window.addEventListener('resize', updateRailEdge)
+    return () => window.removeEventListener('resize', updateRailEdge)
+  }, [])
+
   const selectTool = (t: Tool) => {
     const s = useStore.getState()
     s.setTool(t)
@@ -220,7 +236,7 @@ export default function App() {
         </button>
       </header>
 
-      <nav className="toolrail" aria-label="Tools">
+      <nav className={`toolrail${railEdge.start ? '' : ' more-before'}${railEdge.end ? '' : ' more-after'}`} aria-label="Tools" ref={railRef} onScroll={updateRailEdge}>
         {TOOLS.map((t) => (
           <button key={t.id} type="button" className={`tool${tool === t.id ? ' is-on' : ''}`} aria-pressed={tool === t.id} onClick={() => selectTool(t.id)} title={`${t.label} (${t.key})`}>
             <Icon name={t.icon} size={22} />
