@@ -16,16 +16,19 @@ This guide takes Threshold from this repository to a paid product. It uses Strip
 
 | Part | Where |
 | --- | --- |
-| Plans (Free, Pro, Studio), features per plan, prices | `src/product/plans.ts` |
-| Upgrade sheet, plan badge, trial, one-time Build Pass, license key entry | `src/ui/Paywall.tsx`, `src/product/entitlements.ts` |
-| Feature gates (designs limit, watermark, exports, electrical, assistant, styles, surroundings, branding, presentation) | `src/product/gates.ts` and the buttons that call `requireFeature` |
+| Plans (Free, Pro, Studio), features per plan, prices, Build Pass | `src/product/plans.ts` |
+| Upgrade sheet, plan badge, trial, key entry, key copy and recovery, invites | `src/ui/Paywall.tsx`, `src/product/entitlements.ts`, `src/product/invite.ts` |
+| Feature gates (design limit, watermark, exports, plan set, plan library, electrical, assistant, styles, surroundings, branding, presentations) | `src/product/gates.ts` and the buttons that call `requireFeature` |
 | Signed license keys, checked offline in the app | `src/product/license.ts` |
 | License key tool (create keys, issue keys by hand) | `scripts/license-keys.ts`, run with `bun run license` |
-| License server: checkout → license, renewals, key emails, design sync, hosted assistant | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
-| Marketing page with pricing | `home.html`, `src/landing/` |
+| License server: checkout → key, renewals, trials, key emails and recovery, design sync | `server/license-server.ts`, `server/worker.ts`, `server/wrangler.toml` |
+| Hosted design assistant, invites, design emails and tips list, refund webhook, daily stats | `server/assistant.ts`, `server/referral.ts`, `server/leads.ts`, `server/webhook.ts`, `server/stats.ts` |
+| Store links on the shopping list (affiliate-ready) | `src/product/shop.ts` |
+| Marketing page with pricing, sample plan set, FAQ and search data | `home.html`, `src/landing/` |
 | Legal page templates | `public/legal/` |
 | Host routes (`/` = marketing page, `/app` = app) | `public/_redirects` (Netlify), `vercel.json` (Vercel) |
 | Build settings | `.env.example` |
+| Launch check and stats | `bun run launch-check`, `bun run stats` |
 
 ## How a sale works
 
