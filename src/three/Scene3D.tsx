@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Environment, Html, OrbitControls } from '@react-three/drei'
+import { Environment, Html, OrbitControls, PerformanceMonitor } from '@react-three/drei'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Item, Level, Lot, Opening, Project, Room, Vec2, Wall } from '../model/types'
@@ -823,6 +823,60 @@ function bgColor(): string {
   return dark ? '#162024' : '#DCE6EA'
 }
 
+/** True once the person, or an earlier automatic switch, has chosen a 3D quality. */
+function fastChoiceMade(): boolean {
+  try {
+    return localStorage.getItem('threshold:lowq') !== null
+  } catch {
+    return true
+  }
+}
+
+/**
+ * A quick first check: after the first frames (shader set-up), fewer than
+ * 8 frames a second over 3 seconds means this device needs Fast 3D now.
+ * Slower drops later are left to drei's PerformanceMonitor.
+ */
+function SlowStartGuard() {
+  const frames = useRef(0)
+  const start = useRef<number | null>(null)
+  const done = useRef(false)
+  useFrame(() => {
+    if (done.current) return
+    frames.current++
+    const now = performance.now()
+    if (frames.current === 3) start.current = now
+    if (start.current !== null && now - start.current > 3000) {
+      done.current = true
+      if ((frames.current - 3) / ((now - start.current) / 1000) < 8) autoFast()
+    }
+  })
+  return null
+}
+
+/** 3D is running slowly on this device: switch to Fast 3D once, and offer to undo it. */
+function autoFast() {
+  const s = useStore.getState()
+  if (s.lowQuality || fastChoiceMade()) return
+  try {
+    localStorage.setItem('threshold:lowq', '1')
+  } catch {
+    /* storage unavailable */
+  }
+  useStore.setState({ lowQuality: true })
+  s.notify('3D was slow on this device, so Fast 3D is on.', {
+    label: 'Undo',
+    run: () => {
+      try {
+        localStorage.setItem('threshold:lowq', '0')
+      } catch {
+        /* storage unavailable */
+      }
+      useStore.setState({ lowQuality: false })
+    },
+  })
+}
+
 export function Scene3D({ walk }: { walk: boolean }) {
   const project = useStore((s) => s.project)
   const levelId = useStore((s) => s.levelId)
@@ -945,6 +999,12 @@ export function Scene3D({ walk }: { walk: boolean }) {
         if (e.type === 'click' && useStore.getState().tool === 'select') useStore.getState().select(null)
       }}
     >
+      {!lowQuality && !fastChoiceMade() && (
+        <>
+          <SlowStartGuard />
+          <PerformanceMonitor bounds={() => [22, 55]} flipflops={2} onDecline={autoFast} onFallback={autoFast} />
+        </>
+      )}
       {land ? (
         <>
           <color attach="background" args={[sky.horizon]} />

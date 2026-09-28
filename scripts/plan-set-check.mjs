@@ -15,6 +15,7 @@ page.on('pageerror', (e) => errors.push(e.message))
 await page.goto('http://localhost:4174/')
 await page.evaluate(([k, ex]) => {
   localStorage.setItem('threshold:welcomed', '1')
+  localStorage.setItem('threshold:lowq', '0')
   localStorage.setItem('threshold:license', k)
   if (!ex) localStorage.setItem('threshold:brand', JSON.stringify({ company: 'Oak & Line Studio', contact: 'hello@oakline.example · 555 0142', logo: null }))
 }, [key, example])

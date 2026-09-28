@@ -8,7 +8,11 @@ const shot = async (name, wait = 3500) => {
   await page.screenshot({ path: `${out}/${name}.jpg`, type: 'jpeg', quality: 82 })
 }
 await page.goto('http://localhost:4173/')
-await page.evaluate(() => localStorage.clear())
+// Full-quality 3D for the pictures, even if this machine renders slowly.
+await page.evaluate(() => {
+  localStorage.clear()
+  localStorage.setItem('threshold:lowq', '0')
+})
 await page.reload()
 await page.waitForTimeout(800)
 await page.click('text=Explore the example home')
