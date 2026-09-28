@@ -227,6 +227,7 @@ function Landing() {
           </a>
           <nav aria-label="Sections">
             <a href="#features">Features</a>
+            <a href="#studio">For professionals</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">Questions</a>
           </nav>
@@ -309,6 +310,20 @@ function Landing() {
               <img src="shots/set-plan.jpg" alt="" loading="lazy" width={1100} height={850} />
               <img src="shots/set-cover.jpg" alt="" loading="lazy" width={1100} height={850} />
             </div>
+          </div>
+        </section>
+
+        <section id="studio" className="story is-flipped studio-band">
+          <div className="wrap story-row">
+            <div className="story-text">
+              <Dim label="Studio · for professionals" />
+              <h2>Show clients their home, under your name</h2>
+              <p>Send a link that opens a guided 3D tour with your logo and your client's name; they need no account. Your brand goes on every plan sheet and plan set, and everything you export is yours to use in client work.</p>
+              <a className="btn btn-primary handoff-cta" href="#pricing">
+                See Studio
+              </a>
+            </div>
+            <Shot src="shots/studio.jpg" alt="A client presentation showing a studio's logo, the client's name and a 3D view of the house from the street" />
           </div>
         </section>
 
