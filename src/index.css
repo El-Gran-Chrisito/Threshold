@@ -2975,3 +2975,38 @@ kbd {
 .pass-offer .btn {
   text-decoration: none;
 }
+
+.paywall-device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.paywall-device summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.paywall-device[open] summary {
+  margin-bottom: 6px;
+}
+
+.paywall-device input {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.paywall-lost {
+  margin-top: 6px;
+  align-self: flex-start;
+}
+
+.paywall-key {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

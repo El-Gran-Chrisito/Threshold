@@ -145,9 +145,10 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
     if (!productConfig.licenseApi) return { ok: false, message: 'Payment received. Your license key will arrive by email.' }
     try {
       const res = await fetch(`${productConfig.licenseApi}/activate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId }) })
-      const data = (await res.json()) as { key?: string; error?: string }
+      const data = (await res.json()) as { key?: string; error?: string; emailed?: boolean; email?: string | null }
       if (!res.ok || !data.key) return { ok: false, message: data.error ?? 'Could not confirm the payment yet. Try reloading in a minute.' }
-      return await get().activate(data.key)
+      const r = await get().activate(data.key)
+      return r.ok && data.emailed ? { ...r, message: `${r.message} Your license key is also in your email${data.email ? ` (${data.email})` : ''}.` } : r
     } catch {
       return { ok: false, message: 'Could not reach the license server. Try reloading in a minute.' }
     }
@@ -173,6 +174,19 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
   },
   closePaywall: () => set({ paywall: { open: false, feature: null } }),
 }))
+
+/** Ask the license server to email the keys bought with this address. */
+export async function requestKeyEmail(email: string): Promise<{ ok: boolean; message: string }> {
+  if (!productConfig.licenseApi) return { ok: false, message: 'Key recovery is not set up in this copy of the app.' }
+  try {
+    const res = await fetch(`${productConfig.licenseApi}/recover`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
+    const data = (await res.json()) as { ok?: boolean; error?: string }
+    if (!res.ok) return { ok: false, message: data.error ?? 'Could not send the email. Try again in a minute.' }
+    return { ok: true, message: `If ${email.trim()} bought Threshold, the key is on its way. Check your inbox and spam folder.` }
+  } catch {
+    return { ok: false, message: 'Could not reach the license server. Try again in a minute.' }
+  }
+}
 
 export const can = (feature: Feature) => allows(useEntitlements.getState().plan, feature)
 

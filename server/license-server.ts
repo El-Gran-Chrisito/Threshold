@@ -6,6 +6,8 @@
  *                   Subscriptions get keys that renew; one-time payments get
  *                   keys that last `days` (price metadata) or forever.
  *   POST /refresh   { "key": "THR1...." }     ->  { key }
+ *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
+ *                   bought a plan or pass, an email with the key
  *
  * Written against the web-standard Request/Response API, so it runs on
  * Cloudflare Workers (see worker.ts), Vercel and Netlify edge functions,
@@ -16,6 +18,9 @@
  *   PRICE_PLANS           optional JSON map of Stripe price ids to plans,
  *                         e.g. {"price_123":"pro","price_456":"studio"}
  *   ALLOWED_ORIGIN        optional; the site allowed to call this (default *)
+ *   RESEND_API_KEY        optional; emails each buyer their key (resend.com)
+ *   EMAIL_FROM            sender for those emails, e.g. "Threshold <keys@your-site>"
+ *   SUPPORT_EMAIL         optional reply-to address for those emails
  *   DESIGNS               optional key-value store (Cloudflare KV) for syncing
  *                         paid customers' designs across devices:
  *
@@ -42,6 +47,9 @@ export interface Env {
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
   ALLOWED_ORIGIN?: string
+  RESEND_API_KEY?: string
+  EMAIL_FROM?: string
+  SUPPORT_EMAIL?: string
   DESIGNS?: KV
 }
 
@@ -155,28 +163,48 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
   if (path.endsWith('/activate')) {
     const id = String(body.sessionId ?? '')
     if (!/^cs_[A-Za-z0-9_]+$/.test(id)) return json(env, { error: 'Missing checkout session' }, 400)
-    let s: StripeSession
+    const r = await keyForSession(env, id, privateJwk, now, fetchImpl)
+    if (!r.ok) return json(env, { error: r.error }, r.status)
+    let emailed = false
+    if (r.issued.email && canEmail(env)) {
+      // Once per purchase: a repeated claim of the same checkout does not email again.
+      const mark = `m:sent:${id}`
+      if (!(await env.DESIGNS?.get(mark))) {
+        emailed = await sendKeys(env, r.issued.email, [r.issued], fetchImpl)
+        if (emailed) await env.DESIGNS?.put(mark, '1')
+      }
+    }
+    return json(env, { key: r.issued.key, plan: r.issued.plan, email: r.issued.email, emailed })
+  }
+
+  if (path.endsWith('/recover')) {
+    const email = String(body.email ?? '')
+      .trim()
+      .toLowerCase()
+    if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(env, { error: 'Enter the email address you paid with' }, 400)
+    if (!canEmail(env)) return json(env, { error: 'Key recovery by email is not set up here. Please write to support.' }, 501)
+    // At most 3 requests per address per hour when a store is available.
+    if (env.DESIGNS) {
+      const rl = `m:rl:${await hash(email)}:${Math.floor(now / 3_600_000)}`
+      const n = Number(await env.DESIGNS.get(rl)) || 0
+      if (n >= 3) return json(env, { ok: true })
+      await env.DESIGNS.put(rl, String(n + 1))
+    }
+    let sessions: Array<{ id: string; created?: number }> = []
     try {
-      s = await stripe<StripeSession>(env, `checkout/sessions/${id}?expand[]=line_items.data.price.product&expand[]=subscription`, fetchImpl)
+      const list = await stripe<{ data: Array<{ id: string; created?: number }> }>(env, `checkout/sessions?status=complete&limit=10&customer_details%5Bemail%5D=${encodeURIComponent(email)}`, fetchImpl)
+      sessions = [...list.data].sort((a, b) => (b.created ?? 0) - (a.created ?? 0)).slice(0, 5)
     } catch {
-      return json(env, { error: 'Checkout session not found' }, 404)
+      sessions = []
     }
-    if (s.status !== 'complete' || (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required')) return json(env, { error: 'Payment is not complete yet' }, 402)
-    const plan = (s.metadata?.plan === 'studio' || s.metadata?.plan === 'pro' ? (s.metadata.plan as Plan) : null) ?? planForPrice(s.line_items?.data?.[0]?.price, env)
-    if (!plan) return json(env, { error: 'This purchase is not linked to a plan' }, 422)
-    const sub = typeof s.subscription === 'object' && s.subscription ? s.subscription : null
-    const end = sub ? periodEnd(sub) : null
-    const days = s.mode === 'subscription' ? null : daysForPurchase(s, s.line_items?.data?.[0]?.price)
-    const payload: LicensePayload = {
-      v: 1,
-      plan,
-      email: s.customer_details?.email ?? undefined,
-      name: s.customer_details?.name ?? undefined,
-      ref: sub?.id ?? (typeof s.subscription === 'string' ? s.subscription : s.id),
-      iat: now,
-      exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : days ? now + days * 86_400_000 : null,
+    const keys: Issued[] = []
+    for (const cs of sessions) {
+      const r = await keyForSession(env, cs.id, privateJwk, now, fetchImpl)
+      if (r.ok && (r.issued.exp === null || r.issued.exp > now) && !keys.some((k) => k.ref === r.issued.ref)) keys.push(r.issued)
     }
-    return json(env, { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null })
+    if (keys.length) await sendKeys(env, email, keys, fetchImpl)
+    // The same answer whether or not the address bought anything.
+    return json(env, { ok: true })
   }
 
   if (path.endsWith('/refresh')) {
@@ -202,11 +230,83 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
   return json(env, { error: 'Not found' }, 404)
 }
 
-async function ownerKey(payload: LicensePayload): Promise<string> {
-  const who = payload.ref || payload.email || ''
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(who)))
+interface Issued {
+  key: string
+  plan: Plan
+  email: string | null
+  ref: string
+  exp: number | null
+}
+
+type KeyResult = { ok: true; issued: Issued } | { ok: false; status: number; error: string }
+
+/** The signed key a completed checkout session pays for. */
+async function keyForSession(env: Env, id: string, privateJwk: JsonWebKey, now: number, fetchImpl: Fetch): Promise<KeyResult> {
+  let s: StripeSession
+  try {
+    s = await stripe<StripeSession>(env, `checkout/sessions/${id}?expand[]=line_items.data.price.product&expand[]=subscription`, fetchImpl)
+  } catch {
+    return { ok: false, status: 404, error: 'Checkout session not found' }
+  }
+  if (s.status !== 'complete' || (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required')) return { ok: false, status: 402, error: 'Payment is not complete yet' }
+  const plan = (s.metadata?.plan === 'studio' || s.metadata?.plan === 'pro' ? (s.metadata.plan as Plan) : null) ?? planForPrice(s.line_items?.data?.[0]?.price, env)
+  if (!plan) return { ok: false, status: 422, error: 'This purchase is not linked to a plan' }
+  const sub = typeof s.subscription === 'object' && s.subscription ? s.subscription : null
+  if (sub && !['active', 'trialing', 'past_due'].includes(sub.status)) return { ok: false, status: 403, error: 'The subscription has ended' }
+  const end = sub ? periodEnd(sub) : null
+  const days = s.mode === 'subscription' ? null : daysForPurchase(s, s.line_items?.data?.[0]?.price)
+  const payload: LicensePayload = {
+    v: 1,
+    plan,
+    email: s.customer_details?.email ?? undefined,
+    name: s.customer_details?.name ?? undefined,
+    ref: sub?.id ?? (typeof s.subscription === 'string' ? s.subscription : s.id),
+    iat: now,
+    exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : days ? now + days * 86_400_000 : null,
+  }
+  return { ok: true, issued: { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null, ref: payload.ref!, exp: payload.exp } }
+}
+
+const canEmail = (env: Env) => !!(env.RESEND_API_KEY && env.EMAIL_FROM)
+
+/** The email a buyer keeps: each key, how to use it, and when it ends. */
+export function keyEmail(keys: Array<Pick<Issued, 'key' | 'plan' | 'exp' | 'ref'>>): { subject: string; text: string } {
+  const name = (p: Plan) => (p === 'studio' ? 'Studio' : 'Pro')
+  const parts = keys.map((k) => {
+    const ends = k.ref.startsWith('sub_') ? 'It renews while your subscription is active.' : k.exp ? `It works until ${new Date(k.exp).toUTCString().slice(5, 16)}.` : 'It does not expire.'
+    return `Threshold ${name(k.plan)} license key:\n\n${k.key}\n\n${ends}`
+  })
+  return {
+    subject: keys.length > 1 ? 'Your Threshold license keys' : `Your Threshold ${name(keys[0].plan)} license key`,
+    text: [
+      'Thank you for choosing Threshold.',
+      ...parts,
+      'To use a key on any device: open Threshold, press Upgrade (or your plan name) at the top, choose "I have a license key", and paste the key.',
+      'Keep this email. If you lose it, choose "Email me my key" in the same place.',
+    ].join('\n\n'),
+  }
+}
+
+async function sendKeys(env: Env, to: string, keys: Issued[], fetchImpl: Fetch): Promise<boolean> {
+  const { subject, text } = keyEmail(keys)
+  try {
+    const res = await fetchImpl('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text, ...(env.SUPPORT_EMAIL ? { reply_to: env.SUPPORT_EMAIL } : {}) }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+async function hash(s: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))
   return Array.from(digest.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('')
 }
+
+const ownerKey = (payload: LicensePayload) => hash(payload.ref || payload.email || '')
 
 async function designs(request: Request, path: string, body: Record<string, unknown>, env: Env, publicJwk: JsonWebKey): Promise<Response> {
   if (!env.DESIGNS) return json(env, { error: 'Design sync is not set up' }, 501)

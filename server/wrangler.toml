@@ -8,6 +8,9 @@ compatibility_date = "2026-09-01"
 # Stripe price ids to plans, if the prices have no "plan" metadata:
 # PRICE_PLANS = '{"price_123":"pro","price_456":"studio"}'
 # ALLOWED_ORIGIN = "https://your-site.example"
+# Emailing keys to buyers (also run: wrangler secret put RESEND_API_KEY):
+# EMAIL_FROM = "Threshold <keys@your-site.example>"
+# SUPPORT_EMAIL = "support@your-site.example"
 
 # Design sync for paying customers (optional). Create the namespace with
 #   npx wrangler kv namespace create DESIGNS

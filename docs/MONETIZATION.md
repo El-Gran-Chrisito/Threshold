@@ -71,6 +71,16 @@ npx wrangler deploy
 
 Set `ALLOWED_ORIGIN` in `wrangler.toml` to your site's address, and `PRICE_PLANS` if you used price ids in step 2.
 
+### Emailing license keys (recommended)
+
+Without this, a buyer gets their key only in the browser they paid in. With it, the server emails each buyer their key after checkout, and "Email me my key" in the app sends lost keys to the address that paid.
+
+1. Create a free account at [resend.com](https://resend.com) and verify your sending domain.
+2. `npx wrangler secret put RESEND_API_KEY`
+3. In `wrangler.toml` under `[vars]`, set `EMAIL_FROM = "Threshold <keys@your-site.example>"` and, optionally, `SUPPORT_EMAIL` for replies.
+
+With the design-sync store (below) in place, each purchase is emailed once and recovery is limited to 3 requests per address per hour. The recovery answer is the same whether or not the address bought anything.
+
 ### Design sync (Pro and Studio)
 
 Paying customers' designs follow them to every device where they enter their key. The license server stores them in a Cloudflare KV namespace:

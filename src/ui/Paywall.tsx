@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FEATURES, PASS, PLANS, planInfo, type Feature, type PlanId } from '../product/plans'
-import { daysLeft, isPass, trialState, useEntitlements } from '../product/entitlements'
+import { daysLeft, isPass, requestKeyEmail, trialState, useEntitlements } from '../product/entitlements'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { track } from '../product/analytics'
 import { Segmented } from './controls'
@@ -41,10 +41,15 @@ export function PaywallSheet() {
   const [key, setKey] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [showKey, setShowKey] = useState(false)
+  const [lost, setLost] = useState(false)
+  const [email, setEmail] = useState('')
+  const [sending, setSending] = useState(false)
+  const storedKey = useEntitlements((s) => s.key)
   useEffect(() => {
     if (!paywall.open) {
       setMsg(null)
       setKey('')
+      setLost(false)
     }
   }, [paywall.open])
   useEffect(() => {
@@ -135,6 +140,32 @@ export function PaywallSheet() {
           </button>
         )}
         {source === 'license' && license ? (
+          <>
+          {storedKey && (
+            <details className="paywall-device">
+              <summary>Use Threshold on another device</summary>
+              <p className="paywall-fine">Open Threshold there, press Upgrade, choose “I have a license key” and paste this key. Your designs follow the key.</p>
+              <div className="paywall-key-row">
+                <input id="your-license-key" readOnly value={storedKey} onFocus={(e) => e.currentTarget.select()} aria-label="Your license key" spellCheck={false} />
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(storedKey)
+                      setMsg({ ok: true, text: 'License key copied.' })
+                    } catch {
+                      ;(document.getElementById('your-license-key') as HTMLInputElement | null)?.select()
+                      setMsg({ ok: true, text: 'Key selected. Copy it with your keyboard or long-press.' })
+                    }
+                  }}
+                >
+                  <Icon name="copy" size={15} /> Copy
+                </button>
+              </div>
+              {msg && <p className={msg.ok ? 'check-ok' : 'error'}>{msg.text}</p>}
+            </details>
+          )}
           <p className="paywall-fine">
             Licensed to {license.email || license.name || 'you'}
             {license.exp ? (isPass(license) ? ` · ${planInfo(license.plan).name} until ${day(license.exp)}, nothing renews` : ` · renews by ${day(license.exp)}`) : ''} ·{' '}
@@ -150,6 +181,7 @@ export function PaywallSheet() {
               Remove license from this device
             </button>
           </p>
+          </>
         ) : (
           <div className="paywall-key">
             {showKey ? (
@@ -172,6 +204,31 @@ export function PaywallSheet() {
               <button type="button" className="linklike" onClick={() => setShowKey(true)}>
                 I have a license key
               </button>
+            )}
+            {showKey && productConfig.licenseApi && !lost && (
+              <button type="button" className="linklike paywall-lost" onClick={() => setLost(true)}>
+                Email me my key
+              </button>
+            )}
+            {lost && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (sending) return
+                  setSending(true)
+                  const r = await requestKeyEmail(email)
+                  setMsg({ ok: r.ok, text: r.message })
+                  setSending(false)
+                }}
+              >
+                <label htmlFor="recover-email">The email address you paid with</label>
+                <div className="paywall-key-row">
+                  <input id="recover-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+                  <button type="submit" className="btn" disabled={sending}>
+                    {sending ? 'Sending…' : 'Send key'}
+                  </button>
+                </div>
+              </form>
             )}
             {msg && <p className={msg.ok ? 'check-ok' : 'error'}>{msg.text}</p>}
           </div>
