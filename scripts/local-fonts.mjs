@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 
-export async function useLocalFonts(page, dir = process.env.FONT_CACHE) {
+export async function serveLocalFonts(page, dir = process.env.FONT_CACHE) {
   if (!dir || !existsSync(dir)) return false
   await page.route('https://fonts.googleapis.com/**', (route) => {
     const q = new URL(route.request().url()).search.slice(1)

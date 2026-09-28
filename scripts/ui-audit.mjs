@@ -3,7 +3,7 @@
 // Fill the font cache with curl from fonts.googleapis.com (css-<md5 of query + newline, 10 chars>.css)
 // and fonts.gstatic.com (path with / replaced by _).
 import { chromium } from 'playwright'
-import { useLocalFonts } from './local-fonts.mjs'
+import { serveLocalFonts } from './local-fonts.mjs'
 const out = process.argv[2]
 const mode = process.argv[3] || 'desktop'
 const base = process.env.BASE || 'http://localhost:4173/'
@@ -12,7 +12,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
 const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1 })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
-await useLocalFonts(page)
+await serveLocalFonts(page)
 const shot = async (name) => {
   await page.waitForTimeout(700)
   await page.screenshot({ path: `${out}/${mode}-${name}.png` })
