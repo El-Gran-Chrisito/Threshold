@@ -15,6 +15,8 @@ compatibility_date = "2026-09-01"
 # ASSISTANT_MODEL = "claude-sonnet-5"
 # ASSISTANT_DAILY_LIMIT = "60"
 # TRIAL_ASSISTANT_DAILY_LIMIT = "10"
+# Invite credit per paid friend, in cents (default: one month of the inviter's plan):
+# REFERRAL_CREDIT_CENTS = "1200"
 
 # Design sync for paying customers (optional). Create the namespace with
 #   npx wrangler kv namespace create DESIGNS

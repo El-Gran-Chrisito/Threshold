@@ -162,6 +162,16 @@ Fill in the bracketed details in `public/legal/terms.html`, `privacy.html` and `
 - **Lifetime deals**: issue keys with `--days 0` (no expiry).
 - **Other payment providers** (Lemon Squeezy, Paddle, Gumroad): put their checkout links in the `VITE_CHECKOUT_*` settings and issue keys by hand, or add a route to the license server that checks their order API the same way `/activate` checks Stripe.
 
+## Invites
+
+Subscribers find **Invite a friend** in the plans sheet. Their link opens your marketing page; the code is kept for 60 days and added to every checkout link. When the friend pays, the license server credits the subscriber's Stripe balance with one month of their plan (it is taken off their next invoice), once per purchase. Self-invites are ignored.
+
+1. In Stripe, create a coupon (for example 20% off once) and a promotion code for it, e.g. `FRIEND20`. Turn on *Allow promotion codes* in each Payment Link.
+2. Set `VITE_INVITE_PROMO_CODE=FRIEND20` and `VITE_INVITE_OFFER=20% off the first payment` (both people see this text, so keep it neutral).
+3. The license server needs the design-sync store (it remembers who invited whom). `REFERRAL_CREDIT_CENTS` overrides the credit amount.
+
+Without a promotion code, invites still credit the subscriber; the friend just pays the normal price.
+
 ## Earning from free users: store links
 
 Every line of the shopping list (paint, flooring, tile, roofing, doors, windows, furniture) has a **Find it** link that opens a store search for that item. The spreadsheet export has the same links in a "Find it" column.

@@ -5,10 +5,13 @@ import { PASS, PLANS, type PlanId } from '../product/plans'
 import { FAQ } from './faq'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { registerServiceWorker } from '../product/pwa'
+import { captureInvite, storedInvite } from '../product/invite'
 
 const env = import.meta.env as Record<string, string | undefined>
 /** Where the app lives. With host rewrites set up (see docs/MONETIZATION.md) this can be "/app". */
 const APP = env.VITE_APP_PATH || './index.html'
+// An invite link (?invite=...) is kept for checkout on this page and in the app.
+const INVITED = captureInvite() ?? storedInvite()
 
 function Mark() {
   return (
@@ -183,6 +186,7 @@ function Landing() {
       <main>
         <section className="hero">
           <div className="wrap">
+            {INVITED && productConfig.inviteOffer && <p className="invited">A friend invited you: {productConfig.inviteOffer} when you choose a plan.</p>}
             <p className="eyebrow">Home design in your browser</p>
             <h1>See your home before it is built.</h1>
             <p className="lede">Draw the floor plan, furnish every room, choose every finish, and walk through it in 3D on the street it will stand on. Free to start, nothing to install.</p>

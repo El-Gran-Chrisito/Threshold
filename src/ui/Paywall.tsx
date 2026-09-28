@@ -3,6 +3,7 @@ import { FEATURES, PASS, PLANS, planInfo, type Feature, type PlanId } from '../p
 import { daysLeft, isPass, requestKeyEmail, trialState, useEntitlements } from '../product/entitlements'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { useAudience } from '../product/audience'
+import { fetchInvite, inviteLink } from '../product/invite'
 import { track } from '../product/analytics'
 import { Segmented } from './controls'
 import { Icon } from './Icon'
@@ -169,6 +170,7 @@ export function PaywallSheet() {
               {msg && <p className={msg.ok ? 'check-ok' : 'error'}>{msg.text}</p>}
             </details>
           )}
+          {storedKey && license.ref?.startsWith('sub_') && productConfig.licenseApi && <InviteBox licenseKey={storedKey} planName={planInfo(license.plan).name} />}
           <p className="paywall-fine">
             Licensed to {license.email || license.name || 'you'}
             {license.exp ? (isPass(license) ? ` · ${planInfo(license.plan).name} until ${day(license.exp)}, nothing renews` : ` · renews by ${day(license.exp)}`) : ''} ·{' '}
@@ -242,6 +244,57 @@ export function PaywallSheet() {
         </p>
       </div>
     </div>
+  )
+}
+
+/** Subscribers share a link; each friend who subscribes earns them a month. */
+function InviteBox({ licenseKey, planName }: { licenseKey: string; planName: string }) {
+  const [info, setInfo] = useState<{ code: string; count: number } | null>(null)
+  const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [copied, setCopied] = useState(false)
+  const load = async () => {
+    if (info || state === 'loading') return
+    setState('loading')
+    const r = await fetchInvite(licenseKey)
+    setInfo(r)
+    setState(r ? 'idle' : 'error')
+  }
+  const link = info ? inviteLink(info.code) : ''
+  return (
+    <details className="paywall-device" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && void load()}>
+      <summary>Invite a friend</summary>
+      <p className="paywall-fine">
+        {productConfig.inviteOffer ? `Friends get ${productConfig.inviteOffer}. ` : ''}You get a month of {planName} free for each friend who subscribes.
+      </p>
+      {state === 'loading' && <p className="paywall-fine">Getting your link…</p>}
+      {state === 'error' && <p className="error">Could not get your invite link. Try again later.</p>}
+      {info && (
+        <>
+          <div className="paywall-key-row">
+            <input id="invite-link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Your invite link" spellCheck={false} />
+            <button
+              type="button"
+              className="btn"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(link)
+                  setCopied(true)
+                } catch {
+                  ;(document.getElementById('invite-link') as HTMLInputElement | null)?.select()
+                }
+              }}
+            >
+              <Icon name="copy" size={15} /> {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          {info.count > 0 && (
+            <p className="check-ok">
+              {info.count} friend{info.count === 1 ? ' has' : 's have'} joined. Thank you!
+            </p>
+          )}
+        </>
+      )}
+    </details>
   )
 }
 

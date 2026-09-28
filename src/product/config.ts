@@ -5,6 +5,7 @@
  * buttons explain that checkout is not connected yet).
  */
 import type { PlanId } from './plans'
+import { storedInvite } from './invite'
 
 const env = import.meta.env as Record<string, string | undefined>
 
@@ -36,6 +37,10 @@ export const productConfig = {
   passCheckout: env.VITE_CHECKOUT_PRO_PASS || '',
   /** Where subscribers manage billing (Stripe customer portal login link). */
   billingPortal: env.VITE_BILLING_PORTAL_URL || '',
+  /** Stripe promotion code applied at checkout for invited friends (e.g. FRIEND20). */
+  invitePromoCode: env.VITE_INVITE_PROMO_CODE || '',
+  /** What the friend gets, in words, e.g. "20% off their first payment". */
+  inviteOffer: env.VITE_INVITE_OFFER || '',
   trialDays: 7,
 }
 
@@ -45,6 +50,11 @@ export function checkoutUrl(plan: Exclude<PlanId, 'free'>, billing: Billing | 'p
   try {
     const u = new URL(base)
     if (email) u.searchParams.set('prefilled_email', email)
+    const invite = storedInvite()
+    if (invite) {
+      u.searchParams.set('client_reference_id', invite)
+      if (productConfig.invitePromoCode) u.searchParams.set('prefilled_promo_code', productConfig.invitePromoCode)
+    }
     return u.toString()
   } catch {
     return null

@@ -75,6 +75,7 @@ export async function checkSettings(env: Env, files: { privateJwk?: JsonWebKey |
   if (!env.VITE_BILLING_PORTAL_URL) add('warn', 'VITE_BILLING_PORTAL_URL is not set: subscribers cannot manage billing from the app.')
   if (env.VITE_APP_PATH !== '/app') add('warn', 'VITE_APP_PATH is not /app: the marketing page links to ./index.html instead of the clean address.')
   if (env.VITE_SHOP_URL && !env.VITE_SHOP_URL.includes('{q}')) add('fail', 'VITE_SHOP_URL has no {q} for the search words.')
+  if (!!env.VITE_INVITE_PROMO_CODE !== !!env.VITE_INVITE_OFFER) add('warn', 'Set both VITE_INVITE_PROMO_CODE and VITE_INVITE_OFFER, or neither: one without the other confuses invited friends.')
 
   for (const [file, text] of Object.entries(files.legal ?? {})) {
     const holes = [...new Set(text.match(/\[[^\]\n]{2,80}\]/g) ?? [])]

@@ -9,6 +9,8 @@ import { track } from './product/analytics'
 import { watchOnboarding } from './product/onboarding'
 import { requireFeature, showTrialEndedOnce, useEntitlements } from './product/entitlements'
 import { useAudience, type Audience } from './product/audience'
+import { captureInvite } from './product/invite'
+import { productConfig } from './product/config'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
@@ -84,6 +86,8 @@ export default function App() {
     [],
   )
   useEffect(() => {
+    const invite = captureInvite()
+    if (invite && productConfig.inviteOffer) useStore.getState().notify(`Invite saved: ${productConfig.inviteOffer} when you choose a plan.`)
     void (async () => {
       const ent = useEntitlements.getState()
       await ent.init()

@@ -8,6 +8,7 @@
  *   POST /refresh   { "key": "THR1...." }     ->  { key }
  *   POST /trial     {}                          ->  { key } a 7-day Pro trial key, one per
  *                   network per 30 days (needs DESIGNS for the count)
+ *   POST /referral  (license)                   ->  { code, count } invite code (see referral.ts)
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -38,6 +39,7 @@
 import { signLicense, verifyLicense, type LicensePayload } from '../src/product/license'
 import { allows, PASS } from '../src/product/plans'
 import { askClaude, checkRequest, type AssistantEnv } from './assistant'
+import { creditInviter, referralFor, type ReferralEnv } from './referral'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -47,7 +49,7 @@ export interface KV {
   list(opts: { prefix: string; limit?: number }): Promise<{ keys: Array<{ name: string; metadata?: unknown }> }>
 }
 
-export interface Env extends AssistantEnv {
+export interface Env extends AssistantEnv, ReferralEnv {
   STRIPE_SECRET_KEY: string
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
@@ -92,6 +94,7 @@ interface StripeSession {
   mode: string
   customer_details?: { email?: string | null; name?: string | null } | null
   metadata?: Record<string, string>
+  client_reference_id?: string | null
   subscription?: string | StripeSubscription | null
   line_items?: { data: Array<{ price?: StripePrice }> }
 }
@@ -183,7 +186,16 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
         if (emailed) await env.DESIGNS?.put(mark, '1')
       }
     }
+    if (r.issued.invite && env.DESIGNS) await creditInviter(env, env.DESIGNS, r.issued.invite, { sessionId: id, email: r.issued.email }, fetchImpl)
     return json(env, { key: r.issued.key, plan: r.issued.plan, email: r.issued.email, emailed })
+  }
+
+  if (path.endsWith('/referral')) {
+    if (!env.DESIGNS) return json(env, { error: 'Invites are not set up here' }, 501)
+    const v = await verifyLicense((request.headers.get('authorization') ?? '').replace(/^License\s+/i, ''), publicFromPrivate(privateJwk))
+    if (!v.ok) return json(env, { error: 'License required' }, 401)
+    if (!v.payload.ref?.startsWith('sub_')) return json(env, { error: 'Invites are for subscribers' }, 403)
+    return json(env, await referralFor(env.DESIGNS, v.payload))
   }
 
   if (path.endsWith('/trial')) {
@@ -269,6 +281,8 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
 }
 
 interface Issued {
+  /** The invite code the checkout carried, if any. */
+  invite: string | null
   key: string
   plan: Plan
   email: string | null
@@ -302,7 +316,7 @@ async function keyForSession(env: Env, id: string, privateJwk: JsonWebKey, now: 
     iat: now,
     exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : days ? now + days * 86_400_000 : null,
   }
-  return { ok: true, issued: { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null, ref: payload.ref!, exp: payload.exp } }
+  return { ok: true, issued: { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null, ref: payload.ref!, exp: payload.exp, invite: s.client_reference_id ?? null } }
 }
 
 const canEmail = (env: Env) => !!(env.RESEND_API_KEY && env.EMAIL_FROM)
