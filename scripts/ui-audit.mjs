@@ -9,7 +9,7 @@ const mode = process.argv[3] || 'desktop'
 const base = process.env.BASE || 'http://localhost:4173/'
 const phone = mode === 'phone'
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
-const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1, colorScheme: process.env.SCHEME === 'dark' ? 'dark' : 'light' })
+const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1, isMobile: phone, hasTouch: phone, colorScheme: process.env.SCHEME === 'dark' ? 'dark' : 'light' })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
 await serveLocalFonts(page)
