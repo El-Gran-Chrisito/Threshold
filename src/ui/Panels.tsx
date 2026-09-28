@@ -7,7 +7,7 @@ import { ItemSymbol } from '../plan/symbols'
 import { formatLength, formatMoney } from '../model/units'
 import { ConfirmButton, Field, FinishChips, LengthInput, NumberInput, Segmented, Swatches, Toggle } from './controls'
 import { Icon } from './Icon'
-import type { Level, Lot, RoofStyle } from '../model/types'
+import type { Level, Lot, Project, RoofStyle } from '../model/types'
 import { budget } from '../model/budget'
 import { ROOF_MATERIALS, roofMaterialOf } from '../model/roof'
 import { BriefForm } from './BriefForm'
@@ -24,6 +24,7 @@ import { shopConfig, shopUrl } from '../product/shop'
 import { productConfig } from '../product/config'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { LIBRARY, buildLibraryPlan, libraryBlurb } from '../model/library'
+import { MiniPlan } from './MiniPlan'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
@@ -487,6 +488,17 @@ function ShoppingList() {
   )
 }
 
+// Previews are built once per session; the designs themselves never change.
+const previews = new Map<string, Project>()
+function libraryPreview(id: string): Project {
+  if (!previews.has(`lib:${id}`)) previews.set(`lib:${id}`, buildLibraryPlan(id))
+  return previews.get(`lib:${id}`)!
+}
+function templatePreview(id: string): Project {
+  if (!previews.has(`tpl:${id}`)) previews.set(`tpl:${id}`, buildTemplate(id))
+  return previews.get(`tpl:${id}`)!
+}
+
 /** Send the design's share link to an email address (and, if ticked, sign up for tips). */
 function EmailDesign() {
   const [open, setOpen] = useState(false)
@@ -862,6 +874,7 @@ export function ProjectPanel() {
                 useStore.getState().notify(`Started: ${t.name}`)
               }}
             >
+              {t.id !== 'blank' && <MiniPlan project={templatePreview(t.id)} />}
               <strong>{t.name}</strong>
               <span className="muted">{t.blurb}</span>
             </ConfirmButton>
@@ -885,6 +898,7 @@ export function ProjectPanel() {
                 useStore.getState().notify(`Started: ${l.name}`)
               }}
             >
+              <MiniPlan project={libraryPreview(l.id)} />
               <strong>
                 {l.name} {l.pro && <PlanTag plan="pro" />}
               </strong>

@@ -3070,3 +3070,11 @@ kbd {
   height: 16px;
   margin: 0;
 }
+
+.mini-plan {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: var(--panel-2);
+}
