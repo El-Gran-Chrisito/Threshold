@@ -708,7 +708,8 @@ export function ProjectPanel() {
     const out = can('clean-exports') ? canvas : watermarked(canvas)
     track('export', { kind: '3d-image' })
     const r = await saveFile(`${slug(project.name)}-3d.png`, dataUrlToBlob(out.toDataURL('image/png')), 'image/png')
-    s.notify(r === 'saved' ? (can('clean-exports') ? 'Image saved' : 'Image saved with the free watermark. Pro removes it.') : 'Image not saved')
+    if (r === 'saved' && !can('clean-exports')) s.notify('Image saved with the free watermark.', { label: 'Remove watermark', run: () => useEntitlements.getState().openPaywall('clean-exports') })
+    else s.notify(r === 'saved' ? 'Image saved' : 'Image not saved')
   }
   const exportPlan = async () => {
     const st = useStore.getState()
@@ -717,7 +718,8 @@ export function ProjectPanel() {
       const blob = await planPng(st.project, level, can('hd-exports') ? 4800 : 2400, { watermark: !can('clean-exports'), brand: can('branding') ? useBrand.getState() : null })
       track('export', { kind: 'plan' })
       const r = await saveFile(`${slug(project.name)}-${slug(level.name)}-plan.png`, blob, 'image/png')
-      s.notify(r === 'saved' ? (can('clean-exports') ? 'Floor plan saved' : 'Floor plan saved with the free watermark. Pro removes it.') : 'Floor plan not saved')
+      if (r === 'saved' && !can('clean-exports')) s.notify('Floor plan saved with the free watermark.', { label: 'Remove watermark', run: () => useEntitlements.getState().openPaywall('clean-exports') })
+      else s.notify(r === 'saved' ? 'Floor plan saved' : 'Floor plan not saved')
     } catch {
       s.notify('Could not draw the floor plan image')
     }

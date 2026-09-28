@@ -583,12 +583,24 @@ function Toast() {
   useEffect(() => {
     if (!toast) return
     setVisible(true)
-    const t = setTimeout(() => setVisible(false), 2200)
+    const t = setTimeout(() => setVisible(false), toast.action ? 6000 : 2200)
     return () => clearTimeout(t)
   }, [toast])
   return (
-    <div className={`toast${visible ? ' is-on' : ''}`} role="status" aria-live="polite">
+    <div className={`toast${visible ? ' is-on' : ''}${toast?.action ? ' has-action' : ''}`} role="status" aria-live="polite">
       {toast?.text}
+      {toast?.action && visible && (
+        <button
+          type="button"
+          className="toast-action"
+          onClick={() => {
+            setVisible(false)
+            toast.action!.run()
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
     </div>
   )
 }

@@ -691,9 +691,22 @@ function DesignCheck({ level }: { level: Level }) {
   return (
     <Field label="Design check">
       {issues.length === 0 ? (
-        <p className="check-ok">
-          <Icon name="check" size={16} /> No problems found on this floor
-        </p>
+        <>
+          <p className="check-ok">
+            <Icon name="check" size={16} /> No problems found on this floor
+          </p>
+          {level.rooms.length >= 3 && (
+            <button
+              type="button"
+              className="linklike"
+              onClick={() => {
+                if (requireFeature('plan-set')) useStore.setState({ panel: 'project' })
+              }}
+            >
+              Ready to share? Make a plan set for your builder <PlanTag plan="pro" />
+            </button>
+          )}
+        </>
       ) : (
         <ul className="check-list">
           {[...problems, ...tips].slice(0, 12).map((i, k) => (

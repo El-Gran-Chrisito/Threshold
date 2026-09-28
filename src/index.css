@@ -1501,6 +1501,24 @@ a.btn:not(.btn-primary) {
   transform: translate(-50%, 0);
 }
 
+.toast.has-action.is-on {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-action {
+  flex: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .sheet-backdrop {
   position: fixed;
   inset: 0;

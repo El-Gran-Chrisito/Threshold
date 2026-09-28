@@ -62,7 +62,7 @@ export interface State {
   /** An account design was opened at start-up. */
   cloudLoaded: boolean
   panel: 'inspector' | 'assistant' | 'catalog' | 'paint' | 'levels' | 'budget' | 'project' | null
-  toast: { text: string; at: number } | null
+  toast: { text: string; at: number; action?: { label: string; run: () => void } } | null
   past: Project[]
   future: Project[]
   txBase: Project | null
@@ -89,7 +89,8 @@ export interface State {
   setView: (v: ViewMode) => void
   setLevel: (id: string) => void
   set: (patch: Partial<State>) => void
-  notify: (text: string) => void
+  /** A short notice; with an action it shows a button and stays a little longer. */
+  notify: (text: string, action?: { label: string; run: () => void }) => void
 }
 
 export function activeLevel(s: Pick<State, 'project' | 'levelId'>): Level {
@@ -213,7 +214,7 @@ export const useStore = create<State>((set, get) => ({
   setView: (view) => set({ view }),
   setLevel: (levelId) => set({ levelId, selection: null }),
   set: (patch) => set(patch),
-  notify: (text) => set({ toast: { text, at: Date.now() } }),
+  notify: (text, action) => set({ toast: { text, at: Date.now(), action } }),
 }))
 
 /** After undo/redo the active level or selected object may no longer exist. */
