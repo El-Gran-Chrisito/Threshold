@@ -78,6 +78,7 @@ export function normalizeProject(raw: unknown): Project {
     site: { showGround: true, groundColor: '#8DA870', northAngle: 0, ...(p.site ?? {}) },
     defaults: { wallThickness: 12, wallHeight: 270, wallColor: '#F4F2EC', exteriorColor: '#CFC8BB', ...(p.defaults ?? {}) },
     prices: p.prices ?? {},
+    ...(typeof p.client === 'string' && p.client.trim() ? { client: p.client.slice(0, 120) } : {}),
     createdAt: p.createdAt ?? Date.now(),
     updatedAt: p.updatedAt ?? Date.now(),
     levels: p.levels.map((l) => ({

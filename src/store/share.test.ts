@@ -20,6 +20,8 @@ describe('share links', () => {
     expect(s.present).toBe(true)
     expect(s.brand).toEqual({ company: 'Oak & Line Studio', contact: 'hello@oakline.example', logo: null })
     expect(s.project.name).toBe(p.name)
+    const withClient = await decodeShared(await encodePresentation({ ...p, client: 'The Garcia family' }, null))
+    expect(withClient.project.client).toBe('The Garcia family')
     const plain = await decodeShared(await encodeDesign(p))
     expect(plain.present).toBe(false)
     expect(plain.brand).toBeNull()

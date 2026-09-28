@@ -578,6 +578,7 @@ function DesignAllowance({ count }: { count: number }) {
 function BrandingSettings() {
   const plan = useEntitlements((s) => s.plan)
   const brand = useBrand()
+  const client = useStore((s) => s.project.client ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
   if (!allows(plan, 'branding')) {
     return (
@@ -606,6 +607,15 @@ function BrandingSettings() {
         )}
       </div>
       {brand.logo && <img className="brand-preview" src={brand.logo} alt="Your logo" />}
+      <label className="field-label" htmlFor="design-client">
+        Prepared for (this design)
+      </label>
+      <input
+        id="design-client"
+        placeholder="Client name, e.g. The Garcia family"
+        value={client}
+        onChange={(e) => useStore.getState().apply((p) => ({ ...p, client: e.target.value.slice(0, 120) || undefined }))}
+      />
       <input
         ref={fileRef}
         type="file"
@@ -759,7 +769,8 @@ export function ProjectPanel() {
         { dir: 'top', name: 'From above' },
       ])
       if (was === 'plan') useStore.getState().setView('plan')
-      const blob = await planSetPdf(useStore.getState().project, { cover3d: canvas, views, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
+      const cur = useStore.getState().project
+      const blob = await planSetPdf(can('branding') ? cur : { ...cur, client: undefined }, { cover3d: canvas, views, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
       track('export', { kind: 'plan-set' })
       const r = await saveFile(`${slug(project.name)}-plan-set.pdf`, blob, 'application/pdf')
       s.notify(r === 'saved' ? 'Plan set saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')

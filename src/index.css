@@ -3078,3 +3078,9 @@ kbd {
   border-radius: 6px;
   background: var(--panel-2);
 }
+
+.present-card .present-client {
+  margin-top: 6px;
+  font-weight: 700;
+  color: #9fe3d9;
+}

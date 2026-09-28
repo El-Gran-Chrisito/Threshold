@@ -96,6 +96,7 @@ export function Presentation({ onExit }: { onExit: () => void }) {
       <div className="present-card">
         <h1>{title}</h1>
         <p>{summary}</p>
+        {project.client && <p className="present-client">Prepared for {project.client}</p>}
         {hasBrand(brand) && (brand.company || brand.contact) && <p className="present-contact">{[brand.company, brand.contact].filter(Boolean).join(' · ')}</p>}
       </div>
       <div className="present-controls">

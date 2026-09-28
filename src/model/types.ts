@@ -177,6 +177,8 @@ export interface Project {
   }
   /** Price overrides keyed by catalog id or material id. */
   prices: Record<string, number>
+  /** Who a professional prepared this design for (Studio): shown on the plan set and in presentations. */
+  client?: string
   createdAt: number
   updatedAt: number
 }

@@ -27,7 +27,7 @@ await a.evaluate((k) => {
 }, key)
 await a.reload()
 await a.waitForTimeout(1200)
-await a.evaluate(() => window.__threshold.store.getState().apply((p) => ({ ...p, name: 'Harbour View House' })))
+await a.evaluate(() => window.__threshold.store.getState().apply((p) => ({ ...p, name: 'Harbour View House', client: 'The Garcia family' })))
 await a.click('.panel-tabs >> text=Project')
 await a.evaluate(() => {
   const w = Clipboard.prototype.writeText
@@ -52,7 +52,7 @@ for (const [name, vp] of [['desktop', { width: 1280, height: 800 }], ['phone', {
   b.on('pageerror', (e) => errors.push(`client ${name}: ${e.message}`))
   await b.goto(link)
   await b.waitForTimeout(4000)
-  console.log(name, '| tour open:', await b.locator('.present').count(), '| title:', await b.locator('.present-card h1').textContent(), '| contact:', await b.locator('.present-contact').textContent().catch(() => '-'), '| logo:', await b.locator('.present-brand img').count(), '| made-with:', await b.locator('.present-made').count(), '| url hash left:', await b.evaluate(() => location.hash.length))
+  console.log(name, '| tour open:', await b.locator('.present').count(), '| title:', await b.locator('.present-card h1').textContent(), '| contact:', await b.locator('.present-contact').textContent().catch(() => '-'), '| logo:', await b.locator('.present-brand img').count(), '| made-with:', await b.locator('.present-made').count(), '| client:', await b.locator('.present-client').textContent().catch(() => '-'), '| url hash left:', await b.evaluate(() => location.hash.length))
   await b.screenshot({ path: `${out}/client-${name}.png` })
   if (name === 'desktop') {
     await b.click('.present-exit')

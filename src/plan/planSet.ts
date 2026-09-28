@@ -244,9 +244,14 @@ export async function planSetPdf(project: Project, opts: PlanSetOptions = {}): P
       ctx.font = font(400, 34)
       const est = budget(project).total
       ctx.fillText(fit(ctx, `${homeSummary(project)}${est > 0 ? ` · rough cost estimate ${formatMoney(est)}` : ''}`, w - 2 * m), m, m + 165)
+      if (project.client) {
+        ctx.fillStyle = ACCENT
+        ctx.font = font(700, 30)
+        ctx.fillText(fit(ctx, `Prepared for ${project.client}`, w - 2 * m), m, m + 212)
+      }
 
       // The picture: what is on screen in 3D, or the first floor plan.
-      const boxY = m + 205
+      const boxY = m + (project.client ? 245 : 205)
       const boxH = h - boxY - 1.15 * DPI
       const boxW = w - 2 * m
       const coverPic = views[0]?.canvas ?? opts.cover3d
