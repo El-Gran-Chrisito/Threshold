@@ -366,6 +366,11 @@ p {
   order: 2;
 }
 
+/* Keep the picture in the wide column when it moves to the left. */
+.story.is-flipped .story-row {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
 .story-text {
   display: flex;
   flex-direction: column;
@@ -416,7 +421,8 @@ p {
 }
 
 @media (max-width: 860px) {
-  .story-row {
+  .story-row,
+  .story.is-flipped .story-row {
     grid-template-columns: 1fr;
     gap: 22px;
   }
@@ -737,4 +743,16 @@ p {
 
 .foot .support {
   margin-left: auto;
+}
+
+/* On phones a whole desktop screenshot is too small to read: show the
+   design area (plan or 3D view) larger, and leave out the side panel. */
+@media (max-width: 560px) {
+  .shot-frame img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    object-position: 36% 55%;
+  }
 }
