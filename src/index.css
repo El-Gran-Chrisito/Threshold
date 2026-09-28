@@ -3609,3 +3609,76 @@ kbd {
 .welcome .btn {
   justify-content: center;
 }
+
+/* Touch screens: every control at least about 40 px, so fingers hit it. */
+@media (pointer: coarse) {
+  .icon-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .view-switch button {
+    min-height: 40px;
+    min-width: 42px;
+    justify-content: center;
+  }
+
+  .plan-badge {
+    min-height: 40px;
+  }
+
+  .level-chips button {
+    min-height: 40px;
+  }
+
+  .chip {
+    min-height: 38px;
+  }
+
+  .sun-time input[type='range'] {
+    height: 34px;
+  }
+
+  .sun-day select,
+  .sun-play {
+    min-height: 40px;
+  }
+}
+
+/* Narrow phones with bigger touch targets: tighter header spacing. */
+@media (pointer: coarse) and (max-width: 440px) {
+  .topbar {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+
+  .topbar .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .view-switch {
+    padding: 2px;
+  }
+
+  .view-switch button {
+    min-width: 40px;
+    padding-inline: 6px;
+  }
+
+  .plan-badge {
+    padding: 6px 9px;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 380px) {
+  .pb-short {
+    display: none;
+  }
+
+  .plan-badge {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+}
