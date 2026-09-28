@@ -1106,7 +1106,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} editable={tool === 'select'} editing={labelEdit ? `${labelEdit.id}:${labelEdit.field}` : undefined} />}
         {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
-        {showDims && !minimap && <WallDims level={level} px={px} units={units} interactive={tool === 'select'} />}
+        {showDims && !minimap && <WallDims level={level} px={px} units={units} interactive={tool === 'select'} selection={selection} />}
         {tool === 'select' && !minimap && multi.length < 2 && <SelectionHandles level={level} selection={selection} px={px} units={units} />}
         {minimap && walker && <WalkerMarker x={walker.x} y={walker.y} yaw={walker.yaw} px={px} />}
 

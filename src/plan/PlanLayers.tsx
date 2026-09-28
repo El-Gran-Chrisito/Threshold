@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react'
 import type { Dimension, Item, Label, Level, Lot, Opening, Room, Selection, UnitSystem, Vec2, Wall } from '../model/types'
 import { add, angleDeg, bounds, dist, labelPoint, lerp, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
-import { exteriorSides, rectSides, roomArea } from '../model/ops'
+import { exteriorSides, rectSides, roomArea, roomWallSides } from '../model/ops'
 import { formatArea, formatLength } from '../model/units'
 import { floorMaterial } from '../model/materials'
 import { catalogEntry } from '../model/catalog'
@@ -71,19 +71,19 @@ const RoomLabel = memo(function RoomLabel({ room, px, units, showDims, editable,
   return (
     <g className="room-label" transform={`translate(${L.p.x} ${L.p.y})`} pointerEvents="none">
       {editing !== 'name' && (
-        <text y={L.name.y} fontSize={L.name.size} textAnchor="middle" strokeWidth={px * 3} {...hit('name')}>
+        <text y={L.name.y} fontSize={L.name.size} textAnchor="middle" strokeWidth={px * 4.5} {...hit('name')}>
           {L.name.text}
           {editable && <title>Click to rename</title>}
         </text>
       )}
       {L.area && editing !== 'area' && (
-        <text y={L.area.y} fontSize={L.area.size} textAnchor="middle" strokeWidth={px * 3} {...hit('area')}>
+        <text y={L.area.y} fontSize={L.area.size} textAnchor="middle" strokeWidth={px * 4.5} {...hit('area')}>
           {L.area.text}
           {editable && <title>Click to type a new floor area</title>}
         </text>
       )}
       {L.dims && editing !== 'dims' && (
-        <text y={L.dims.y} fontSize={L.dims.size} textAnchor="middle" strokeWidth={px * 3} {...hit('dims')}>
+        <text y={L.dims.y} fontSize={L.dims.size} textAnchor="middle" strokeWidth={px * 4.5} {...hit('dims')}>
           {L.dims.text}
           {editable && <title>Click to type a new size</title>}
         </text>
@@ -299,13 +299,25 @@ export const KeptDims = memo(function KeptDims({ dims, px, units, selection }: {
   )
 })
 
-export const WallDims = memo(function WallDims({ level, px, units, interactive = false }: { level: Level; px: number; units: UnitSystem; interactive?: boolean }) {
+/**
+ * Wall lengths beside each wall. On screen (when `selection` is given) inner
+ * walls show theirs only when they, or a room they bound, are selected, since
+ * each room's label already gives its size; exported sheets show every wall.
+ */
+export const WallDims = memo(function WallDims({ level, px, units, interactive = false, selection }: { level: Level; px: number; units: UnitSystem; interactive?: boolean; selection?: Selection | null }) {
   const ext = new Map(exteriorSides(level).map((s) => [s.wall.id, s.side]))
+  const focus = new Set<string>()
+  if (selection?.kind === 'wall') focus.add(selection.id)
+  if (selection?.kind === 'room') {
+    const room = level.rooms.find((r) => r.id === selection.id)
+    if (room) for (const s of roomWallSides(level, room)) focus.add(s.wall.id)
+  }
   return (
     <g pointerEvents={interactive ? undefined : 'none'}>
       {level.walls.map((w) => {
         const L = dist(w.a, w.b)
         if (L < 40 * px) return null
+        if (selection !== undefined && !ext.has(w.id) && !focus.has(w.id)) return null
         const side = ext.get(w.id) ?? 'A'
         const n = normalOf(w.a, w.b)
         const sign = side === 'A' ? 1 : -1

@@ -349,14 +349,15 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
       </div>
       {rect && (
         <div className="grid-2">
-          <Field label="Width (right edge moves)">
+          <Field label="Width">
             <LengthInput id="room-w" value={width} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'E'), v - width))} />
           </Field>
-          <Field label="Depth (bottom edge moves)">
+          <Field label="Depth">
             <LengthInput id="room-d" value={depth} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'S'), v - depth))} />
           </Field>
         </div>
       )}
+      {rect && <p className="field-hint">Typing a size moves the right or bottom edge.</p>}
       {!fm.outdoor && <DaylightInfo r={r} level={level} />}
       <Field label={`Floor · ${fm.name}`}>
         <div className="floor-grid" role="radiogroup" aria-label="Floor finish">
@@ -766,7 +767,7 @@ function DesignCheck({ level }: { level: Level }) {
           {level.rooms.length >= 3 && (
             <button
               type="button"
-              className="linklike"
+              className="linklike check-cta"
               onClick={() => {
                 if (requireFeature('plan-set')) useStore.setState({ panel: 'project' })
               }}

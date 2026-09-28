@@ -23,10 +23,15 @@ export function PlanBadge() {
   const plural = (n: number) => `${n} day${n === 1 ? '' : 's'} left`
   const label =
     source === 'trial' ? `${planInfo(plan).name} trial · ${plural(t.daysLeft)}` : plan === 'free' ? 'Upgrade' : left !== null && left <= 14 ? `${planInfo(plan).name} · ${plural(left)}` : planInfo(plan).name
+  // Phones get a short form of the same label.
+  const short = source === 'trial' ? `${t.daysLeft}d left` : plan === 'free' ? 'Pro' : left !== null && left <= 14 ? `${left}d left` : planInfo(plan).name
   return (
-    <button type="button" className={`plan-badge is-${plan}${source === 'trial' ? ' is-trial' : ''}`} onClick={() => open(null)} title="Plans and license">
+    <button type="button" className={`plan-badge is-${plan}${source === 'trial' ? ' is-trial' : ''}`} onClick={() => open(null)} title="Plans and license" aria-label={label}>
       {plan === 'free' ? <Icon name="magic" size={15} /> : null}
-      {label}
+      <span className="pb-long">{label}</span>
+      <span className="pb-short" aria-hidden>
+        {short}
+      </span>
     </button>
   )
 }
