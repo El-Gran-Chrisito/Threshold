@@ -326,7 +326,7 @@ function TracingImage({ levelId }: { levelId: string }) {
         </button>
       ) : (
         <>
-          <label className="slider slider-flat" htmlFor="underlay-opacity">
+          <label className="slider-flat" htmlFor="underlay-opacity">
             <span>Opacity</span>
             <input id="underlay-opacity" type="range" min={0.1} max={1} step={0.05} value={u.opacity} onChange={(e) => useUnderlay.getState().patch(levelId, { opacity: Number(e.target.value) })} />
           </label>

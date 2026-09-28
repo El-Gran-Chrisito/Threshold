@@ -1968,9 +1968,6 @@ kbd {
     display: none;
   }
 
-  .slider input[type='range'] {
-    width: 90px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2306,8 +2303,22 @@ kbd {
 }
 
 .slider-flat {
-  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.slider-flat input[type='range'] {
+  width: 160px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--accent);
+  background: none;
+  box-shadow: none;
 }
 
 .tool-options .sep {
@@ -2526,39 +2537,6 @@ kbd {
   color: var(--dim);
 }
 
-.pill-select {
-  padding-block: 3px;
-}
-
-.pill-select select {
-  border: 0;
-  background: none;
-  padding: 3px 2px;
-  font-weight: 600;
-  font-size: 13.5px;
-  width: auto;
-  box-shadow: none;
-}
-
-.part-toggles {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px 4px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
-  box-shadow: var(--shadow);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.part-toggles .chip {
-  padding: 3px 10px;
-  font-size: 13px;
-}
-
 .takeoff-group {
   display: flex;
   flex-direction: column;
@@ -2731,15 +2709,6 @@ kbd {
 
 :root[data-theme='dark'] .sym-elec-text {
   fill: #fdba74;
-}
-
-.part-toggles input[type='range'] {
-  width: 120px;
-  padding: 0;
-  border: 0;
-  accent-color: var(--accent);
-  background: none;
-  box-shadow: none;
 }
 
 .room-label .is-editable {
