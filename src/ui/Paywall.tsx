@@ -74,9 +74,14 @@ export function PaywallSheet() {
               ? 'Thank you for supporting Threshold'
               : lapsed?.exp
                 ? `Your ${planInfo(lapsed.plan).name} ${isPass(lapsed) ? 'pass' : 'plan'} ended on ${day(lapsed.exp)}`
-                : 'Get more from Threshold'}
+                : trial.used && !trial.active
+                  ? 'Your Pro trial has ended'
+                  : 'Get more from Threshold'}
         </h2>
         {f && <p className="paywall-lede">{f.blurb}</p>}
+        {!f && !lapsed && source === 'free' && trial.used && !trial.active && (
+          <p className="paywall-lede">Every design you made is still here. Clean exports, the 3D model, the shopping list, electrical layout, the assistant and all styles are paused until you choose Pro.</p>
+        )}
         {!f && lapsed && source !== 'license' && <p className="paywall-lede">Every design you made is still here and still opens. Pick a plan or a pass to switch the paid tools back on.</p>}
         <Segmented
           label="Billing"

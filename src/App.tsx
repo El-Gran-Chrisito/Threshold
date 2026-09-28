@@ -7,7 +7,7 @@ import { decodeShared, sharedCode } from './store/share'
 import { uid } from './model/factory'
 import { track } from './product/analytics'
 import { watchOnboarding } from './product/onboarding'
-import { requireFeature, useEntitlements } from './product/entitlements'
+import { requireFeature, showTrialEndedOnce, useEntitlements } from './product/entitlements'
 import { allows } from './product/plans'
 import { SURROUNDINGS, type Surroundings } from './model/landscape'
 import type { Tool, ViewMode } from './model/types'
@@ -109,6 +109,7 @@ export default function App() {
       }
       const params = new URLSearchParams(window.location.search)
       const session = params.get('checkout_session') ?? params.get('session_id')
+      if (!session && !useStore.getState().presenting) showTrialEndedOnce()
       if (session) {
         const r = await ent.claimCheckout(session)
         useStore.getState().notify(r.message)

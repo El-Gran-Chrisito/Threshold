@@ -187,6 +187,21 @@ export function featureName(f: Feature) {
   return FEATURES[f].name
 }
 
+const TRIAL_NOTICE_KEY = 'threshold:trial-ended-seen'
+let trialNoticeShown = false
+
+/** Once, after a trial runs out without a purchase: open the plans sheet to say so. */
+export function showTrialEndedOnce(): boolean {
+  const s = useEntitlements.getState()
+  const t = trialState(s.trialStartedAt)
+  if (!t.used || t.active || s.source !== 'free' || trialNoticeShown || read(TRIAL_NOTICE_KEY)) return false
+  trialNoticeShown = true
+  write(TRIAL_NOTICE_KEY, '1')
+  s.openPaywall(null)
+  track('trial_ended_shown')
+  return true
+}
+
 /** For tests: reset to a fresh free state. */
 export function resetEntitlements() {
   useEntitlements.setState({ plan: 'free', source: 'free', license: null, lapsed: null, key: null, trialStartedAt: null, paywall: { open: false, feature: null }, ready: false })

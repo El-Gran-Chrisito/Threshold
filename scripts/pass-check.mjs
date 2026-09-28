@@ -1,4 +1,4 @@
-// Checks the Build Pass screens: free offer, a pass near its end, and a pass that has ended.
+// Checks plan lifecycle screens: the Build Pass offer, a pass near its end, a pass that has ended, and a finished trial.
 // Usage: node scripts/pass-check.mjs <file with two keys: ending-soon, ended> <out dir>
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
@@ -6,15 +6,16 @@ const [soon, ended] = readFileSync(process.argv[2], 'utf8').trim().split('\n')
 const out = process.argv[3] || '.'
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const errors = []
-async function open(key, width = 1280) {
+async function open(key, width = 1280, extra = {}) {
   const ctx = await browser.newContext({ viewport: { width, height: 860 }, serviceWorkers: 'block' })
   const page = await ctx.newPage()
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://localhost:4174/')
-  await page.evaluate((k) => {
+  await page.evaluate(([k, x]) => {
     localStorage.setItem('threshold:welcomed', '1')
     if (k) localStorage.setItem('threshold:license', k)
-  }, key)
+    for (const [a, b] of Object.entries(x)) localStorage.setItem(a, b)
+  }, [key, extra])
   await page.reload()
   await page.waitForTimeout(1200)
   return page
@@ -36,6 +37,12 @@ await p.click('.plan-badge')
 console.log('ended title:', await p.locator('#paywall-title').textContent())
 console.log('ended trial button:', await p.locator('.paywall-trial').count())
 await p.locator('.sheet.paywall').screenshot({ path: `${out}/pass-ended-phone.png` })
+await p.context().close()
+p = await open(null, 1280, { 'threshold:trial': String(Date.now() - 9 * 86_400_000) })
+console.log('trial ended: sheet open', await p.locator('.sheet.paywall').count(), '| title:', await p.locator('#paywall-title').textContent().catch(() => '-'))
+await p.reload()
+await p.waitForTimeout(1200)
+console.log('trial ended, next visit: sheet open', await p.locator('.sheet.paywall').count())
 await p.context().close()
 console.log(errors.join('\n') || 'no errors')
 await browser.close()

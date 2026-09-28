@@ -4,7 +4,7 @@
  * only when the host page has loaded it.
  */
 
-export type ProductEvent = 'paywall_shown' | 'upgrade_clicked' | 'trial_started' | 'license_activated' | 'license_failed' | 'export' | 'design_created'
+export type ProductEvent = 'paywall_shown' | 'upgrade_clicked' | 'trial_started' | 'trial_ended_shown' | 'license_activated' | 'license_failed' | 'export' | 'design_created'
 
 const log: Array<{ event: ProductEvent; props?: Record<string, string>; at: number }> = []
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { generateKeyPair, peekLicense, signLicense, verifyLicense } from './license'
 import { productConfig } from './config'
-import { can, requireFeature, resetEntitlements, trialState, useEntitlements } from './entitlements'
+import { can, requireFeature, resetEntitlements, showTrialEndedOnce, trialState, useEntitlements } from './entitlements'
 import { allows, PLANS } from './plans'
 
 describe('license keys', () => {
@@ -38,6 +38,15 @@ describe('plans and entitlements', () => {
   it('opens the upgrade sheet for a locked feature', () => {
     expect(requireFeature('electrical')).toBe(false)
     expect(useEntitlements.getState().paywall).toEqual({ open: true, feature: 'electrical' })
+  })
+
+  it('says once that a trial has ended', () => {
+    resetEntitlements()
+    expect(showTrialEndedOnce()).toBe(false)
+    useEntitlements.setState({ trialStartedAt: Date.now() - 8 * 86_400_000 })
+    expect(showTrialEndedOnce()).toBe(true)
+    expect(useEntitlements.getState().paywall.open).toBe(true)
+    expect(showTrialEndedOnce()).toBe(false)
   })
 
   it('runs a one-time Pro trial', () => {
