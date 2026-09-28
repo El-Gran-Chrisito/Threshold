@@ -257,7 +257,14 @@ export default function App() {
         )}
         {show3d && (
           <div className="view-3d">
-            <Suspense fallback={<div className="loading3d">Building 3D view…</div>}>
+            <Suspense
+              fallback={
+                <div className="loading3d" role="status">
+                  <span className="spinner" aria-hidden />
+                  Building 3D view…
+                </div>
+              }
+            >
               <Scene3D walk={view === 'walk'} />
             </Suspense>
             {view === 'walk' ? <WalkPad /> : <View3DBar />}

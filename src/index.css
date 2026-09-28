@@ -346,6 +346,10 @@ hr {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+.view-plan {
+  container: viewplan / inline-size;
+}
+
 .view-plan,
 .view-3d {
   position: relative;
@@ -375,10 +379,30 @@ hr {
 }
 
 .loading3d {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   height: 100%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent-soft) 60%, var(--paper)), var(--paper));
   color: var(--ink-2);
+  font-weight: 600;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Side panel */
@@ -1692,6 +1716,54 @@ a.btn:not(.btn-primary) {
 
   .view-3d .level-chips {
     bottom: 68px;
+  }
+}
+
+/* A very narrow 3D pane: the view modes take the whole top row and the
+   tool column starts under them. */
+@container view3d (max-width: 380px) {
+  .bar3d-main {
+    right: 0;
+  }
+
+  .mode-seg {
+    width: 100%;
+  }
+
+  .mode-seg button {
+    flex: 1;
+    justify-content: center;
+    padding-inline: 4px;
+  }
+
+  .ctl-col {
+    top: 58px;
+  }
+
+  .ctx-row {
+    max-width: calc(100% - 72px);
+  }
+}
+
+/* A very narrow 3D pane (split view on a small laptop): the sun dock sheds
+   everything but the slider, time, day and play. */
+@container view3d (max-width: 420px) {
+  .sun-dock .plan-tag-chip,
+  .sun-time svg {
+    display: none;
+  }
+
+  .sun-time {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+
+  .sun-time .num {
+    min-width: 0;
+  }
+
+  .sun-day select {
+    max-width: 86px;
   }
 }
 
@@ -3649,5 +3721,14 @@ kbd {
     width: 40px;
     padding: 0;
     justify-content: center;
+  }
+}
+
+/* A narrow plan pane: the hint spans the pane just above the scale bar. */
+@container viewplan (max-width: 560px) {
+  .tool-hint {
+    max-width: calc(100% - 24px);
+    bottom: 40px;
+    font-size: 12.5px;
   }
 }
