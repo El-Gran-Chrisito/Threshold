@@ -23,7 +23,7 @@ import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from
 import { Icon } from './ui/Icon'
 import { AssistantPanel } from './assistant/AssistantPanel'
 import { Segmented, Toggle } from './ui/controls'
-import { walkKeys } from './three/Walker'
+import { walkKeys } from './three/walkKeys'
 import { budget } from './model/budget'
 import { formatMoney } from './model/units'
 import { buildTemplate } from './model/templates'

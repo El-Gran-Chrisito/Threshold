@@ -11,11 +11,11 @@ import { activeLevel, useStore } from '../store/store'
 import { closestOnSegment, dist, labelPoint, lerp, polygonArea } from '../model/geometry'
 import { wallSpans } from '../plan/wallGeometry'
 import { wallLength } from '../model/ops'
+import { walkKeys } from './walkKeys'
 
 const EYE = 1.6
 const RADIUS = 22 // cm
 
-export const walkKeys = { f: false, b: false, l: false, r: false, turnL: false, turnR: false, run: false }
 
 /** Wall segments that block walking (door openings are passable, windows are not). */
 function blockers(level: Level): Array<[Vec2, Vec2, number]> {

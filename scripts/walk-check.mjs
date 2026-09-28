@@ -1,0 +1,41 @@
+// Walk mode: the keyboard and the on-screen pad both move the walker (they
+// share walkKeys), and the 3D code arrives as its own download.
+import { chromium } from 'playwright'
+const base = process.env.BASE || 'http://localhost:4173/'
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+const errors = []
+const scripts = []
+page.on('pageerror', (e) => errors.push(e.message))
+page.on('request', (r) => r.resourceType() === 'script' && scripts.push(r.url().split('/').pop()))
+await page.goto(base)
+await page.waitForTimeout(800)
+if (await page.$('.welcome')) await page.click('text=Explore the example home')
+await page.click('.view-switch >> text=2D')
+await page.waitForTimeout(800)
+console.log('scripts:', scripts.join(', '))
+await page.click('.view-switch >> text=Walk')
+await page.waitForTimeout(3000)
+console.log('3D loaded after Walk:', scripts.some((s) => /Scene3D/.test(s)))
+const where = () => page.evaluate(() => window.__threshold.store.getState().walker)
+const dist = (a, b) => (a && b ? Math.round(Math.hypot(a.x - b.x, a.y - b.y)) : -1)
+let before = await where()
+await page.mouse.click(640, 500)
+await page.keyboard.down('w')
+await page.waitForTimeout(3000)
+await page.keyboard.up('w')
+await page.waitForTimeout(500)
+let after = await where()
+console.log('keyboard W moved (cm):', dist(before, after), JSON.stringify(before), JSON.stringify(after))
+before = after
+const pad = page.locator('[aria-label="Walk back"]')
+const box = await pad.boundingBox()
+await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+await page.mouse.down()
+await page.waitForTimeout(3000)
+await page.mouse.up()
+await page.waitForTimeout(500)
+after = await where()
+console.log('pad "Walk back" moved (cm):', dist(before, after))
+console.log(errors.length ? 'errors: ' + errors.join(' | ') : 'no page errors')
+await browser.close()
