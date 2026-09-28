@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPrompt, runActions, type Action } from './actions'
+import { buildPrompt, describeLevel, runActions, type Action } from './actions'
 import { buildTemplate } from '../model/templates'
 import { makeProject } from '../model/factory'
 import { polygonArea } from '../model/geometry'
@@ -73,5 +73,26 @@ describe('assistant actions', () => {
     const prompt = buildPrompt(p, p.levels[0], 'Add a sunroom off the kitchen', false)
     expect(new TextEncoder().encode(prompt).length).toBeLessThan(40000)
     expect(prompt).toContain('Kitchen & dining')
+  })
+})
+
+describe('describeLevel daylight', () => {
+  it('tells the assistant which way windows face and how much sun each room gets', () => {
+    const p = buildTemplate('family')
+    const d = JSON.parse(describeLevel(p, p.levels[0]))
+    expect(d.plan_top_faces_compass_bearing).toBe(0)
+    expect(d.latitude).toBe(40)
+    const den = d.rooms.find((r: { name: string }) => r.name === 'Den')
+    expect(den.window_faces).toEqual(['S'])
+    expect(den.winter_sun_h).toBeGreaterThan(7)
+    const garage = d.rooms.find((r: { name: string }) => r.name === 'Garage')
+    expect(garage).toBeTruthy()
+  })
+
+  it('asks for answers to questions in the summary', () => {
+    const p = buildTemplate('family')
+    const prompt = buildPrompt(p, p.levels[0], 'Which room gets morning sun?', false)
+    expect(prompt).toContain('empty actions list')
+    expect(prompt).toContain('window_faces')
   })
 })

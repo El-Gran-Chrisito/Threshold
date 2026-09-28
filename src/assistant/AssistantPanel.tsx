@@ -26,6 +26,7 @@ const EXAMPLES = [
   'Add two windows to every bedroom',
   'Furnish the den as a guest room',
   'Switch the roof to a gable roof',
+  'Which rooms get sun on winter mornings?',
 ]
 
 const HIDE = new Set(['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'])

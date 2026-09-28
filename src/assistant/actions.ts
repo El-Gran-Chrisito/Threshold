@@ -8,7 +8,7 @@
  */
 import type { Item, Level, OpeningKind, Project, Room, RoofMaterial, RoofStyle, Vec2, Wall, WallFinish } from '../model/types'
 import { CATALOG, catalogEntry } from '../model/catalog'
-import { FLOORS, WALL_FINISHES, PAINTS } from '../model/materials'
+import { FLOORS, WALL_FINISHES, PAINTS, floorMaterial } from '../model/materials'
 import { addRoom, clampOpening, deleteRoom, edgeOnSide, exteriorSides, moveRoom, moveRoomEdge, paintExterior, paintRoomWalls, rectPoints, roomArea, roomWallSides, snapItemToWall, wallLength } from '../model/ops'
 import { bounds, lerp, pointInPolygon } from '../model/geometry'
 import { makeItem, makeOpening } from '../model/factory'
@@ -16,6 +16,8 @@ import { furnishRoom } from '../model/furnish'
 import { wireRoom, wiringSummary } from '../model/electrical'
 import { CM_PER_FT } from '../model/units'
 import { applyHomeStyle, HOME_STYLES } from '../model/styles'
+import { roomDaylight } from '../model/daylight'
+import { DEFAULT_LATITUDE } from '../model/sun'
 
 type Side = 'N' | 'S' | 'E' | 'W'
 
@@ -50,6 +52,7 @@ export function describeLevel(p: Project, level: Level): string {
     const items = level.items.filter((i) => pointInPolygon(i, r.points)).map((i) => i.type)
     const doors = level.openings.filter((o) => o.kind !== 'window' && roomWallSides(level, r).some((s) => s.wall.id === o.wallId)).length
     const windows = level.openings.filter((o) => o.kind === 'window' && roomWallSides(level, r).some((s) => s.wall.id === o.wallId)).length
+    const light = floorMaterial(r.floor).outdoor ? null : roomDaylight(level, r, p.site)
     return {
       name: r.name,
       x: toFt(b.minX),
@@ -61,10 +64,18 @@ export function describeLevel(p: Project, level: Level): string {
       floor: r.floor,
       doors,
       windows,
+      ...(light?.windows ? { window_faces: light.faces, winter_sun_h: Math.round(light.winter.hours * 2) / 2, summer_sun_h: Math.round(light.summer.hours * 2) / 2 } : {}),
       items,
     }
   })
-  return JSON.stringify({ level: level.name, floors_in_home: p.levels.map((l) => l.name), roof: level.roof.style, rooms })
+  return JSON.stringify({
+    level: level.name,
+    floors_in_home: p.levels.map((l) => l.name),
+    roof: level.roof.style,
+    plan_top_faces_compass_bearing: p.site.northAngle,
+    latitude: p.site.latitude ?? DEFAULT_LATITUDE,
+    rooms,
+  })
 }
 
 export function catalogSummary(): string {
@@ -74,7 +85,7 @@ export function catalogSummary(): string {
 export function buildPrompt(p: Project, level: Level, request: string, hasImage: boolean): string {
   return `You are the design assistant inside a home design app. Turn the user's request into edit actions for the floor shown below.
 
-PLAN COORDINATES: feet. x grows to the east (right), y grows to the south (down). Rooms are rectangles given by top-left corner (x, y), width w (east-west) and depth d (north-south). Rooms that touch share a wall automatically. Keep new rooms touching existing ones unless the user says otherwise. Typical sizes: bedroom 11x12 to 14x16, primary bedroom 14x16+, bathroom 5x8 to 8x10, kitchen 10x12+, living room 14x16+, closet 3x6, hallway 4 wide.
+PLAN COORDINATES: feet. x grows to the right, y grows down. The side letters N, S, E and W in actions mean the top, bottom, right and left of the plan (true compass directions only when plan_top_faces_compass_bearing is 0). Rooms are rectangles given by top-left corner (x, y), width w (left-right) and depth d (top-bottom). Rooms that touch share a wall automatically. Keep new rooms touching existing ones unless the user says otherwise. Typical sizes: bedroom 11x12 to 14x16, primary bedroom 14x16+, bathroom 5x8 to 8x10, kitchen 10x12+, living room 14x16+, closet 3x6, hallway 4 wide.
 
 ACTIONS (reply with only this JSON object, no other text):
 {"summary": "one short sentence saying what you changed", "actions": [ ... ]}
@@ -98,6 +109,8 @@ Each action is one of:
 - {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12,"material"?:"shingle"|"metal"|"tile"|"slate"|"membrane","color"?:"#RRGGBB"}
 - {"op":"apply_style","style":${HOME_STYLES.map((s) => `"${s.id}"`).join('|')}}  (restyles every room, floor, trim, outside, roof and furniture colour in the whole home; use first, then any specific changes)
 Order matters: create rooms before adding doors, windows or items to them. Give every new room at least one door. Keep furniture sizes realistic for the room.
+DAYLIGHT: rooms with windows list window_faces (true compass directions) and winter_sun_h and summer_sun_h, the most hours of direct sun at midwinter and midsummer. Use them for questions about light and sun.
+QUESTIONS: if the user only asks a question, reply with an empty actions list and answer in summary, in at most two short sentences.
 
 FLOOR IDS: ${FLOORS.map((f) => `${f.id} (${f.name})`).join('; ')}
 FINISH IDS: ${WALL_FINISHES.map((f) => `${f.id}`).join(', ')}
