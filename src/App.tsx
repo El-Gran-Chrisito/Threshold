@@ -827,6 +827,25 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+/** "Q / E" or "Shift+click" as separate keys: alternatives joined by "or", keys held together by "+". */
+function Keys({ combo }: { combo: string }) {
+  return (
+    <span className="key-combo">
+      {combo.split(' / ').map((alt, i) => (
+        <span key={i} className="key-alt">
+          {i > 0 && <span className="key-sep">or</span>}
+          {alt.split('+').map((key, j) => (
+            <span key={j} className="key-alt">
+              {j > 0 && <span className="key-sep">+</span>}
+              <kbd>{key}</kbd>
+            </span>
+          ))}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 // Reading comfort: remembered per device (a personal preference, not part of the design).
 type Comfort = { size: 1 | 1.12 | 1.25; spacing: boolean; font?: 'hyperlegible' | 'lexend' }
 
@@ -959,7 +978,7 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
             {rows.map(([k, v]) => (
               <tr key={k}>
                 <td>
-                  <kbd>{k}</kbd>
+                  <Keys combo={k} />
                 </td>
                 <td>{v}</td>
               </tr>

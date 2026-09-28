@@ -1819,12 +1819,33 @@ a.btn:not(.btn-primary) {
 }
 
 .keys td:first-child {
-  width: 44%;
+  width: 34%;
+  padding-right: 16px;
+}
+
+.key-combo,
+.key-alt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.key-combo {
+  gap: 6px;
+}
+
+.key-sep {
+  color: var(--ink-3);
+  font-size: 12.5px;
 }
 
 kbd {
-  font-family: var(--mono);
+  font-family: var(--font);
+  font-weight: 700;
   font-size: 12.5px;
+  min-width: 1.9em;
+  text-align: center;
   padding: 2px 6px;
   border: 1px solid var(--line);
   border-bottom-width: 2px;
