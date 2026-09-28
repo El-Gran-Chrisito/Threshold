@@ -104,7 +104,7 @@ const EXTRAS: Array<[string, string]> = [
 
 /** Every feature by plan, from the same list the app uses to unlock them. */
 const BASICS = ['Floor plans, walls, doors, windows and stairs', '3D, walk-through and exploded view', 'Furniture, finishes and whole-home styles (2 free)', 'Design check and cost estimate', 'Share links and design files']
-const ORDER: Feature[] = ['unlimited-designs', 'plan-set', 'clean-exports', 'hd-exports', 'model-export', 'shopping-export', 'electrical', 'assistant', 'all-styles', 'surroundings', 'plan-library', 'sync', 'branding', 'presentation']
+const ORDER: Feature[] = ['unlimited-designs', 'plan-set', 'clean-exports', 'hd-exports', 'model-export', 'shopping-export', 'electrical', 'assistant', 'all-styles', 'surroundings', 'plan-library', 'versions', 'sync', 'branding', 'presentation']
 
 function Compare() {
   const cols: PlanId[] = ['free', 'pro', 'studio']

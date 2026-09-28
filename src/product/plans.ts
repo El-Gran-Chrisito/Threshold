@@ -23,6 +23,7 @@ export type Feature =
   | 'sync'
   | 'plan-set'
   | 'plan-library'
+  | 'versions'
 
 export const FEATURES: Record<Feature, { name: string; blurb: string; plan: PlanId }> = {
   'unlimited-designs': { name: 'Unlimited designs', blurb: 'Free keeps up to 3 designs. Keep every idea and version with Pro, or delete a design in Project to make room.', plan: 'pro' },
@@ -34,6 +35,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   assistant: { name: 'Design assistant', blurb: 'Describe a change in plain words, or upload a photo of a floor plan, and it is drawn for you.', plan: 'pro' },
   surroundings: { name: 'Garden and countryside settings', blurb: 'See the home in a private garden or in the countryside, not only on a street.', plan: 'pro' },
   'all-styles': { name: 'All whole-home styles', blurb: 'Every designer style for walls, floors, roof, cabinets and furniture in one click.', plan: 'pro' },
+  versions: { name: 'Design versions', blurb: 'Keep up to 20 named versions of each design and go back to any of them. Free keeps one.', plan: 'pro' },
   'plan-library': { name: 'Full plan library', blurb: 'Every ready-made home in the library, furnished and styled, to start from and change as you like.', plan: 'pro' },
   'plan-set': { name: 'PDF plan set', blurb: 'One PDF with a cover, 3D views, every floor plan, the room schedule, a cost estimate and the shopping list, ready to print or send to a builder.', plan: 'pro' },
   sync: { name: 'Designs on all your devices', blurb: 'Your designs follow your license to every browser you use, and survive cleared browser data.', plan: 'pro' },
@@ -42,7 +44,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
 }
 
 /** What the free plan allows before asking to upgrade. */
-export const FREE_LIMITS = { designs: 3, styles: 2 }
+export const FREE_LIMITS = { designs: 3, styles: 2, versions: 1 }
 
 export interface PlanInfo {
   id: PlanId
@@ -69,7 +71,7 @@ export const PLANS: PlanInfo[] = [
     tagline: 'For planning a real build or renovation',
     monthly: 12,
     yearly: 96,
-    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model (.glb) export', 'Shopping list spreadsheet', 'One-click electrical layout', 'Design assistant', 'All styles and surroundings', 'Full library of ready-made homes'],
+    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model (.glb) export', 'Shopping list spreadsheet', 'One-click electrical layout', 'Design assistant', 'All styles and surroundings', 'Full library of ready-made homes', 'Design versions to try ideas'],
   },
   {
     id: 'studio',

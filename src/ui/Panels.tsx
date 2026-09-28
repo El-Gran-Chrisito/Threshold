@@ -25,6 +25,7 @@ import { productConfig } from '../product/config'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { LIBRARY, buildLibraryPlan, libraryBlurb } from '../model/library'
 import { MiniPlan } from './MiniPlan'
+import { deleteVersion, listVersions, saveVersion, versionProject } from '../store/versions'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
@@ -489,6 +490,68 @@ function ShoppingList() {
   )
 }
 
+/** Named snapshots of the open design, to try an idea and come back. */
+function Versions() {
+  const project = useStore((s) => s.project)
+  const plan = useEntitlements((s) => s.plan)
+  const [list, setList] = useState(() => listVersions(project.id))
+  const [name, setName] = useState('')
+  const when = (t: number) => new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  const save = () => {
+    if (list.length >= FREE_LIMITS.versions && !allows(plan, 'versions') && !requireFeature('versions')) return
+    const v = saveVersion(useStore.getState().project, name || `Version ${list.length + 1}`)
+    if (!v) return useStore.getState().notify('This browser is out of room. Delete an old version first.')
+    setList(listVersions(project.id))
+    setName('')
+    track('export', { kind: 'version' })
+    useStore.getState().notify(`Saved “${v.name}”`)
+  }
+  return (
+    <Field label="Versions of this design" hint="Save a version before you try something new. Going back is an ordinary edit you can undo.">
+      <div className="paywall-key-row">
+        <input id="version-name" placeholder={`Version ${list.length + 1}`} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} aria-label="Version name" />
+        <button type="button" className="btn" onClick={save}>
+          Save version {list.length >= FREE_LIMITS.versions && <PlanTag plan="pro" />}
+        </button>
+      </div>
+      {list.length > 0 && (
+        <ul className="saved-list">
+          {list.map((v) => (
+            <li key={v.id} className="version-row">
+              <span>
+                <strong>{v.name}</strong> <span className="muted">{when(v.at)}</span>
+              </span>
+              <ConfirmButton
+                className="btn"
+                confirmText="Click again to go back"
+                onConfirm={() => {
+                  const p = versionProject(project.id, v.id)
+                  if (!p) return useStore.getState().notify('That version could not be read')
+                  useStore.getState().apply(() => p)
+                  useStore.getState().notify(`Back to “${v.name}”. Undo returns to where you were.`)
+                }}
+              >
+                Go back
+              </ConfirmButton>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label={`Delete ${v.name}`}
+                onClick={() => {
+                  deleteVersion(project.id, v.id)
+                  setList(listVersions(project.id))
+                }}
+              >
+                <Icon name="trash" size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Field>
+  )
+}
+
 // Previews are built once per session; the designs themselves never change.
 const previews = new Map<string, Project>()
 function libraryPreview(id: string): Project {
@@ -907,6 +970,7 @@ export function ProjectPanel() {
           ))}
         </div>
       </Field>
+      <Versions key={project.id} />
       <div className="library-field">
       <Field label="Plan library" hint="Ready-made homes, furnished and styled. Start from one and change anything.">
         <div className="template-list">
