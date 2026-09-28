@@ -64,7 +64,7 @@ const STORIES: Array<{ title: string; body: string; img: string; alt: string; di
   },
   {
     title: 'Stand in your kitchen before it exists',
-    body: 'Walk through every room at eye height, look out of each window, and check how the light falls at any time of day. Doors are open; furniture is to scale.',
+    body: 'Walk through every room at eye height, look out of each window, and check how the light falls at any hour and in any season. Doors are open; furniture is to scale.',
     img: 'shots/walk.jpg',
     alt: 'Standing at the kitchen counter, looking through a window at the garden',
     dim: `5' 7" eye height`,
@@ -99,6 +99,10 @@ const EXTRAS: Array<[string, string]> = [
   ['Roofs and stairs', 'Gable, hip, shed and flat roofs in shingle, metal, tile or slate. Straight, L and U stairs.'],
   ['Electrical layout', 'Lights, switches by every door, outlets every 12 ft and smoke alarms, in one click.'],
   ['Lot and setbacks', 'Property lines and building limits on the plan, in 3D and on printed sheets.'],
+  ['Sun and daylight', 'The real sun for your latitude on any day of the year, and the hours of direct sun each room gets in summer and winter.'],
+  ['Design versions', 'Save named versions of a design, try a bold idea, and go back to any version.'],
+  ['Share a link', 'Send a link that opens your design in 3D. The person who opens it needs no account.'],
+  ['Works offline', 'Install it like an app. It keeps working without a connection.'],
   ['Exports', 'A PDF plan set for your builder, floor plan sheets, 3D images, a .glb model for other tools, and spreadsheets.'],
   ['Made for reading', 'Large-text and extra-spacing modes, Lexend or Atkinson Hyperlegible, feet or metres.'],
 ]
