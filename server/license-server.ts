@@ -37,6 +37,7 @@
  *   POST /designs/get     { id }                        -> { json }
  *   POST /designs/put     { id, name, updatedAt, json }  -> { ok }
  *   POST /designs/delete  { id }                         -> { ok }
+ *   POST /designs/delete-all                             -> { ok, deleted } (any genuine key, even expired)
  *
  * Design routes take the customer's license key as `Authorization: License THR1...`.
  */
@@ -430,6 +431,20 @@ const ownerKey = (payload: LicensePayload) => hash(payload.ref || payload.email 
 async function designs(request: Request, path: string, body: Record<string, unknown>, env: Env, publicJwk: JsonWebKey): Promise<Response> {
   if (!env.DESIGNS) return json(env, { error: 'Design sync is not set up' }, 501)
   const key = (request.headers.get('authorization') ?? '').replace(/^License\s+/i, '')
+  // Deleting everything works with any genuine key, even an expired or refunded one.
+  if (path.endsWith('/designs/delete-all')) {
+    const any = await verifyLicense(key, publicJwk, 0)
+    if (!any.ok) return json(env, { error: 'License required' }, 401)
+    const prefix = `d:${await ownerKey(any.payload)}:`
+    let deleted = 0
+    for (let round = 0; round < 5; round++) {
+      const { keys } = await env.DESIGNS.list({ prefix, limit: 1000 })
+      if (!keys.length) break
+      for (const k of keys) await env.DESIGNS.delete(k.name)
+      deleted += keys.length
+    }
+    return json(env, { ok: true, deleted })
+  }
   const v = await verifyLicense(key, publicJwk)
   if (!v.ok) return json(env, { error: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
   if (!v.payload.ref && !v.payload.email) return json(env, { error: 'This license cannot sync' }, 403)

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { FEATURES, PASS, PLANS, planInfo, type Feature, type PlanId } from '../product/plans'
-import { daysLeft, isPass, requestKeyEmail, trialState, useEntitlements } from '../product/entitlements'
+import { FEATURES, PASS, PLANS, allows, planInfo, type Feature, type PlanId } from '../product/plans'
+import { daysLeft, deleteSyncedDesigns, isPass, requestKeyEmail, trialState, useEntitlements } from '../product/entitlements'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { useAudience } from '../product/audience'
 import { fetchInvite, inviteLink } from '../product/invite'
 import { track } from '../product/analytics'
-import { Segmented } from './controls'
+import { ConfirmButton, Segmented } from './controls'
 import { Icon } from './Icon'
 
 const money = (n: number) => (n % 1 ? `$${n.toFixed(2)}` : `$${n}`)
@@ -44,6 +44,7 @@ export function PaywallSheet() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [showKey, setShowKey] = useState(false)
   const [lost, setLost] = useState(false)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const storedKey = useEntitlements((s) => s.key)
@@ -187,10 +188,26 @@ export function PaywallSheet() {
                 ·{' '}
               </>
             )}
+            {storedKey && productConfig.licenseApi && allows(license.plan, 'sync') && !license.trial && (
+              <>
+                <ConfirmButton
+                  className="linklike"
+                  confirmText="Click again: delete every synced design"
+                  onConfirm={async () => {
+                    const r = await deleteSyncedDesigns(storedKey)
+                    setNote({ ok: r.ok, text: r.message })
+                  }}
+                >
+                  Delete my synced designs
+                </ConfirmButton>{' '}
+                ·{' '}
+              </>
+            )}
             <button type="button" className="linklike" onClick={signOut}>
               Remove license from this device
             </button>
           </p>
+          {note && <p className={note.ok ? 'check-ok' : 'error'}>{note.text}</p>}
           </>
         ) : (
           <div className="paywall-key">

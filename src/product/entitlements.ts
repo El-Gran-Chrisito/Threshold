@@ -219,6 +219,20 @@ export async function requestKeyEmail(email: string): Promise<{ ok: boolean; mes
   }
 }
 
+/** Delete every design stored with this license on the server. Designs in this browser stay. */
+export async function deleteSyncedDesigns(key: string): Promise<{ ok: boolean; message: string }> {
+  if (!productConfig.licenseApi) return { ok: false, message: 'Design sync is not set up here.' }
+  try {
+    const res = await fetch(`${productConfig.licenseApi}/designs/delete-all`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `License ${key}` }, body: '{}' })
+    const data = (await res.json()) as { deleted?: number; error?: string }
+    if (!res.ok) return { ok: false, message: data.error ?? 'Could not delete. Try again later.' }
+    const n = data.deleted ?? 0
+    return { ok: true, message: `Deleted ${n} design${n === 1 ? '' : 's'} from your account. Designs in this browser stay; remove the license from this device to stop syncing.` }
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Try again later.' }
+  }
+}
+
 export const can = (feature: Feature) => allows(useEntitlements.getState().plan, feature)
 
 /** True when allowed; otherwise opens the upgrade sheet for that feature. */

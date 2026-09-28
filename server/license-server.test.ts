@@ -127,6 +127,14 @@ describe('design sync', () => {
     expect((await call('/designs/put', ann, { id: '../x', json: '{}' })).status).toBe(400)
     await call('/designs/delete', ann, { id: 'prj_1' })
     expect(kv.m.size).toBe(0)
+    // Delete everything, even after the key has expired; other customers keep theirs.
+    await call('/designs/put', ann, { id: 'prj_2', name: 'A', updatedAt: 1, json: '{}' })
+    await call('/designs/put', ann, { id: 'prj_3', name: 'B', updatedAt: 1, json: '{}' })
+    await call('/designs/put', bob, { id: 'prj_9', name: 'Bob', updatedAt: 1, json: '{}' })
+    const expired = await signLicense({ v: 1, plan: 'pro', ref: 'sub_ann', iat: 0, exp: 1 }, privateJwk)
+    expect(await (await call('/designs/delete-all', expired, {})).json()).toEqual({ ok: true, deleted: 2 })
+    expect([...kv.m.keys()].length).toBe(1)
+    expect((await call('/designs/delete-all', 'THR1.fake.key', {})).status).toBe(401)
   })
 })
 
