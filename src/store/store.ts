@@ -3,8 +3,8 @@ import type { Item, Level, OpeningKind, Project, Selection, Tool, ViewMode, Wall
 import type { Brand } from '../product/brand'
 import { buildTemplate } from '../model/templates'
 import { makeLevel, uid } from '../model/factory'
-import { loadLastProject, saveProject } from './persistence'
-import { cloud, cloudList, cloudLoad, cloudSave, onCloudStatus, type CloudStatus } from './cloud'
+import { listSaved, loadLastProject, loadSaved, saveProject } from './persistence'
+import { cloud, cloudList, cloudLoad, cloudPut, cloudSave, onCloudStatus, type CloudMeta, type CloudStatus } from './cloud'
 
 const HISTORY_LIMIT = 200
 
@@ -250,11 +250,44 @@ onCloudStatus((cloudStatus) => useStore.setState({ cloudStatus }))
 // On start, prefer the account's copy when it is newer, or open the latest
 // account design when this browser has none. Never replaces work already
 // begun in this visit.
+const SYNCED_KEY = 'threshold:synced-ids'
+
+/**
+ * Put designs saved only in this browser into the account, once each: a
+ * design deleted on another device is not brought back from here.
+ */
+export async function uploadLocalDesigns(list: CloudMeta[]): Promise<number> {
+  let done: Set<string>
+  try {
+    done = new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) ?? '[]') as string[])
+  } catch {
+    done = new Set()
+  }
+  const inCloud = new Set(list.map((m) => m.id))
+  let sent = 0
+  for (const m of listSaved().slice(0, 50)) {
+    if (inCloud.has(m.id)) done.add(m.id)
+    if (done.has(m.id)) continue
+    const p = loadSaved(m.id)
+    if (p && (await cloudPut(p))) {
+      done.add(m.id)
+      sent++
+    }
+  }
+  try {
+    localStorage.setItem(SYNCED_KEY, JSON.stringify([...done]))
+  } catch {
+    /* storage unavailable */
+  }
+  return sent
+}
+
 export async function syncFromCloud() {
   const c = await cloud()
   if (!c) return
   useStore.setState({ cloudStatus: 'saved' })
   const list = await cloudList()
+  await uploadLocalDesigns(list)
   const s = useStore.getState()
   if (s.past.length > 0 || s.txBase) return
   const local = hadLocalProject ? s.project : null

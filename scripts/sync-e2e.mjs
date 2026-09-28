@@ -3,13 +3,14 @@ import { readFileSync } from 'node:fs'
 const key = readFileSync(process.argv[2], 'utf8').trim()
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const errors = []
-async function device(name) {
+async function device(name, before) {
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' })).newPage()
   page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`))
   await page.goto('http://localhost:4174/')
   await page.evaluate(() => localStorage.setItem('threshold:welcomed', '1'))
   await page.reload()
   await page.waitForTimeout(800)
+  if (before) await before(page)
   await page.click('.plan-badge')
   await page.click('text=I have a license key')
   await page.fill('#license-key', key)
@@ -17,7 +18,17 @@ async function device(name) {
   await page.waitForTimeout(1500)
   return page
 }
-const a = await device('laptop')
+// Before buying, the laptop already has a second design saved in the browser.
+const a = await device('laptop', async (page) => {
+  await page.evaluate(() => {
+    const st = window.__threshold.store.getState()
+    window.__first = st.project
+    st.loadProject({ ...st.project, id: 'prj_gardenstudio', name: 'Garden studio', updatedAt: Date.now() })
+  })
+  await page.waitForTimeout(900)
+  await page.evaluate(() => window.__threshold.store.getState().loadProject(window.__first))
+  await page.waitForTimeout(900)
+})
 await a.evaluate(() => {
   const st = window.__threshold.store.getState()
   st.apply((p) => ({ ...p, name: 'Lake cabin' }))

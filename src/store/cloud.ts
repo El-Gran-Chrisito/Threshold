@@ -145,6 +145,20 @@ export function onCloudStatus(fn: (s: CloudStatus) => void) {
   listener = fn
 }
 
+/** Write one design straight away (for uploading several in a row; cloudSave keeps only the latest). */
+export async function cloudPut(p: Project): Promise<boolean> {
+  const c = await cloud()
+  if (!c) return false
+  const json = JSON.stringify(p)
+  if (json.length > 240_000) return false
+  try {
+    await c.coll.doc(p.id).set({ name: p.name, updatedAt: p.updatedAt, json })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function cloudSave(p: Project): Promise<void> {
   const c = await cloud()
   if (!c) {
