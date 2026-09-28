@@ -81,7 +81,7 @@ const STORIES: Array<{ title: string; body: string; img: string; alt: string; di
     body: 'Your home sits on a real-looking street with a driveway, a front path, planting beds and neighbours. Slide the sun to evening and watch the windows light up.',
     img: 'shots/night.jpg',
     alt: 'The house seen from across the street in the evening with lit windows',
-    dim: 'Dusk · 8:30 pm',
+    dim: 'Dusk · after sunset',
   },
   {
     title: 'Know what it costs and what to buy',
