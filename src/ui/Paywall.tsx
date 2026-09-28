@@ -91,6 +91,9 @@ export function PaywallSheet() {
         {!f && !lapsed && source === 'free' && trial.used && !trial.active && (
           <p className="paywall-lede">Every design you made is still here. Clean exports, the 3D model, the shopping list, electrical layout, the assistant and all styles are paused until you choose Pro.</p>
         )}
+        {!f && lapsed && source !== 'license' && lapsed.ref?.startsWith('sub_') && (
+          <p className="paywall-lede">Still subscribed? Your key renews by itself when this device is online. If it does not, choose “I have a license key”, then “Email me my key”.</p>
+        )}
         {!f && lapsed && source !== 'license' && <p className="paywall-lede">Every design you made is still here and still opens. Pick a plan or a pass to switch the paid tools back on.</p>}
         <Segmented
           label="Billing"
