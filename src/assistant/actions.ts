@@ -16,7 +16,7 @@ import { furnishRoom } from '../model/furnish'
 import { wireRoom, wiringSummary } from '../model/electrical'
 import { CM_PER_FT } from '../model/units'
 import { applyHomeStyle, HOME_STYLES } from '../model/styles'
-import { roomDaylight } from '../model/daylight'
+import { roomDaylight, type SunWindow } from '../model/daylight'
 import { DEFAULT_LATITUDE } from '../model/sun'
 
 type Side = 'N' | 'S' | 'E' | 'W'
@@ -46,6 +46,12 @@ const toFt = (cm: number) => Math.round((cm / CM_PER_FT) * 10) / 10
 // ---------------------------------------------------------------------------
 // What Claude reads
 
+/** "07:45-12:00, 16:30-19:15" in solar time, or "" without sun. */
+function sunTimesText(s: SunWindow): string {
+  const hm = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
+  return s.spans.map(([a, b]) => `${hm(a)}-${hm(b)}`).join(', ')
+}
+
 export function describeLevel(p: Project, level: Level): string {
   const rooms = level.rooms.map((r) => {
     const b = bounds(r.points)
@@ -64,7 +70,15 @@ export function describeLevel(p: Project, level: Level): string {
       floor: r.floor,
       doors,
       windows,
-      ...(light?.windows ? { window_faces: light.faces, winter_sun_h: Math.round(light.winter.hours * 2) / 2, summer_sun_h: Math.round(light.summer.hours * 2) / 2 } : {}),
+      ...(light?.windows
+        ? {
+            window_faces: light.faces,
+            winter_sun_h: Math.round(light.winter.hours * 2) / 2,
+            winter_sun_times: sunTimesText(light.winter),
+            summer_sun_h: Math.round(light.summer.hours * 2) / 2,
+            summer_sun_times: sunTimesText(light.summer),
+          }
+        : {}),
       items,
     }
   })
@@ -109,7 +123,7 @@ Each action is one of:
 - {"op":"set_roof","style":"none"|"flat"|"gable"|"hip"|"shed","pitch"?:risePer12,"material"?:"shingle"|"metal"|"tile"|"slate"|"membrane","color"?:"#RRGGBB"}
 - {"op":"apply_style","style":${HOME_STYLES.map((s) => `"${s.id}"`).join('|')}}  (restyles every room, floor, trim, outside, roof and furniture colour in the whole home; use first, then any specific changes)
 Order matters: create rooms before adding doors, windows or items to them. Give every new room at least one door. Keep furniture sizes realistic for the room.
-DAYLIGHT: rooms with windows list window_faces (true compass directions) and winter_sun_h and summer_sun_h, the most hours of direct sun at midwinter and midsummer. Use them for questions about light and sun.
+DAYLIGHT: rooms with windows list window_faces (true compass directions), and for midwinter and midsummer the most hours of direct sun (winter_sun_h, summer_sun_h) and when it comes in (winter_sun_times, summer_sun_times, 24-hour solar time). Use them for questions about light and sun.
 QUESTIONS: if the user only asks a question, reply with an empty actions list and answer in summary, in at most two short sentences.
 
 FLOOR IDS: ${FLOORS.map((f) => `${f.id} (${f.name})`).join('; ')}

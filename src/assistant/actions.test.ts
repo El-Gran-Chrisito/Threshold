@@ -85,6 +85,7 @@ describe('describeLevel daylight', () => {
     const den = d.rooms.find((r: { name: string }) => r.name === 'Den')
     expect(den.window_faces).toEqual(['S'])
     expect(den.winter_sun_h).toBeGreaterThan(7)
+    expect(den.winter_sun_times).toMatch(/^0\d:\d\d-1\d:\d\d$/)
     const garage = d.rooms.find((r: { name: string }) => r.name === 'Garage')
     expect(garage).toBeTruthy()
   })
