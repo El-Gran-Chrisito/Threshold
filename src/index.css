@@ -5,7 +5,7 @@
   --panel-2: #f5f7f5;
   --ink: #1c2226;
   --ink-2: #56626a;
-  --ink-3: #87939a;
+  --ink-3: #6b777e;
   --line: #d5dcd8;
   --line-2: #e6ebe8;
   --accent: #0b7a75;
@@ -34,7 +34,7 @@
     --panel-2: #1b2427;
     --ink: #e4eae8;
     --ink-2: #a3afb2;
-    --ink-3: #74828a;
+    --ink-3: #7f8d95;
     --line: #2b363a;
     --line-2: #222c30;
     --accent: #3bbdb2;
@@ -60,7 +60,7 @@
   --panel-2: #1b2427;
   --ink: #e4eae8;
   --ink-2: #a3afb2;
-  --ink-3: #74828a;
+  --ink-3: #7f8d95;
   --line: #2b363a;
   --line-2: #222c30;
   --accent: #3bbdb2;
@@ -115,7 +115,10 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-.swatch:focus-within {
+a:focus-visible,
+summary:focus-visible,
+.swatch:focus-within,
+.ctl-btn:has(select:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -581,7 +584,7 @@ a.btn:not(.btn-primary) {
   padding: 1px 7px;
   border-radius: 999px;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--ink));
   font-size: 11.5px;
   font-weight: 700;
   white-space: nowrap;
