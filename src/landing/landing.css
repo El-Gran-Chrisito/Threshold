@@ -543,6 +543,44 @@ p {
   transform: rotate(-45deg);
 }
 
+.pass {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 20px 24px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.pass > div {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.pass h3 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.pass h3 span {
+  color: var(--accent);
+}
+
+.pass p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.pass .price {
+  color: var(--ink);
+}
+
+.pass .price strong {
+  font-size: 34px;
+}
+
 .fine {
   font-size: 14px;
   color: var(--ink-3);

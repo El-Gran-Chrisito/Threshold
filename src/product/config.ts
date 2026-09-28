@@ -32,13 +32,15 @@ export const productConfig = {
     pro: { monthly: env.VITE_CHECKOUT_PRO_MONTHLY || '', yearly: env.VITE_CHECKOUT_PRO_YEARLY || '' },
     studio: { monthly: env.VITE_CHECKOUT_STUDIO_MONTHLY || '', yearly: env.VITE_CHECKOUT_STUDIO_YEARLY || '' },
   } as Record<Exclude<PlanId, 'free'>, Record<Billing, string>>,
+  /** One-time Pro Build Pass checkout (see PASS in plans.ts). */
+  passCheckout: env.VITE_CHECKOUT_PRO_PASS || '',
   /** Where subscribers manage billing (Stripe customer portal login link). */
   billingPortal: env.VITE_BILLING_PORTAL_URL || '',
   trialDays: 7,
 }
 
-export function checkoutUrl(plan: Exclude<PlanId, 'free'>, billing: Billing, email?: string): string | null {
-  const base = productConfig.checkout[plan][billing]
+export function checkoutUrl(plan: Exclude<PlanId, 'free'>, billing: Billing | 'pass', email?: string): string | null {
+  const base = billing === 'pass' ? (plan === 'pro' ? productConfig.passCheckout : '') : productConfig.checkout[plan][billing]
   if (!base) return null
   try {
     const u = new URL(base)

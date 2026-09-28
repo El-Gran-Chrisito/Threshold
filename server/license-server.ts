@@ -3,6 +3,8 @@
  * key, and renews subscription keys while the subscription is paid.
  *
  *   POST /activate  { "sessionId": "cs_..." }  ->  { key, plan, email }
+ *                   Subscriptions get keys that renew; one-time payments get
+ *                   keys that last `days` (price metadata) or forever.
  *   POST /refresh   { "key": "THR1...." }     ->  { key }
  *
  * Written against the web-standard Request/Response API, so it runs on
@@ -25,6 +27,7 @@
  * Design routes take the customer's license key as `Authorization: License THR1...`.
  */
 import { signLicense, verifyLicense, type LicensePayload } from '../src/product/license'
+import { PASS } from '../src/product/plans'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -111,6 +114,21 @@ export function planForPrice(price: StripePrice | undefined, env: Env): Plan | n
   return null
 }
 
+/**
+ * How long a one-time purchase lasts: a `days` metadata value on the session,
+ * price or product, else PASS.days when the price is named as a pass, else
+ * forever (a lifetime deal).
+ */
+export function daysForPurchase(session: Pick<StripeSession, 'metadata'>, price: StripePrice | undefined): number | null {
+  const product = price && typeof price.product === 'object' ? price.product : undefined
+  for (const raw of [session.metadata?.days, price?.metadata?.days, product?.metadata?.days]) {
+    const n = Number(raw)
+    if (raw && Number.isFinite(n) && n > 0) return Math.round(n)
+  }
+  const hint = [price?.lookup_key, product?.name, price?.metadata?.plan, product?.metadata?.plan].filter(Boolean).join(' ').toLowerCase()
+  return hint.includes('pass') ? PASS.days : null
+}
+
 function periodEnd(sub: StripeSubscription): number | null {
   const end = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end
   return end ? end * 1000 : null
@@ -148,6 +166,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     if (!plan) return json(env, { error: 'This purchase is not linked to a plan' }, 422)
     const sub = typeof s.subscription === 'object' && s.subscription ? s.subscription : null
     const end = sub ? periodEnd(sub) : null
+    const days = s.mode === 'subscription' ? null : daysForPurchase(s, s.line_items?.data?.[0]?.price)
     const payload: LicensePayload = {
       v: 1,
       plan,
@@ -155,7 +174,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
       name: s.customer_details?.name ?? undefined,
       ref: sub?.id ?? (typeof s.subscription === 'string' ? s.subscription : s.id),
       iat: now,
-      exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : null,
+      exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : days ? now + days * 86_400_000 : null,
     }
     return json(env, { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null })
   }

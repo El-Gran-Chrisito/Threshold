@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
-import { FEATURES, PLANS, planInfo, type Feature, type PlanId } from '../product/plans'
-import { trialState, useEntitlements } from '../product/entitlements'
+import { FEATURES, PASS, PLANS, planInfo, type Feature, type PlanId } from '../product/plans'
+import { daysLeft, isPass, trialState, useEntitlements } from '../product/entitlements'
 import { checkoutUrl, productConfig, type Billing } from '../product/config'
 import { track } from '../product/analytics'
 import { Segmented } from './controls'
 import { Icon } from './Icon'
 
 const money = (n: number) => (n % 1 ? `$${n.toFixed(2)}` : `$${n}`)
+const day = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
 /** Plan badge in the top bar: shows the current plan and opens the plans sheet. */
 export function PlanBadge() {
   const plan = useEntitlements((s) => s.plan)
   const source = useEntitlements((s) => s.source)
   const started = useEntitlements((s) => s.trialStartedAt)
+  const license = useEntitlements((s) => s.license)
   const open = useEntitlements((s) => s.openPaywall)
   const t = trialState(started)
-  const label = source === 'trial' ? `Pro trial · ${t.daysLeft} day${t.daysLeft === 1 ? '' : 's'} left` : plan === 'free' ? 'Upgrade' : planInfo(plan).name
+  const left = isPass(license) ? daysLeft(license) : null
+  const plural = (n: number) => `${n} day${n === 1 ? '' : 's'} left`
+  const label =
+    source === 'trial' ? `Pro trial · ${plural(t.daysLeft)}` : plan === 'free' ? 'Upgrade' : left !== null && left <= 14 ? `${planInfo(plan).name} · ${plural(left)}` : planInfo(plan).name
   return (
     <button type="button" className={`plan-badge is-${plan}${source === 'trial' ? ' is-trial' : ''}`} onClick={() => open(null)} title="Plans and license">
       {plan === 'free' ? <Icon name="magic" size={15} /> : null}
@@ -29,6 +34,7 @@ export function PaywallSheet() {
   const plan = useEntitlements((s) => s.plan)
   const source = useEntitlements((s) => s.source)
   const license = useEntitlements((s) => s.license)
+  const lapsed = useEntitlements((s) => s.lapsed)
   const started = useEntitlements((s) => s.trialStartedAt)
   const { closePaywall, startTrial, activate, signOut } = useEntitlements.getState()
   const [billing, setBilling] = useState<Billing>('yearly')
@@ -61,8 +67,17 @@ export function PaywallSheet() {
             <Icon name="close" />
           </button>
         </header>
-        <h2 id="paywall-title">{f ? `${f.name} is part of ${planInfo(need).name}` : source === 'license' ? 'Thank you for supporting Threshold' : 'Get more from Threshold'}</h2>
+        <h2 id="paywall-title">
+          {f
+            ? `${f.name} is part of ${planInfo(need).name}`
+            : source === 'license'
+              ? 'Thank you for supporting Threshold'
+              : lapsed?.exp
+                ? `Your ${planInfo(lapsed.plan).name} ${isPass(lapsed) ? 'pass' : 'plan'} ended on ${day(lapsed.exp)}`
+                : 'Get more from Threshold'}
+        </h2>
         {f && <p className="paywall-lede">{f.blurb}</p>}
+        {!f && lapsed && source !== 'license' && <p className="paywall-lede">Every design you made is still here and still opens. Pick a plan or a pass to switch the paid tools back on.</p>}
         <Segmented
           label="Billing"
           value={billing}
@@ -108,7 +123,8 @@ export function PaywallSheet() {
             )
           })}
         </div>
-        {!trial.used && source === 'free' && (
+        {plan === 'free' || source === 'trial' || (isPass(license) && (daysLeft(license) ?? 99) <= 14) ? <PassOffer email={license?.email ?? lapsed?.email} /> : null}
+        {!trial.used && source === 'free' && !lapsed && (
           <button type="button" className="btn btn-primary paywall-trial" onClick={() => startTrial()}>
             Try Pro free for {productConfig.trialDays} days
           </button>
@@ -116,7 +132,7 @@ export function PaywallSheet() {
         {source === 'license' && license ? (
           <p className="paywall-fine">
             Licensed to {license.email || license.name || 'you'}
-            {license.exp ? ` · renews by ${new Date(license.exp).toLocaleDateString()}` : ''} ·{' '}
+            {license.exp ? (isPass(license) ? ` · ${planInfo(license.plan).name} until ${day(license.exp)}, nothing renews` : ` · renews by ${day(license.exp)}`) : ''} ·{' '}
             {productConfig.billingPortal && (
               <>
                 <a href={productConfig.billingPortal} target="_blank" rel="noreferrer">
@@ -161,6 +177,29 @@ export function PaywallSheet() {
         </p>
       </div>
     </div>
+  )
+}
+
+/** The one-time Build Pass, for people planning a single home. */
+function PassOffer({ email }: { email?: string }) {
+  const url = checkoutUrl('pro', 'pass', email)
+  return (
+    <aside className="pass-offer">
+      <div>
+        <span className="eyebrow">Planning one home?</span>
+        <h3>
+          {PASS.name} <span className="pass-price">{money(PASS.price)} once</span>
+        </h3>
+        <p>{PASS.blurb}</p>
+      </div>
+      {url ? (
+        <a className="btn" href={url} target="_blank" rel="noreferrer" onClick={() => track('upgrade_clicked', { plan: 'pro', billing: 'pass' })}>
+          Get the pass
+        </a>
+      ) : (
+        <span className="plan-soon">Checkout is not connected in this copy yet</span>
+      )}
+    </aside>
   )
 }
 

@@ -19,6 +19,8 @@ export interface Entitlements {
   plan: PlanId
   source: 'free' | 'trial' | 'license'
   license: LicensePayload | null
+  /** A stored license that has run out (a pass or a lapsed subscription). */
+  lapsed: LicensePayload | null
   key: string | null
   trialStartedAt: number | null
   paywall: { open: boolean; feature: Feature | null }
@@ -52,6 +54,15 @@ function write(k: string, v: string | null) {
   } catch {
     /* storage unavailable */
   }
+}
+
+/** A license that ends on a date and does not renew (a Build Pass or a key issued for a set time). */
+export function isPass(l: LicensePayload | null): boolean {
+  return !!l?.exp && !l.ref?.startsWith('sub_')
+}
+
+export function daysLeft(l: LicensePayload | null, now = Date.now()): number | null {
+  return l?.exp ? Math.max(0, Math.ceil((l.exp - now) / DAY)) : null
 }
 
 export function trialState(startedAt: number | null, now = Date.now()) {
@@ -90,6 +101,7 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
   plan: 'free',
   source: 'free',
   license: null,
+  lapsed: null,
   key: null,
   trialStartedAt: null,
   paywall: { open: false, feature: null },
@@ -99,9 +111,10 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
     const trial = Number(read(TRIAL_KEY)) || null
     let key = read(LICENSE_KEY)
     let license: LicensePayload | null = null
+    let lapsed: LicensePayload | null = null
     if (key) {
       const peek = peekLicense(key)
-      if (peek?.exp && peek.exp - Date.now() < 3 * DAY) {
+      if (peek?.exp && peek.ref?.startsWith('sub_') && peek.exp - Date.now() < 3 * DAY) {
         const fresh = await renew(key)
         if (fresh) {
           key = fresh
@@ -110,8 +123,9 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
       }
       const v = await verifyLicense(key, productConfig.licensePublicKey)
       if (v.ok) license = v.payload
+      else if (v.reason === 'expired') lapsed = peekLicense(key)
     }
-    set({ key, license, trialStartedAt: trial, ...derive(license, trial), ready: true })
+    set({ key, license, lapsed, trialStartedAt: trial, ...derive(license, trial), ready: true })
   },
 
   activate: async (raw) => {
@@ -122,7 +136,7 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
       return { ok: false, message: REASONS[v.reason] }
     }
     write(LICENSE_KEY, key)
-    set({ key, license: v.payload, ...derive(v.payload, get().trialStartedAt), paywall: { open: false, feature: null } })
+    set({ key, license: v.payload, lapsed: null, ...derive(v.payload, get().trialStartedAt), paywall: { open: false, feature: null } })
     track('license_activated', { plan: v.payload.plan })
     return { ok: true, message: `${v.payload.plan === 'studio' ? 'Studio' : 'Pro'} is active. Thank you!` }
   },
@@ -150,7 +164,7 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
 
   signOut: () => {
     write(LICENSE_KEY, null)
-    set({ key: null, license: null, ...derive(null, get().trialStartedAt) })
+    set({ key: null, license: null, lapsed: null, ...derive(null, get().trialStartedAt) })
   },
 
   openPaywall: (feature = null) => {
@@ -175,7 +189,7 @@ export function featureName(f: Feature) {
 
 /** For tests: reset to a fresh free state. */
 export function resetEntitlements() {
-  useEntitlements.setState({ plan: 'free', source: 'free', license: null, key: null, trialStartedAt: null, paywall: { open: false, feature: null }, ready: false })
+  useEntitlements.setState({ plan: 'free', source: 'free', license: null, lapsed: null, key: null, trialStartedAt: null, paywall: { open: false, feature: null }, ready: false })
 }
 
 // Design sync for licensed customers outside Claude (see server/license-server.ts).

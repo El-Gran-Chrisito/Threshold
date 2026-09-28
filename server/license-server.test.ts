@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handle, planForPrice, type Env } from './license-server'
+import { daysForPurchase, handle, planForPrice, type Env } from './license-server'
 import { generateKeyPair, signLicense, verifyLicense } from '../src/product/license'
 
 async function setup(stripeData: Record<string, unknown>) {
@@ -59,6 +59,31 @@ describe('license server', () => {
     const ended = await setup({ 'subscriptions/sub_9': { id: 'sub_9', status: 'canceled' } })
     const k2 = await signLicense({ v: 1, plan: 'pro', ref: 'sub_9', iat: 0, exp: 1 }, ended.privateJwk)
     expect((await ended.post('/refresh', { key: k2 })).status).toBe(403)
+  })
+
+  it('gives a one-time Build Pass a fixed length, and lifetime deals none', async () => {
+    const session = (id: string, price: Record<string, unknown>) => ({
+      id,
+      status: 'complete',
+      payment_status: 'paid',
+      mode: 'payment',
+      customer_details: { email: 'one@example.com' },
+      line_items: { data: [{ price }] },
+    })
+    const { publicJwk, post } = await setup({
+      'checkout/sessions/cs_pass': session('cs_pass', { id: 'price_x', product: { name: 'Threshold Pro Build Pass', metadata: { days: '183' } } }),
+      'checkout/sessions/cs_life': session('cs_life', { id: 'price_y', metadata: { plan: 'studio' } }),
+    })
+    const pass = await verifyLicense(((await (await post('/activate', { sessionId: 'cs_pass' })).json()) as { key: string }).key, publicJwk)
+    expect(pass.ok && pass.payload.plan).toBe('pro')
+    const days = pass.ok ? (pass.payload.exp! - Date.now()) / 86_400_000 : 0
+    expect(days).toBeGreaterThan(182.9)
+    expect(days).toBeLessThan(183.1)
+    const life = await verifyLicense(((await (await post('/activate', { sessionId: 'cs_life' })).json()) as { key: string }).key, publicJwk)
+    expect(life.ok && life.payload.plan).toBe('studio')
+    expect(life.ok && life.payload.exp).toBeNull()
+    expect(daysForPurchase({}, { id: 'p', lookup_key: 'pro_pass' })).toBe(183)
+    expect(daysForPurchase({ metadata: { days: '30' } }, undefined)).toBe(30)
   })
 
   it('maps prices to plans', () => {

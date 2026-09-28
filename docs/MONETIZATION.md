@@ -7,7 +7,7 @@ This guide takes Threshold from this repository to a paid product. It uses Strip
 | Part | Where |
 | --- | --- |
 | Plans (Free, Pro, Studio), features per plan, prices | `src/product/plans.ts` |
-| Upgrade sheet, plan badge, trial, license key entry | `src/ui/Paywall.tsx`, `src/product/entitlements.ts` |
+| Upgrade sheet, plan badge, trial, one-time Build Pass, license key entry | `src/ui/Paywall.tsx`, `src/product/entitlements.ts` |
 | Feature gates (designs limit, watermark, exports, electrical, assistant, styles, surroundings, branding, presentation) | `src/product/gates.ts` and the buttons that call `requireFeature` |
 | Signed license keys, checked offline in the app | `src/product/license.ts` |
 | License key tool (create keys, issue keys by hand) | `scripts/license-keys.ts`, run with `bun run license` |
@@ -52,7 +52,8 @@ Check: `bun run license issue --plan pro --email you@example.com --days 30` prin
    - List the price ids in the server's `PRICE_PLANS` setting.
 4. Create a **Payment Link** for each of the four prices. In each link, under *After payment*, choose *Don't show confirmation page* and redirect to:
    `https://YOUR-SITE/app?checkout_session={CHECKOUT_SESSION_ID}`
-5. Turn on the **customer portal** (Settings → Billing → Customer portal) and copy its login link. Subscribers use it to cancel or change their card.
+5. Optional, for people planning one home: create a product **Threshold Pro Build Pass** with a **one-time** price of $49. Add metadata `plan = pro` and `days = 183` to the product (the server also treats any price whose lookup key or product name contains "pass" as 183 days). Make a Payment Link for it with the same redirect, and put it in `VITE_CHECKOUT_PRO_PASS`. Buyers get a key that ends after 183 days and never renews; a one-time price without `days` gives a key that never ends (a lifetime deal).
+6. Turn on the **customer portal** (Settings → Billing → Customer portal) and copy its login link. Subscribers use it to cancel or change their card.
 
 Do all of this in **test mode** first.
 

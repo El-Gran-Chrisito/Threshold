@@ -506,6 +506,10 @@ hr {
   font-size: 14px;
 }
 
+a.btn:not(.btn-primary) {
+  color: var(--ink);
+}
+
 .btn:hover {
   border-color: var(--ink-3);
 }
@@ -2878,4 +2882,46 @@ kbd {
   flex-direction: column;
   gap: 8px;
   font-size: 13.5px;
+}
+
+.pass-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.pass-offer > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.pass-offer h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.pass-offer p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.pass-price {
+  margin-left: 6px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.pass-offer .btn {
+  text-decoration: none;
 }

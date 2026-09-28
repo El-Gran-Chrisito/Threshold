@@ -77,6 +77,18 @@ export const PLANS: PlanInfo[] = [
   },
 ]
 
+/**
+ * One payment, no subscription: Pro for the length of a typical design
+ * phase. For people planning one home who do not want another subscription.
+ */
+export const PASS = {
+  name: 'Pro Build Pass',
+  plan: 'pro' as const,
+  price: 49,
+  days: 183,
+  blurb: 'Everything in Pro for 6 months. One payment, nothing renews.',
+}
+
 export const planInfo = (id: PlanId) => PLANS.find((p) => p.id === id)!
 
 export function allows(plan: PlanId, feature: Feature): boolean {
