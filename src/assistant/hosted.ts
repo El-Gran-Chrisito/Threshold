@@ -40,7 +40,8 @@ async function prepareImage(file: Blob): Promise<{ mediaType: string; data: stri
 export function hostedAssistant(): SampleLike | null {
   const ent = useEntitlements.getState()
   const api = productConfig.licenseApi
-  if (!api || ent.source !== 'license' || !ent.key || !allows(ent.plan, 'assistant')) return null
+  // A paid license or a server-signed trial key; a trial kept only in the browser has no key to check.
+  if (!api || !ent.license || !ent.key || !allows(ent.plan, 'assistant')) return null
   const key = ent.key
   return {
     limits: async () => ({ images: { maxCount: 1, mediaTypes: ['image/jpeg', 'image/png', 'image/webp'] } }),

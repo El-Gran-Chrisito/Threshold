@@ -14,6 +14,7 @@ compatibility_date = "2026-09-01"
 # Design assistant for paying customers (also run: wrangler secret put ANTHROPIC_API_KEY):
 # ASSISTANT_MODEL = "claude-sonnet-5"
 # ASSISTANT_DAILY_LIMIT = "60"
+# TRIAL_ASSISTANT_DAILY_LIMIT = "10"
 
 # Design sync for paying customers (optional). Create the namespace with
 #   npx wrangler kv namespace create DESIGNS

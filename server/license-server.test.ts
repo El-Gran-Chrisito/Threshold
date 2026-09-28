@@ -219,3 +219,34 @@ describe('key delivery and recovery', () => {
     expect(m.text).toContain('I have a license key')
   })
 })
+
+describe('trial keys', () => {
+  function memoryKV(): KV {
+    const m = new Map<string, string>()
+    return { get: async (k) => m.get(k) ?? null, put: async (k, v) => void m.set(k, v), delete: async (k) => void m.delete(k), list: async () => ({ keys: [] }) }
+  }
+
+  it('gives each network one 7-day Pro trial without design sync', async () => {
+    const { publicJwk, privateJwk } = await generateKeyPair()
+    const env: Env = { STRIPE_SECRET_KEY: '', LICENSE_PRIVATE_KEY: JSON.stringify(privateJwk), DESIGNS: memoryKV() }
+    const post = (path: string, ip: string, headers: Record<string, string> = {}) =>
+      handle(new Request(`https://lic.example${path}`, { method: 'POST', headers: { 'cf-connecting-ip': ip, ...headers }, body: '{}' }), env)
+    const res = await post('/trial', '203.0.113.7')
+    expect(res.status).toBe(200)
+    const { key } = (await res.json()) as { key: string }
+    const v = await verifyLicense(key, publicJwk)
+    expect(v.ok && v.payload.trial).toBe(true)
+    expect(v.ok && v.payload.plan).toBe('pro')
+    expect(v.ok && Math.round((v.payload.exp! - Date.now()) / 86_400_000)).toBe(7)
+    expect((await post('/trial', '203.0.113.7')).status).toBe(429)
+    expect((await post('/trial', '198.51.100.2')).status).toBe(200)
+    expect((await post('/designs/list', '203.0.113.7', { authorization: `License ${key}` })).status).toBe(403)
+    expect((await post('/refresh', '203.0.113.7')).status).toBe(400)
+  })
+
+  it('is off without a store to count trials', async () => {
+    const { privateJwk } = await generateKeyPair()
+    const env: Env = { STRIPE_SECRET_KEY: '', LICENSE_PRIVATE_KEY: JSON.stringify(privateJwk) }
+    expect((await handle(new Request('https://lic.example/trial', { method: 'POST', body: '{}' }), env)).status).toBe(501)
+  })
+})

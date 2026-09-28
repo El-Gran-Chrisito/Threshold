@@ -91,7 +91,9 @@ Inside Claude the assistant uses the viewer's own Claude. On your site it goes t
 2. `npx wrangler secret put ANTHROPIC_API_KEY`
 3. Optional, under `[vars]`: `ASSISTANT_MODEL` (default `claude-sonnet-5`; `claude-opus-5-5` is stronger and costs more) and `ASSISTANT_DAILY_LIMIT` (requests per customer per day, default 60; counted only when the design-sync store is set up).
 
-Each request sends the current floor and the instructions, about 8,000 to 20,000 input tokens, plus a photo if one is attached. Check the model's price and set the daily limit so a busy customer stays well inside what they pay you. Trial users do not get the hosted assistant, because a trial has no key for the server to check.
+Each request sends the current floor and the instructions, about 8,000 to 20,000 input tokens, plus a photo if one is attached. Check the model's price and set the daily limit so a busy customer stays well inside what they pay you.
+
+Trials: when the design-sync store is set up, starting a trial also asks the server for a signed 7-day trial key, one per network (IP address) per 30 days. Trial keys get the hosted assistant with a smaller limit, `TRIAL_ASSISTANT_DAILY_LIMIT` (default 10 a day), and no design sync. If the server says no, the trial still runs in the browser without the hosted assistant. On Cloudflare the network is read from `CF-Connecting-IP`; elsewhere from `X-Forwarded-For`, so run the server behind a host that sets that header.
 
 ### Design sync (Pro and Studio)
 
@@ -175,5 +177,5 @@ Change a price in Stripe and in `PLANS` together.
 
 - All checks run in the browser. A determined person can bypass them by editing the code; license keys stop casual sharing and keep honest customers on the right plan. Features that cost you money to run are checked on the server: the hosted assistant needs a valid Pro or Studio key and has a daily limit.
 - Nothing leaves the device by default. Funnel events (`paywall_shown`, `upgrade_clicked`, `trial_started`, `license_activated`) go to Plausible if you add its script to `home.html` and `index.html`; otherwise they stay in memory.
-- The 7-day trial is stored in the browser, so clearing site data restarts it. Accept this for the first launch or move trials to the server later.
+- The 7-day trial also lives in the browser, so clearing site data restarts it. Only the server-signed part (the hosted assistant) is limited to one trial per network per 30 days.
 - `bun run build:single` still makes the one-file version used as a Claude artifact. It has no checkout or license server settings unless you build it with them.

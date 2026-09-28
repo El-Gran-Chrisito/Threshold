@@ -18,7 +18,7 @@ async function setup(reply: { status?: number; body: unknown }, extra: Partial<E
     sent.push(JSON.parse(String(init?.body)))
     return new Response(typeof reply.body === 'string' ? reply.body : JSON.stringify(reply.body), { status: reply.status ?? 200 })
   }) as typeof fetch
-  const key = (plan: 'pro' | 'studio') => signLicense({ v: 1, plan, ref: 'sub_1', iat: Date.now(), exp: Date.now() + 86_400_000 }, privateJwk)
+  const key = (plan: 'pro' | 'studio', trial = false) => signLicense({ v: 1, plan, ref: trial ? 'trial_1' : 'sub_1', iat: Date.now(), exp: Date.now() + 86_400_000, ...(trial ? { trial } : {}) }, privateJwk)
   const ask = async (body: unknown, license?: string) =>
     handle(new Request('https://lic.example/assistant', { method: 'POST', headers: license ? { authorization: `License ${license}` } : {}, body: JSON.stringify(body) }), env, fetchImpl)
   return { ask, key, sent }
@@ -60,6 +60,13 @@ describe('assistant route', () => {
     expect(third.status).toBe(429)
     expect(((await third.json()) as { code: string }).code).toBe('daily_limit')
     expect(sent).toHaveLength(2)
+  })
+
+  it('gives trials a smaller daily limit', async () => {
+    const { ask, key } = await setup(answer('{"actions":[]}'), { TRIAL_ASSISTANT_DAILY_LIMIT: '1' })
+    const k = await key('pro', true)
+    expect((await ask({ prompt: 'a' }, k)).status).toBe(200)
+    expect((await ask({ prompt: 'b' }, k)).status).toBe(429)
   })
 
   it('finds the JSON in a reply with extra text', () => {

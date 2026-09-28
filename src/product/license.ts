@@ -20,6 +20,8 @@ export interface LicensePayload {
   /** Issued and expires, ms since epoch. `exp: null` never expires (lifetime or manual keys). */
   iat: number
   exp: number | null
+  /** A free trial key from the license server: Pro for a few days, no design sync. */
+  trial?: boolean
 }
 
 export type VerifyResult = { ok: true; payload: LicensePayload } | { ok: false; reason: 'unconfigured' | 'format' | 'signature' | 'expired' }

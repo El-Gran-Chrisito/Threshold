@@ -6,6 +6,8 @@
  *                   Subscriptions get keys that renew; one-time payments get
  *                   keys that last `days` (price metadata) or forever.
  *   POST /refresh   { "key": "THR1...." }     ->  { key }
+ *   POST /trial     {}                          ->  { key } a 7-day Pro trial key, one per
+ *                   network per 30 days (needs DESIGNS for the count)
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -53,8 +55,12 @@ export interface Env extends AssistantEnv {
   RESEND_API_KEY?: string
   EMAIL_FROM?: string
   SUPPORT_EMAIL?: string
+  /** Assistant requests per trial per day (default 10). */
+  TRIAL_ASSISTANT_DAILY_LIMIT?: string
   DESIGNS?: KV
 }
+
+const TRIAL_DAYS = 7
 
 const MAX_DESIGN_BYTES = 2_000_000
 const MAX_DESIGNS = 300
@@ -180,6 +186,18 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     return json(env, { key: r.issued.key, plan: r.issued.plan, email: r.issued.email, emailed })
   }
 
+  if (path.endsWith('/trial')) {
+    if (!env.DESIGNS) return json(env, { error: 'Trials are kept in the browser on this site' }, 501)
+    const ip = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
+    const mark = `m:trial:${await hash(ip || 'unknown')}`
+    const last = Number(await env.DESIGNS.get(mark)) || 0
+    if (last && now - last < 30 * 86_400_000) return json(env, { error: 'This network has already had a trial recently' }, 429)
+    await env.DESIGNS.put(mark, String(now))
+    const ref = `trial_${Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => b.toString(16).padStart(2, '0')).join('')}`
+    const key = await signLicense({ v: 1, plan: 'pro', ref, iat: now, exp: now + TRIAL_DAYS * 86_400_000, trial: true }, privateJwk)
+    return json(env, { key })
+  }
+
   if (path.endsWith('/recover')) {
     const email = String(body.email ?? '')
       .trim()
@@ -237,7 +255,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     const req = checkRequest(body)
     if ('ok' in req) return json(env, { code: req.code, message: req.message }, req.status)
     if (env.DESIGNS) {
-      const limit = Number(env.ASSISTANT_DAILY_LIMIT) || 60
+      const limit = v.payload.trial ? Number(env.TRIAL_ASSISTANT_DAILY_LIMIT) || 10 : Number(env.ASSISTANT_DAILY_LIMIT) || 60
       const k = `m:ai:${await ownerKey(v.payload)}:${Math.floor(now / 86_400_000)}`
       const used = Number(await env.DESIGNS.get(k)) || 0
       if (used >= limit) return json(env, { code: 'daily_limit', message: `You have used today's ${limit} assistant requests. They reset at midnight UTC.` }, 429)
@@ -334,6 +352,7 @@ async function designs(request: Request, path: string, body: Record<string, unkn
   const v = await verifyLicense(key, publicJwk)
   if (!v.ok) return json(env, { error: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
   if (!v.payload.ref && !v.payload.email) return json(env, { error: 'This license cannot sync' }, 403)
+  if (v.payload.trial) return json(env, { error: 'Design sync starts when you buy a plan' }, 403)
   const prefix = `d:${await ownerKey(v.payload)}:`
   const kv = env.DESIGNS
   const id = String(body.id ?? '')

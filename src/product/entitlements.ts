@@ -72,7 +72,7 @@ export function trialState(startedAt: number | null, now = Date.now()) {
 }
 
 function derive(license: LicensePayload | null, trialStartedAt: number | null): Pick<Entitlements, 'plan' | 'source'> {
-  if (license) return { plan: license.plan, source: 'license' }
+  if (license) return { plan: license.plan, source: license.trial ? 'trial' : 'license' }
   if (trialState(trialStartedAt).active) return { plan: 'pro', source: 'trial' }
   return { plan: 'free', source: 'free' }
 }
@@ -82,6 +82,18 @@ const REASONS: Record<string, string> = {
   format: 'That does not look like a Threshold license key. Paste the whole key, starting with THR1.',
   signature: 'That key is not valid. Check that it was copied in full.',
   expired: 'That key has expired. Renew your plan to get a new one.',
+}
+
+/** A signed 7-day trial key from the license server, if it gives one. */
+async function trialKey(): Promise<string | null> {
+  if (!productConfig.licenseApi || !productConfig.licensePublicKey) return null
+  try {
+    const res = await fetch(`${productConfig.licenseApi}/trial`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    if (!res.ok) return null
+    return ((await res.json()) as { key?: string }).key ?? null
+  } catch {
+    return null
+  }
 }
 
 /** Ask the license server for a fresh key when a subscription key is close to lapsing. */
@@ -123,7 +135,7 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
       }
       const v = await verifyLicense(key, productConfig.licensePublicKey)
       if (v.ok) license = v.payload
-      else if (v.reason === 'expired') lapsed = peekLicense(key)
+      else if (v.reason === 'expired' && !peekLicense(key)?.trial) lapsed = peekLicense(key)
     }
     set({ key, license, lapsed, trialStartedAt: trial, ...derive(license, trial), ready: true })
   },
@@ -160,6 +172,15 @@ export const useEntitlements = create<Entitlements & Actions>((set, get) => ({
     write(TRIAL_KEY, String(now))
     set({ trialStartedAt: now, ...derive(null, now), paywall: { open: false, feature: null } })
     track('trial_started')
+    // The trial starts at once; a signed trial key from the server, when it comes, adds the hosted assistant.
+    void (async () => {
+      const key = await trialKey()
+      if (!key) return
+      const v = await verifyLicense(key, productConfig.licensePublicKey)
+      if (!v.ok || !v.payload.trial || get().license) return
+      write(LICENSE_KEY, key)
+      set({ key, license: v.payload, ...derive(v.payload, get().trialStartedAt) })
+    })()
     return true
   },
 

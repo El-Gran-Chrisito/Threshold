@@ -65,7 +65,7 @@ function AssistantWorkspace() {
   const [error, setError] = useState<string | null>(null)
   const ctl = useRef<AbortController | null>(null)
   const isEmpty = useStore((s) => activeLevel(s).rooms.length === 0)
-  const licensed = useEntitlements((s) => s.source === 'license')
+  const licensed = useEntitlements((s) => !!s.license)
 
   useEffect(() => {
     let alive = true
@@ -135,7 +135,7 @@ function AssistantWorkspace() {
       {sample === null && (
         <p className="tip">
           {productConfig.licenseApi
-            ? 'On this site the assistant works with a Pro or Studio license (it is not part of the free trial here). Every change it makes can also be done with the tools on the left.'
+            ? 'On this site the assistant works with a Pro or Studio license, or a trial started while online. Every change it makes can also be done with the tools on the left.'
             : 'The assistant works when Threshold is opened inside Claude. Every change it makes can also be done with the tools on the left.'}
         </p>
       )}
