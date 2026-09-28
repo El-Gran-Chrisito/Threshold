@@ -33,10 +33,18 @@ describe('launch check', () => {
   })
 
   it('reads the license server answer and its allowed site', async () => {
-    const reply = (allow: string) => (async () => new Response('{"error":"Checkout session not found"}', { status: 404, headers: { 'access-control-allow-origin': allow } })) as unknown as typeof fetch
+    const reply = (allow: string) =>
+      (async (url: string) =>
+        String(url).endsWith('/health')
+          ? new Response('{"ok":true,"features":{"keyEmails":true}}')
+          : new Response('{"error":"Checkout session not found"}', { status: 404, headers: { 'access-control-allow-origin': allow } })) as unknown as typeof fetch
     const env = { VITE_LICENSE_API: 'https://lic.example', VITE_SITE_URL: 'https://threshold.example' }
-    expect((await checkServer(env, reply('https://threshold.example'))).map((c) => c.level)).toEqual(['ok'])
-    expect((await checkServer(env, reply('*'))).map((c) => c.level)).toEqual(['ok', 'warn'])
-    expect((await checkServer(env, reply('https://other.example'))).map((c) => c.level)).toEqual(['ok', 'fail'])
+    const first = (cs: Array<{ level: string }>, n: number) => cs.slice(0, n).map((c) => c.level)
+    expect(first(await checkServer(env, reply('https://threshold.example')), 2)).toEqual(['ok', 'ok'])
+    expect(first(await checkServer(env, reply('*')), 2)).toEqual(['ok', 'warn'])
+    expect(first(await checkServer(env, reply('https://other.example')), 2)).toEqual(['ok', 'fail'])
+    const features = await checkServer(env, reply('https://threshold.example'))
+    expect(features.find((c) => c.text.startsWith('Key emails'))?.level).toBe('ok')
+    expect(features.find((c) => c.text.startsWith('Hosted assistant'))?.text).toContain('off')
   })
 })

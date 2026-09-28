@@ -12,6 +12,7 @@
  *   POST /send-design, /leads                   ->  email a design link; tips list (leads.ts)
  *   POST /stripe-webhook                        ->  refunds and disputes revoke (webhook.ts)
  *   POST /stats     (ADMIN_TOKEN)               ->  daily counts for the owner (stats.ts)
+ *   POST /health                                ->  which optional features are switched on
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -169,6 +170,23 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(env) })
   if (request.method !== 'POST') return json(env, { error: 'Use POST' }, 405)
   const path = new URL(request.url).pathname.replace(/\/+$/, '')
+  if (path.endsWith('/health')) {
+    const email = !!(env.RESEND_API_KEY && env.EMAIL_FROM)
+    const store = !!env.DESIGNS
+    return json(env, {
+      ok: true,
+      features: {
+        keyEmails: email,
+        designSync: store,
+        assistant: !!env.ANTHROPIC_API_KEY,
+        trials: store,
+        invites: store,
+        designEmails: email && store && !!env.ALLOWED_ORIGIN && env.ALLOWED_ORIGIN !== '*',
+        refunds: store && !!env.STRIPE_WEBHOOK_SECRET,
+        ownerTools: store && (env.ADMIN_TOKEN?.length ?? 0) >= 24,
+      },
+    })
+  }
   if (path.endsWith('/stripe-webhook')) {
     const r = await handleWebhook(env, env.DESIGNS, request, fetchImpl)
     return json(env, r.body, r.status)

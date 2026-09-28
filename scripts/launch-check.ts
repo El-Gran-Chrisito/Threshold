@@ -98,6 +98,21 @@ export async function checkServer(env: Env, fetchImpl: typeof fetch = fetch): Pr
     const allow = res.headers.get('access-control-allow-origin')
     if (env.VITE_SITE_URL && allow !== '*' && allow !== env.VITE_SITE_URL.replace(/\/$/, '')) out.push({ level: 'fail', text: `License server allows ${allow ?? 'no site'}, not ${env.VITE_SITE_URL}. Set ALLOWED_ORIGIN.` })
     else if (allow === '*') out.push({ level: 'warn', text: 'License server allows any site. Set ALLOWED_ORIGIN to your address.' })
+    const health = await fetchImpl(`${api}/health`, { method: 'POST', body: '{}' })
+    if (health.ok) {
+      const { features = {} } = (await health.json()) as { features?: Record<string, boolean> }
+      const names: Record<string, string> = {
+        keyEmails: 'Key emails (RESEND_API_KEY, EMAIL_FROM)',
+        designSync: 'Design sync store (DESIGNS)',
+        assistant: 'Hosted assistant (ANTHROPIC_API_KEY)',
+        trials: 'Signed trials (DESIGNS)',
+        invites: 'Invites (DESIGNS)',
+        designEmails: 'Email me this design (email, DESIGNS, ALLOWED_ORIGIN)',
+        refunds: 'Refund webhook (STRIPE_WEBHOOK_SECRET)',
+        ownerTools: 'Stats and tips list (ADMIN_TOKEN)',
+      }
+      for (const [k, label] of Object.entries(names)) out.push({ level: features[k] ? 'ok' : 'warn', text: `${label}: ${features[k] ? 'on' : 'off'}` })
+    }
   } catch {
     out.push({ level: 'fail', text: `Could not reach ${api}.` })
   }
