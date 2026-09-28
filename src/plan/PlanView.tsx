@@ -1438,6 +1438,14 @@ function ToolHint({ drawing }: { drawing: Draft }) {
       text = 'Drag to move around'
       break
   }
-  return <div className="tool-hint">{text}</div>
+  // The general select hint steps aside after a few seconds; a drawing tool's hint stays while it is in use.
+  const [quiet, setQuiet] = useState(false)
+  useEffect(() => {
+    setQuiet(false)
+    if (tool !== 'select') return
+    const t = setTimeout(() => setQuiet(true), 7000)
+    return () => clearTimeout(t)
+  }, [text, tool])
+  return <div className={`tool-hint${quiet ? ' is-quiet' : ''}`}>{text}</div>
 }
 

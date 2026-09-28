@@ -352,6 +352,10 @@ hr {
   overflow: hidden;
 }
 
+.view-3d {
+  container: view3d / inline-size;
+}
+
 .view-split .view-3d {
   border-left: 1px solid var(--line);
 }
@@ -1247,16 +1251,23 @@ a.btn:not(.btn-primary) {
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
-  max-width: calc(100% - 32px);
-  padding: 7px 14px;
-  border-radius: 999px;
+  width: max-content;
+  max-width: min(560px, calc(100% - 180px));
+  padding: 6px 14px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
-  font-size: 13.5px;
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--ink-2);
   pointer-events: none;
   text-align: center;
+  transition: opacity 0.4s;
+}
+
+.tool-hint.is-quiet {
+  opacity: 0;
 }
 
 .scale-bar {
@@ -1361,9 +1372,20 @@ a.btn:not(.btn-primary) {
 
 .bar3d {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
+  inset: 12px;
+  pointer-events: none;
+}
+
+.bar3d > * {
+  pointer-events: auto;
+}
+
+/* Top left: the view mode, and that mode's options under it. */
+.bar3d-main {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 76px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1371,52 +1393,273 @@ a.btn:not(.btn-primary) {
   pointer-events: none;
 }
 
-.bar3d-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.bar3d-main > * {
   pointer-events: auto;
 }
 
-.pill {
+.mode-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+  max-width: 100%;
+}
+
+.mode-seg button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
-  box-shadow: var(--shadow);
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 13.5px;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.pill.is-on {
+.mode-seg button:hover:not(.is-on) {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+
+.mode-seg button.is-on {
   background: var(--ink);
   color: var(--panel);
-  border-color: var(--ink);
 }
 
-.slider {
+.ctx-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 13.5px;
+  font-weight: 600;
+  max-width: 100%;
+}
+
+.ctx-row .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ctx-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ctx-slider {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
-  box-shadow: var(--shadow);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--ink-2);
 }
 
-.slider input[type='range'] {
-  width: 130px;
+.ctx-slider input[type='range'],
+.sun-time input[type='range'] {
+  width: 120px;
   padding: 0;
   border: 0;
   accent-color: var(--accent);
   background: none;
   box-shadow: none;
+}
+
+/* Top right: camera and scene tools, like the plan's zoom column. */
+.ctl-col {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.ctl-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 58px;
+  padding: 7px 2px 6px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.ctl-btn:hover:not(.is-on),
+.ctl-btn:focus-within:not(.is-on) {
+  background: var(--panel-2);
+}
+
+.ctl-btn.is-on {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+/* The native list opens from the whole button. */
+.ctl-btn select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.ctl-tag {
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--panel);
+}
+
+/* Bottom centre: the sun. */
+.sun-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sun-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  color: var(--ink);
+}
+
+.sun-time .num {
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sun-day {
+  display: inline-flex;
+  border-left: 1px solid var(--line);
+  padding-left: 4px;
+}
+
+.sun-day select {
+  border: 0;
+  background: none;
+  padding: 5px 6px;
+  font: inherit;
+  font-weight: 600;
+  width: auto;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.sun-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sun-play:hover:not(.is-on) {
+  background: var(--line-2);
+}
+
+.sun-play.is-on {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+/* In a narrow 3D pane (phones, split view) the controls fold up. */
+@container view3d (max-width: 640px) {
+  .mode-seg button {
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 8px 4px;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .sun-dock {
+    left: 0;
+    right: 0;
+    transform: none;
+  }
+
+  .sun-time {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sun-time input[type='range'] {
+    flex: 1;
+    min-width: 60px;
+    width: auto;
+  }
+
+  .sun-day select {
+    max-width: 118px;
+  }
+
+  .sun-play-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .view-3d .level-chips {
+    bottom: 68px;
+  }
 }
 
 .walk-hint {
@@ -1482,8 +1725,8 @@ a.btn:not(.btn-primary) {
 .toast {
   position: fixed;
   left: 50%;
-  top: calc(118px + env(safe-area-inset-top, 0px));
-  transform: translate(-50%, -12px);
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 12px);
   padding: 9px 16px;
   border-radius: 10px;
   background: var(--ink);
@@ -1691,23 +1934,23 @@ kbd {
 }
 
 @media (max-width: 820px) {
-  .bar3d {
-    right: 12px;
-  }
-
-  .bar3d-row {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-
-  .pill {
-    padding: 5px 10px;
+  .mode-seg button {
+    padding: 6px 9px;
     font-size: 13px;
-    white-space: nowrap;
-    flex: none;
+  }
+
+  .ctl-btn {
+    width: 50px;
+    font-size: 10.5px;
+    padding: 6px 2px 5px;
+  }
+
+  .sun-time input[type='range'] {
+    width: 84px;
+  }
+
+  .sun-time .num {
+    min-width: 58px;
   }
 
   .minimap {

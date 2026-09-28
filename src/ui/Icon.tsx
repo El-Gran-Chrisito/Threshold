@@ -42,6 +42,13 @@ const PATHS: Record<string, string> = {
   check: 'M5 12l5 5 9-10',
   lowwalls: 'M3 19h18M5 19v-6h14v6M5 13l2-3h10l2 3',
   sheets: 'M7 3h9l4 4v14H7zM16 3v4h4M4 6v15h12M10 12h7M10 16h7',
+  tree: 'M12 3l6 8h-3.5l4.5 6H5l4.5-6H6zM12 17v4',
+  bolt: 'M13 3L5 13h6l-1 8 8-10h-6z',
+  present: 'M3 4h18v12H3zM8 21h8M12 16v5M10 7.5l5 2.5-5 2.5z',
+  section: 'M4 6h16v13H4zM12 3v19M8 10h1M8 14h1M15 10h1M15 14h1',
+  camera: 'M4 8h3.5L9 5.5h6L16.5 8H20v11H4zM12 10.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  play: 'M8 5l11 7-11 7z',
+  pause: 'M8 5v14M16 5v14',
 }
 
 export function Icon({ name, size = 20, title }: { name: string; size?: number; title?: string }) {

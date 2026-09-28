@@ -403,6 +403,8 @@ const PARTS: Array<[PartKind, string]> = [
   ['furniture', 'Furniture'],
 ]
 
+type Mode3D = 'inside' | 'outside' | 'explode' | 'section'
+
 function View3DBar() {
   const cutaway = useStore((s) => s.cutaway)
   const showRoof = useStore((s) => s.showRoof)
@@ -414,39 +416,92 @@ function View3DBar() {
   const surroundings = useStore((s) => (s.project.site.showGround ? s.project.site.surroundings ?? 'suburb' : 'plain'))
   const plan = useEntitlements((s) => s.plan)
   const set = useStore.getState().set
+  const seq = () => useStore.getState().viewFrom.seq + 1
+  const mode: Mode3D = explode > 0 ? 'explode' : section.on ? 'section' : cutaway && !showRoof ? 'inside' : 'outside'
+  const pick = (m: Mode3D) => {
+    const off = { explode: 0, section: { ...section, on: false } }
+    if (m === 'inside') set({ ...off, cutaway: true, showRoof: false })
+    else if (m === 'outside') set({ ...off, cutaway: false, showRoof: true, wallCut: false })
+    else if (m === 'explode') set({ ...off, explode: 1, cutaway: false, showRoof: true, wallCut: false })
+    else set({ explode: 0, section: { ...section, on: true }, cutaway: false, showRoof: true, viewFrom: { dir: section.axis === 'z' ? 'S' : 'E', seq: seq() } })
+  }
+  const MODES: Array<[Mode3D, string, string, string]> = [
+    ['inside', 'Inside', 'eye', 'See inside the current floor'],
+    ['outside', 'Outside', 'roof', 'The whole house with its roof'],
+    ['explode', 'Explode', 'explode', 'Pull the house apart to reach every part'],
+    ['section', 'Section', 'section', 'Slice through the house to see every floor from the side'],
+  ]
   return (
     <div className="bar3d">
-      <div className="bar3d-row">
-        <button type="button" className={`pill${cutaway && !showRoof ? ' is-on' : ''}`} onClick={() => set({ cutaway: true, showRoof: false, explode: 0 })} title="See inside the current floor">
-          <Icon name="eye" size={16} /> Inside
+      <div className="bar3d-main">
+        <div className="mode-seg" role="radiogroup" aria-label="3D view">
+          {MODES.map(([m, label, icon, title]) => (
+            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'is-on' : ''} onClick={() => pick(m)} title={title}>
+              <Icon name={icon} size={16} /> {label}
+            </button>
+          ))}
+        </div>
+        {mode === 'inside' && (
+          <div className="ctx-row">
+            <button type="button" className={`chip${wallCut ? ' is-on' : ''}`} aria-pressed={wallCut} onClick={() => set({ wallCut: !wallCut })} title="Cut walls low to see furniture">
+              <Icon name="lowwalls" size={15} /> Low walls
+            </button>
+          </div>
+        )}
+        {mode === 'explode' && (
+          <div className="ctx-row">
+            <label className="ctx-slider" htmlFor="explode-amt">
+              <span>Spread</span>
+              <input id="explode-amt" type="range" min={0.1} max={1.6} step={0.05} value={explode} onChange={(e) => set({ explode: Number(e.target.value) })} />
+            </label>
+            <div className="ctx-group" role="group" aria-label="Parts to show">
+              {PARTS.map(([k, label]) => {
+                const on = !hiddenParts.includes(k)
+                return (
+                  <button key={k} type="button" className={`chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ hiddenParts: on ? [...hiddenParts, k] : hiddenParts.filter((x) => x !== k) })}>
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        {mode === 'section' && (
+          <div className="ctx-row" role="group" aria-label="Section cut">
+            <div className="ctx-group">
+              <button type="button" className={`chip${section.axis === 'z' ? ' is-on' : ''}`} aria-pressed={section.axis === 'z'} onClick={() => set({ section: { ...section, axis: 'z' }, viewFrom: { dir: 'S', seq: seq() } })}>
+                Front to back
+              </button>
+              <button type="button" className={`chip${section.axis === 'x' ? ' is-on' : ''}`} aria-pressed={section.axis === 'x'} onClick={() => set({ section: { ...section, axis: 'x' }, viewFrom: { dir: 'E', seq: seq() } })}>
+                Side to side
+              </button>
+            </div>
+            <label className="ctx-slider" htmlFor="section-at">
+              <span>Cut at</span>
+              <input id="section-at" type="range" min={0.02} max={0.98} step={0.01} value={section.at} onChange={(e) => set({ section: { ...section, at: Number(e.target.value) } })} aria-label="Cut position" />
+            </label>
+            <button type="button" className={`chip${section.flip ? ' is-on' : ''}`} aria-pressed={section.flip} onClick={() => set({ section: { ...section, flip: !section.flip } })}>
+              Flip
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="ctl-col" role="toolbar" aria-label="3D view tools" aria-orientation="vertical">
+        <button type="button" className="ctl-btn" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} title="Reset the camera">
+          <Icon name="fit" size={18} />
+          <span>Reset</span>
         </button>
-        <button type="button" className={`pill${!cutaway && showRoof ? ' is-on' : ''}`} onClick={() => set({ cutaway: false, showRoof: true, wallCut: false })} title="Whole house with roof">
-          <Icon name="roof" size={16} /> Outside
-        </button>
-        <button type="button" className={`pill${explode > 0 ? ' is-on' : ''}`} onClick={() => set(explode > 0 ? { explode: 0 } : { explode: 1, cutaway: false, showRoof: true, wallCut: false })} title="Pull the house apart to reach every part">
-          <Icon name="explode" size={16} /> Explode
-        </button>
-        <button type="button" className={`pill${wallCut ? ' is-on' : ''}`} onClick={() => set({ wallCut: !wallCut })} title="Cut walls low to see furniture">
-          <Icon name="lowwalls" size={16} /> Low walls
-        </button>
-        <button
-          type="button"
-          className={`pill${section.on ? ' is-on' : ''}`}
-          aria-pressed={section.on}
-          onClick={() => set(section.on ? { section: { ...section, on: false } } : { section: { ...section, on: true }, cutaway: false, showRoof: true, explode: 0, viewFrom: { dir: section.axis === 'z' ? 'S' : 'E', seq: useStore.getState().viewFrom.seq + 1 } })}
-          title="Slice through the house to see every floor from the side"
-        >
-          Section
-        </button>
-        <label className="pill pill-select" htmlFor="view-from">
-          <Icon name="eye" size={16} />
+        <label className="ctl-btn" htmlFor="view-from" title="Look at the house from the street, a corner, above or one side">
+          <Icon name="camera" size={18} />
+          <span>View</span>
           <select
             id="view-from"
             value=""
             onChange={(e) => {
               const dir = e.target.value as 'corner' | 'top' | 'N' | 'E' | 'S' | 'W' | 'street'
-              if (dir === 'street') set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 }, cutaway: false, showRoof: true, wallCut: false, explode: 0 })
-              else if (dir) set({ viewFrom: { dir, seq: useStore.getState().viewFrom.seq + 1 } })
+              if (dir === 'street') set({ viewFrom: { dir, seq: seq() }, cutaway: false, showRoof: true, wallCut: false, explode: 0 })
+              else if (dir) set({ viewFrom: { dir, seq: seq() } })
             }}
             aria-label="View from"
           >
@@ -460,8 +515,9 @@ function View3DBar() {
             <option value="W">Left side</option>
           </select>
         </label>
-        <label className="pill pill-select" htmlFor="surroundings">
-          <Icon name="roof" size={16} />
+        <label className="ctl-btn" htmlFor="surroundings" title="What surrounds the house: a street, a garden, the countryside or nothing">
+          <Icon name="tree" size={18} />
+          <span>Setting</span>
           <select
             id="surroundings"
             value={surroundings}
@@ -480,12 +536,9 @@ function View3DBar() {
             ))}
           </select>
         </label>
-        <button type="button" className="pill" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} title="Reset camera">
-          <Icon name="fit" size={16} /> Reset
-        </button>
         <button
           type="button"
-          className={`pill${lowQuality ? ' is-on' : ''}`}
+          className={`ctl-btn${lowQuality ? ' is-on' : ''}`}
           aria-pressed={lowQuality}
           onClick={() => {
             const v = !lowQuality
@@ -498,55 +551,25 @@ function View3DBar() {
           }}
           title="Faster 3D for slower devices: no shadows, lower resolution"
         >
-          Fast 3D
+          <Icon name="bolt" size={18} />
+          <span>Fast 3D</span>
         </button>
         <button
           type="button"
-          className="pill"
+          className="ctl-btn"
           onClick={() => {
             if (!requireFeature('presentation')) return
             useStore.setState({ presenting: true })
           }}
-          title="Full-screen guided tour to show a client"
+          title="Full-screen guided tour to show a client (Studio)"
         >
-          Present <PlanTag plan="studio" />
+          <Icon name="present" size={18} />
+          <span>Present</span>
+          {!allows(plan, 'presentation') && <i className="ctl-tag">Studio</i>}
         </button>
       </div>
-      <div className="bar3d-row sliders">
-        {explode > 0 && (
-          <label className="slider" htmlFor="explode-amt">
-            <span>Spread</span>
-            <input id="explode-amt" type="range" min={0.1} max={1.6} step={0.05} value={explode} onChange={(e) => set({ explode: Number(e.target.value) })} />
-          </label>
-        )}
-        {explode > 0 && (
-          <div className="part-toggles" role="group" aria-label="Parts to show">
-            <span>Show</span>
-            {PARTS.map(([k, label]) => {
-              const on = !hiddenParts.includes(k)
-              return (
-                <button key={k} type="button" className={`chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ hiddenParts: on ? [...hiddenParts, k] : hiddenParts.filter((x) => x !== k) })}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-        {section.on && (
-          <div className="part-toggles" role="group" aria-label="Section cut">
-            <span>Cut</span>
-            <button type="button" className={`chip${section.axis === 'z' ? ' is-on' : ''}`} aria-pressed={section.axis === 'z'} onClick={() => set({ section: { ...section, axis: 'z' }, viewFrom: { dir: 'S', seq: useStore.getState().viewFrom.seq + 1 } })}>
-              Front to back
-            </button>
-            <button type="button" className={`chip${section.axis === 'x' ? ' is-on' : ''}`} aria-pressed={section.axis === 'x'} onClick={() => set({ section: { ...section, axis: 'x' }, viewFrom: { dir: 'E', seq: useStore.getState().viewFrom.seq + 1 } })}>
-              Side to side
-            </button>
-            <input id="section-at" type="range" min={0.02} max={0.98} step={0.01} value={section.at} onChange={(e) => set({ section: { ...section, at: Number(e.target.value) } })} aria-label="Cut position" />
-            <button type="button" className={`chip${section.flip ? ' is-on' : ''}`} aria-pressed={section.flip} onClick={() => set({ section: { ...section, flip: !section.flip } })}>
-              Flip
-            </button>
-          </div>
-        )}
+
+      <div className="sun-dock">
         <SunControls />
       </div>
     </div>
@@ -591,8 +614,8 @@ function SunControls() {
 
   return (
     <>
-      <label className="slider" htmlFor="sun-hour" title={times ? `Sunrise ${clockLabel(times.rise)}, sunset ${clockLabel(times.set)} (solar time)` : undefined}>
-        <Icon name="sun" size={16} />
+      <label className="sun-time" htmlFor="sun-hour" title={times ? `Sunrise ${clockLabel(times.rise)}, sunset ${clockLabel(times.set)} (solar time)` : undefined}>
+        <Icon name="sun" size={17} />
         <input
           id="sun-hour"
           type="range"
@@ -608,7 +631,7 @@ function SunControls() {
         />
         <span className="num">{clockLabel(sunHour)}</span>
       </label>
-      <label className="pill pill-select" htmlFor="sun-day" title="Day of the year for the sun">
+      <label className="sun-day" htmlFor="sun-day" title={`Day of the year for the sun (today is ${dateLabel(today)})`}>
         <select
           id="sun-day"
           value={sunDay === today ? 'today' : String(monthOfDay(sunDay))}
@@ -619,7 +642,7 @@ function SunControls() {
           }}
           aria-label="Day of the year"
         >
-          <option value="today">Today ({dateLabel(today)})</option>
+          <option value="today">Today</option>
           {MONTHS.map((m, i) => (
             <option key={m} value={String(i + 1)}>
               {m} 21{study ? '' : ' (Pro)'}
@@ -629,15 +652,17 @@ function SunControls() {
       </label>
       <button
         type="button"
-        className={`pill${playing ? ' is-on' : ''}`}
+        className={`sun-play${playing ? ' is-on' : ''}`}
         aria-pressed={playing}
+        aria-label={playing ? 'Pause' : 'Play day'}
         onClick={() => {
           if (!playing && !requireFeature('sun-study')) return
           setPlaying(!playing)
         }}
         title="Play the day from sunrise to sunset and watch the light move through the rooms"
       >
-        {playing ? 'Pause' : 'Play day'}
+        <Icon name={playing ? 'pause' : 'play'} size={15} />
+        <span className="sun-play-label">{playing ? 'Pause' : 'Play day'}</span>
         {!study && <PlanTag plan="pro" />}
       </button>
     </>
