@@ -3732,3 +3732,59 @@ kbd {
     font-size: 12.5px;
   }
 }
+
+/* Tooltips (see ui/Tooltips.tsx) */
+.tooltip {
+  position: fixed;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 280px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--panel);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 6px 20px rgba(10, 16, 18, 0.25);
+  pointer-events: none;
+  animation: tip-in 0.12s ease-out;
+}
+
+.tooltip.is-right {
+  transform: translate(0, -50%);
+}
+
+.tooltip.is-left {
+  transform: translate(-100%, -50%);
+}
+
+.tooltip.is-bottom {
+  transform: translate(-50%, 0);
+}
+
+.tooltip.is-top {
+  transform: translate(-50%, -100%);
+}
+
+.tooltip-keys {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}
+
+.tooltip kbd {
+  background: color-mix(in srgb, var(--panel) 16%, transparent);
+  border-color: color-mix(in srgb, var(--panel) 30%, transparent);
+  color: var(--panel);
+  font-size: 12px;
+  padding: 1px 6px;
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}

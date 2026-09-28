@@ -21,6 +21,7 @@ import { PlanView } from './plan/PlanView'
 import { Inspector, deleteItems, deleteSelection, duplicateItems } from './ui/Inspector'
 import { BudgetPanel, CatalogPanel, LevelsPanel, PaintPanel, ProjectPanel } from './ui/Panels'
 import { Icon } from './ui/Icon'
+import { Tooltips } from './ui/Tooltips'
 import { AssistantPanel } from './assistant/AssistantPanel'
 import { Segmented, Toggle } from './ui/controls'
 import { walkKeys } from './three/walkKeys'
@@ -30,18 +31,28 @@ import { buildTemplate } from './model/templates'
 
 const Scene3D = lazy(() => import('./three/Scene3D').then((m) => ({ default: m.Scene3D })))
 
-const TOOLS: Array<{ id: Tool; label: string; icon: string; key: string }> = [
-  { id: 'select', label: 'Select', icon: 'select', key: 'V' },
-  { id: 'room', label: 'Room', icon: 'room', key: 'R' },
-  { id: 'polyroom', label: 'Shape', icon: 'polyroom', key: 'O' },
-  { id: 'wall', label: 'Wall', icon: 'wall', key: 'W' },
-  { id: 'door', label: 'Door', icon: 'door', key: 'D' },
-  { id: 'window', label: 'Window', icon: 'window', key: 'N' },
-  { id: 'item', label: 'Furnish', icon: 'item', key: 'F' },
-  { id: 'paint', label: 'Paint', icon: 'paint', key: 'P' },
-  { id: 'measure', label: 'Measure', icon: 'measure', key: 'M' },
-  { id: 'label', label: 'Text', icon: 'label', key: 'T' },
+const TOOLS: Array<{ id: Tool; label: string; icon: string; key: string; tip: string }> = [
+  { id: 'select', label: 'Select', icon: 'select', key: 'V', tip: 'Pick, move and resize anything' },
+  { id: 'room', label: 'Room', icon: 'room', key: 'R', tip: 'Drag to draw a rectangular room' },
+  { id: 'polyroom', label: 'Shape', icon: 'polyroom', key: 'O', tip: 'Click corners to draw a room of any shape' },
+  { id: 'wall', label: 'Wall', icon: 'wall', key: 'W', tip: 'Click to draw walls; type a length' },
+  { id: 'door', label: 'Door', icon: 'door', key: 'D', tip: 'Click a wall to add a door' },
+  { id: 'window', label: 'Window', icon: 'window', key: 'N', tip: 'Click a wall to add a window' },
+  { id: 'item', label: 'Furnish', icon: 'item', key: 'F', tip: 'Place furniture and fixtures from the catalog' },
+  { id: 'paint', label: 'Paint', icon: 'paint', key: 'P', tip: 'Paint walls, floors and furniture' },
+  { id: 'measure', label: 'Measure', icon: 'measure', key: 'M', tip: 'Drag to measure any distance' },
+  { id: 'label', label: 'Text', icon: 'label', key: 'T', tip: 'Click to add a text label' },
 ]
+
+/** The modifier key as this computer names it. */
+const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘' : 'Ctrl'
+
+const VIEW_TIPS: Record<string, string> = {
+  plan: 'The floor plan',
+  split: 'Plan and 3D side by side',
+  '3d': 'The house in 3D: look inside, pull it apart, slice it',
+  walk: 'Walk through at eye height',
+}
 
 const VIEWS: Array<{ id: ViewMode; label: string; icon: string }> = [
   { id: 'plan', label: '2D', icon: 'plan' },
@@ -204,6 +215,7 @@ export default function App() {
           }}
         />
         <Toast />
+        <Tooltips />
         <PaywallSheet />
       </>
     )
@@ -224,7 +236,7 @@ export default function App() {
         </div>
         <nav className="view-switch" aria-label="View">
           {VIEWS.map((v) => (
-            <button key={v.id} type="button" className={view === v.id ? 'is-on' : ''} aria-pressed={view === v.id} onClick={() => useStore.getState().setView(v.id)} title={`${v.label} view`}>
+            <button key={v.id} type="button" className={view === v.id ? 'is-on' : ''} aria-pressed={view === v.id} onClick={() => useStore.getState().setView(v.id)} data-tip={VIEW_TIPS[v.id]}>
               <Icon name={v.icon} size={18} />
               <span>{v.label}</span>
             </button>
@@ -239,7 +251,7 @@ export default function App() {
 
       <nav className={`toolrail${railEdge.start ? '' : ' more-before'}${railEdge.end ? '' : ' more-after'}`} aria-label="Tools" ref={railRef} onScroll={updateRailEdge}>
         {TOOLS.map((t) => (
-          <button key={t.id} type="button" className={`tool${tool === t.id ? ' is-on' : ''}`} aria-pressed={tool === t.id} onClick={() => selectTool(t.id)} title={`${t.label} (${t.key})`}>
+          <button key={t.id} type="button" className={`tool${tool === t.id ? ' is-on' : ''}`} aria-pressed={tool === t.id} onClick={() => selectTool(t.id)} data-tip={t.tip} data-tip-key={t.key} data-tip-side="right">
             <Icon name={t.icon} size={22} />
             <span>{t.label}</span>
           </button>
@@ -302,6 +314,7 @@ export default function App() {
       </aside>
 
       <Toast />
+      <Tooltips />
       {help && <HelpSheet onClose={() => setHelp(false)} />}
       <PaywallSheet />
       {welcome && (
@@ -325,7 +338,7 @@ function ProjectTitle() {
   const status = useStore((s) => s.cloudStatus)
   const label = status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved to your account' : status === 'error' ? 'Saved in this browser only' : 'Saved in this browser'
   return (
-    <button type="button" className="project-title" onClick={() => useStore.getState().set({ panel: 'project' })} title="Project settings">
+    <button type="button" className="project-title" onClick={() => useStore.getState().set({ panel: 'project' })} data-tip="Rename, units, files and exports">
       <span className="project-name">{name}</span>
       <span className={`save-state is-${status}`}>{label}</span>
     </button>
@@ -337,10 +350,10 @@ function UndoRedo() {
   const canRedo = useStore((s) => s.future.length > 0)
   return (
     <>
-      <button type="button" className="icon-btn" disabled={!canUndo} onClick={() => useStore.getState().undo()} aria-label="Undo" title="Undo (Ctrl+Z)">
+      <button type="button" className="icon-btn" disabled={!canUndo} onClick={() => useStore.getState().undo()} aria-label="Undo" data-tip="Undo" data-tip-key={`${MOD} Z`}>
         <Icon name="undo" />
       </button>
-      <button type="button" className="icon-btn" disabled={!canRedo} onClick={() => useStore.getState().redo()} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+      <button type="button" className="icon-btn" disabled={!canRedo} onClick={() => useStore.getState().redo()} aria-label="Redo" data-tip="Redo" data-tip-key={`${MOD} Shift Z`}>
         <Icon name="redo" />
       </button>
     </>
@@ -351,7 +364,7 @@ function BudgetChip() {
   const project = useStore((s) => s.project)
   const total = budget(project).total
   return (
-    <button type="button" className="budget-chip" onClick={() => useStore.getState().set({ panel: 'budget' })} title="Estimated cost">
+    <button type="button" className="budget-chip" onClick={() => useStore.getState().set({ panel: 'budget' })} data-tip="Estimated cost: open the budget">
       <span className="muted">Est.</span> {formatMoney(total)}
     </button>
   )
@@ -461,14 +474,14 @@ function View3DBar() {
       <div className="bar3d-main">
         <div className="mode-seg" role="radiogroup" aria-label="3D view">
           {MODES.map(([m, label, icon, title]) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'is-on' : ''} onClick={() => pick(m)} title={title}>
+            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'is-on' : ''} onClick={() => pick(m)} data-tip={title}>
               <Icon name={icon} size={16} /> {label}
             </button>
           ))}
         </div>
         {mode === 'inside' && (
           <div className="ctx-row">
-            <button type="button" className={`chip${wallCut ? ' is-on' : ''}`} aria-pressed={wallCut} onClick={() => set({ wallCut: !wallCut })} title="Cut walls low to see furniture">
+            <button type="button" className={`chip${wallCut ? ' is-on' : ''}`} aria-pressed={wallCut} onClick={() => set({ wallCut: !wallCut })} data-tip="Cut walls low to see the furniture">
               <Icon name="lowwalls" size={15} /> Low walls
             </button>
           </div>
@@ -513,11 +526,11 @@ function View3DBar() {
       </div>
 
       <div className="ctl-col" role="toolbar" aria-label="3D view tools" aria-orientation="vertical">
-        <button type="button" className="ctl-btn" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} title="Reset the camera">
+        <button type="button" className="ctl-btn" onClick={() => set({ zoomRequest: useStore.getState().zoomRequest + 1, viewFrom: { dir: 'corner', seq: useStore.getState().viewFrom.seq } })} data-tip="Put the camera back" data-tip-side="left">
           <Icon name="fit" size={18} />
           <span>Reset</span>
         </button>
-        <label className="ctl-btn" htmlFor="view-from" title="Look at the house from the street, a corner, above or one side">
+        <label className="ctl-btn" htmlFor="view-from" data-tip="Look from the street, a corner, above or one side" data-tip-side="left">
           <Icon name="camera" size={18} />
           <span>View</span>
           <select
@@ -540,7 +553,7 @@ function View3DBar() {
             <option value="W">Left side</option>
           </select>
         </label>
-        <label className="ctl-btn" htmlFor="surroundings" title="What surrounds the house: a street, a garden, the countryside or nothing">
+        <label className="ctl-btn" htmlFor="surroundings" data-tip="What surrounds the house: a street, a garden, the countryside or nothing" data-tip-side="left">
           <Icon name="tree" size={18} />
           <span>Setting</span>
           <select
@@ -574,7 +587,8 @@ function View3DBar() {
               /* storage unavailable */
             }
           }}
-          title="Faster 3D for slower devices: no shadows, lower resolution"
+          data-tip="Faster 3D for slower devices: no shadows, lower resolution"
+          data-tip-side="left"
         >
           <Icon name="bolt" size={18} />
           <span>Fast 3D</span>
@@ -586,7 +600,8 @@ function View3DBar() {
             if (!requireFeature('presentation')) return
             useStore.setState({ presenting: true })
           }}
-          title="Full-screen guided tour to show a client (Studio)"
+          data-tip="Full-screen guided tour to show a client"
+          data-tip-side="left"
         >
           <Icon name="present" size={18} />
           <span>Present</span>
@@ -639,7 +654,7 @@ function SunControls() {
 
   return (
     <>
-      <label className="sun-time" htmlFor="sun-hour" title={times ? `Sunrise ${clockLabel(times.rise)}, sunset ${clockLabel(times.set)} (solar time)` : undefined}>
+      <label className="sun-time" htmlFor="sun-hour" data-tip={times ? `Time of day · sunrise ${clockLabel(times.rise)}, sunset ${clockLabel(times.set)}` : 'Time of day'} data-tip-side="top">
         <Icon name="sun" size={17} />
         <input
           id="sun-hour"
@@ -656,7 +671,7 @@ function SunControls() {
         />
         <span className="num">{clockLabel(sunHour)}</span>
       </label>
-      <label className="sun-day" htmlFor="sun-day" title={`Day of the year for the sun (today is ${dateLabel(today)})`}>
+      <label className="sun-day" htmlFor="sun-day" data-tip={`Day of the year for the sun · today is ${dateLabel(today)}`} data-tip-side="top">
         <select
           id="sun-day"
           value={sunDay === today ? 'today' : String(monthOfDay(sunDay))}
@@ -684,7 +699,8 @@ function SunControls() {
           if (!playing && !requireFeature('sun-study')) return
           setPlaying(!playing)
         }}
-        title="Play the day from sunrise to sunset and watch the light move through the rooms"
+        data-tip="Play the day from sunrise to sunset"
+        data-tip-side="top"
       >
         <Icon name={playing ? 'pause' : 'play'} size={15} />
         <span className="sun-play-label">{playing ? 'Pause' : 'Play day'}</span>
