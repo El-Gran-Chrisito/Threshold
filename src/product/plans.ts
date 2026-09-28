@@ -21,6 +21,7 @@ export type Feature =
   | 'branding'
   | 'presentation'
   | 'sync'
+  | 'plan-set'
 
 export const FEATURES: Record<Feature, { name: string; blurb: string; plan: PlanId }> = {
   'unlimited-designs': { name: 'Unlimited designs', blurb: 'Free keeps up to 3 designs. Keep every idea and version with Pro, or delete a design in Project to make room.', plan: 'pro' },
@@ -32,6 +33,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   assistant: { name: 'Design assistant', blurb: 'Describe a change in plain words, or upload a photo of a floor plan, and it is drawn for you.', plan: 'pro' },
   surroundings: { name: 'Garden and countryside settings', blurb: 'See the home in a private garden or in the countryside, not only on a street.', plan: 'pro' },
   'all-styles': { name: 'All whole-home styles', blurb: 'Every designer style for walls, floors, roof, cabinets and furniture in one click.', plan: 'pro' },
+  'plan-set': { name: 'PDF plan set', blurb: 'One PDF with a cover, every floor plan, the room schedule and the shopping list, ready to print or send to a builder.', plan: 'pro' },
   sync: { name: 'Designs on all your devices', blurb: 'Your designs follow your license to every browser you use, and survive cleared browser data.', plan: 'pro' },
   branding: { name: 'Your brand on plan sheets', blurb: 'Your company name, contact and logo in the title block of every floor plan.', plan: 'studio' },
   presentation: { name: 'Client presentations', blurb: 'A full-screen, guided 3D tour of the home with your branding, and client links that open straight into it. Clients need no account.', plan: 'studio' },
@@ -65,7 +67,7 @@ export const PLANS: PlanInfo[] = [
     tagline: 'For planning a real build or renovation',
     monthly: 12,
     yearly: 96,
-    bullets: ['Unlimited designs, synced across devices', 'Watermark-free, high-resolution exports', '3D model (.glb) export', 'Shopping list spreadsheet', 'One-click electrical layout', 'Design assistant', 'All styles and surroundings'],
+    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model (.glb) export', 'Shopping list spreadsheet', 'One-click electrical layout', 'Design assistant', 'All styles and surroundings'],
   },
   {
     id: 'studio',

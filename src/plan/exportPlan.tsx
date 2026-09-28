@@ -128,6 +128,12 @@ function PlanSheet({ project, level, width, opts = {} }: { project: Project; lev
 }
 
 export async function planPng(project: Project, level: Level, width = 2400, opts: SheetOptions = {}): Promise<Blob> {
+  const canvas = await planCanvas(project, level, width, opts)
+  return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/png'))
+}
+
+/** The floor plan sheet for one level, drawn on a white canvas `width` pixels wide. */
+export async function planCanvas(project: Project, level: Level, width = 2400, opts: SheetOptions = {}): Promise<HTMLCanvasElement> {
   const host = document.createElement('div')
   const root = createRoot(host)
   flushSync(() => root.render(<PlanSheet project={project} level={level} width={width} opts={opts} />))
@@ -151,7 +157,7 @@ export async function planPng(project: Project, level: Level, width = 2400, opts
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, width, height)
     ctx.drawImage(img, 0, 0, width, height)
-    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/png'))
+    return canvas
   } finally {
     URL.revokeObjectURL(url)
   }

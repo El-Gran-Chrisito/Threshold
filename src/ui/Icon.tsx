@@ -41,6 +41,7 @@ const PATHS: Record<string, string> = {
   image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01',
   check: 'M5 12l5 5 9-10',
   lowwalls: 'M3 19h18M5 19v-6h14v6M5 13l2-3h10l2 3',
+  sheets: 'M7 3h9l4 4v14H7zM16 3v4h4M4 6v15h12M10 12h7M10 16h7',
 }
 
 export function Icon({ name, size = 20, title }: { name: string; size?: number; title?: string }) {

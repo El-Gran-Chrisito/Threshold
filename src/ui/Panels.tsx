@@ -27,6 +27,7 @@ import { dataUrlToBlob, saveFile, slug } from '../store/files'
 import { canShareLinks, shareLink } from '../store/share'
 import { cloudDelete, cloudList, cloudLoad } from '../store/cloud'
 import { planPng } from '../plan/exportPlan'
+import { planSetPdf } from '../plan/planSet'
 import { exportGlb } from '../three/exportModel'
 import { readImage, useUnderlay } from '../store/underlay'
 import { levelBounds } from '../model/ops'
@@ -659,6 +660,23 @@ export function ProjectPanel() {
       s.notify('Could not draw the floor plan image')
     }
   }
+  const [making, setMaking] = useState(false)
+  const exportPlanSet = async () => {
+    if (!requireFeature('plan-set') || making) return
+    setMaking(true)
+    s.notify('Drawing the plan set…')
+    try {
+      const canvas = document.querySelector('.view-3d canvas') as HTMLCanvasElement | null
+      const blob = await planSetPdf(useStore.getState().project, { cover3d: canvas, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
+      track('export', { kind: 'plan-set' })
+      const r = await saveFile(`${slug(project.name)}-plan-set.pdf`, blob, 'application/pdf')
+      s.notify(r === 'saved' ? 'Plan set saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')
+    } catch {
+      s.notify('Could not make the plan set')
+    } finally {
+      setMaking(false)
+    }
+  }
   const exportModel = async () => {
     if (!requireFeature('model-export')) return
     const st = useStore.getState()
@@ -842,6 +860,9 @@ export function ProjectPanel() {
           </button>
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             <Icon name="upload" size={16} /> Open design file
+          </button>
+          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover (uses the 3D view on screen), every floor plan, room schedule and shopping list">
+            <Icon name="sheets" size={16} /> {making ? 'Making plan set…' : 'Save plan set (PDF)'} <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportPlan}>
             <Icon name="plan" size={16} /> Save floor plan image

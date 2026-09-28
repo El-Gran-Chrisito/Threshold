@@ -6,8 +6,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/store'
 import { useBrand, hasBrand } from '../product/brand'
-import { roomArea } from '../model/ops'
-import { formatArea } from '../model/units'
+import { homeSummary } from '../model/schedule'
 import { Icon } from './Icon'
 
 const Scene3D = lazy(() => import('../three/Scene3D').then((m) => ({ default: m.Scene3D })))
@@ -71,15 +70,7 @@ export function Presentation({ onExit }: { onExit: () => void }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onExit])
 
-  const summary = useMemo(() => {
-    const rooms = project.levels.flatMap((l) => l.rooms)
-    const area = rooms.filter((r) => !/garage|patio|deck|lawn|outdoor/i.test(r.name)).reduce((s, r) => s + roomArea(r), 0)
-    const beds = rooms.filter((r) => /bed/i.test(r.name)).length
-    const full = rooms.filter((r) => /bath/i.test(r.name) && !/powder/i.test(r.name)).length
-    const half = rooms.filter((r) => /powder|half bath|wc/i.test(r.name)).length
-    const floors = project.levels.filter((l) => l.rooms.length).length
-    return [formatArea(area, project.units), beds ? `${beds} bedroom${beds > 1 ? 's' : ''}` : '', full || half ? `${full + half / 2} bath` : '', `${floors} floor${floors > 1 ? 's' : ''}`].filter(Boolean).join(' · ')
-  }, [project])
+  const summary = useMemo(() => homeSummary(project), [project])
 
   return (
     <div className="present" role="dialog" aria-modal="true" aria-label={`Presentation: ${title}`}>
