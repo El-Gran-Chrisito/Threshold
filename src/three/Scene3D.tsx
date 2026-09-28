@@ -987,7 +987,6 @@ export function Scene3D({ walk }: { walk: boolean }) {
 
   return (
     <Canvas
-      key={lowQuality ? 'low' : 'high'}
       shadows={!lowQuality}
       dpr={lowQuality ? 1 : [1, 2]}
       gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.NeutralToneMapping }}
