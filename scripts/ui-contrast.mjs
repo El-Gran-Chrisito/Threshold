@@ -92,6 +92,14 @@ for (const scheme of ['light', 'dark']) {
   await page.keyboard.press('Escape')
   await page.click('button[aria-label="Help and shortcuts"]')
   await run('help')
+  // The marketing page, scrolled through a screen at a time.
+  await page.goto(base + 'home.html')
+  await page.waitForTimeout(800)
+  const height = await page.evaluate(() => document.documentElement.scrollHeight)
+  for (let y = 0; y < height; y += 800) {
+    await page.evaluate((top) => window.scrollTo(0, top), y)
+    await run(`marketing @${y}`)
+  }
   await page.close()
 }
 console.log(failures.size ? [...failures].join('\n') : 'no contrast failures')
