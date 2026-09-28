@@ -1276,7 +1276,28 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         </div>
       )}
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
+      {!minimap && !draft && level.rooms.length === 0 && level.walls.length === 0 && level.items.length === 0 && <EmptyPlan />}
       {!minimap && <ToolHint drawing={draft} />}
+    </div>
+  )
+}
+
+/** A floor with nothing on it: how to start. Clicks and drags pass through to the plan. */
+function EmptyPlan() {
+  const tool = useStore((s) => s.tool)
+  return (
+    <div className="empty-plan" aria-live="polite">
+      <svg className="empty-plan-art" viewBox="0 0 120 84" aria-hidden>
+        <rect x="10" y="10" width="100" height="64" rx="3" />
+        <path d="M86 50 l18 18 M104 56 v12 h-12" />
+      </svg>
+      <strong>Draw your first room</strong>
+      <span>{tool === 'room' ? 'Drag on the grid. You can type exact sizes after.' : 'Pick Room on the left, then drag on the grid.'}</span>
+      {tool !== 'room' && (
+        <button type="button" className="btn btn-primary" onClick={() => useStore.getState().setTool('room')}>
+          Use the Room tool
+        </button>
+      )}
     </div>
   )
 }

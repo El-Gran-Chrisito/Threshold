@@ -76,6 +76,7 @@ export default function App() {
   const view = useStore((s) => s.view)
   const tool = useStore((s) => s.tool)
   const panel = useStore((s) => s.panel)
+  const emptyHome = useStore((s) => s.project.levels.every((l) => l.rooms.length === 0 && l.walls.length === 0))
   const narrow = useNarrow()
   const [help, setHelp] = useState(false)
   const presenting = useStore((s) => s.presenting)
@@ -260,6 +261,7 @@ export default function App() {
               <Scene3D walk={view === 'walk'} />
             </Suspense>
             {view === 'walk' ? <WalkPad /> : <View3DBar />}
+            {emptyHome && <div className="empty-3d">Your home appears here as you draw it.</div>}
             {view === 'walk' && (
               <div className="minimap" aria-label="Map: tap to jump there">
                 <PlanView minimap />

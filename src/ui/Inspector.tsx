@@ -851,6 +851,7 @@ function LevelSummary({ level }: { level: Level }) {
             Wire all rooms (lights, switches, outlets, alarms) <PlanTag plan="pro" />
           </button>
         )}
+        {level.walls.length > 0 && (
         <button
           type="button"
           className="btn"
@@ -866,11 +867,14 @@ function LevelSummary({ level }: { level: Level }) {
         >
           <Icon name="magic" size={16} /> Find rooms from walls
         </button>
+        )}
       </div>
-      <Field label="Outside of the house (this floor)">
-        <FinishChips label="Exterior finish" value={exteriorFinish(level)} onChange={(f, c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, f))} />
-        <Swatches label="Exterior colour" swatches={PAINTS} value={exteriorColor(level) ?? project.defaults.exteriorColor} onChange={(c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, exteriorFinish(l)))} />
-      </Field>
+      {exteriorSides(level).length > 0 && (
+        <Field label="Outside of the house (this floor)">
+          <FinishChips label="Exterior finish" value={exteriorFinish(level)} onChange={(f, c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, f))} />
+          <Swatches label="Exterior colour" swatches={PAINTS} value={exteriorColor(level) ?? project.defaults.exteriorColor} onChange={(c) => useStore.getState().applyLevel((l) => paintExterior(l, c, undefined, exteriorFinish(l)))} />
+        </Field>
+      )}
       <p className="tip">Select anything in the plan or 3D view to edit it here.</p>
     </section>
   )
