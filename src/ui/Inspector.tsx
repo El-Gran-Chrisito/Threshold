@@ -24,6 +24,7 @@ import {
 } from '../model/ops'
 import { makeItem, makeOpening, OPENING_PRESETS, uid } from '../model/factory'
 import { cabinetsAlongWall, checkLevel } from '../model/checks'
+import { accessIssues, narrowOpenings, widenDoors } from '../model/access'
 import { lotIssues } from '../model/site'
 import { furnishRoom } from '../model/furnish'
 import { wireRoom, wiringSummary } from '../model/electrical'
@@ -725,10 +726,36 @@ function exteriorColor(level: Level) {
 
 function DesignCheck({ level }: { level: Level }) {
   const lot = useStore((s) => s.project.site.lot)
-  const issues = [...lotIssues(lot, level), ...checkLevel(level)]
+  const project = useStore((s) => s.project)
+  const access = !!project.accessible
+  const issues = [...lotIssues(lot, level), ...checkLevel(level), ...(access ? accessIssues(project, level) : [])]
   const problems = issues.filter((i) => i.level === 'problem')
   const tips = issues.filter((i) => i.level === 'tip')
+  const narrow = access ? narrowOpenings(project, level) : []
   if (!level.rooms.length && !level.items.length) return null
+  const toggle = (
+    <Toggle
+      id="access-check"
+      checked={access}
+      onChange={(v) => useStore.getState().apply((p) => ({ ...p, accessible: v || undefined }))}
+      label="Also check wheelchair access"
+    />
+  )
+  const widen = () => {
+    const s = useStore.getState()
+    const ids = new Set(narrow.map((o) => o.id))
+    let count = 0
+    s.apply((p) => ({
+      ...p,
+      levels: p.levels.map((l) => {
+        if (l.id !== level.id) return l
+        const r = widenDoors(l, ids)
+        count = r.widened
+        return r.level
+      }),
+    }))
+    s.notify(count ? `${count} door${count === 1 ? '' : 's'} widened` : 'No room on the walls to widen these doors')
+  }
   return (
     <Field label="Design check">
       {issues.length === 0 ? (
@@ -761,6 +788,12 @@ function DesignCheck({ level }: { level: Level }) {
           {issues.length > 12 && <li className="muted">and {issues.length - 12} more</li>}
         </ul>
       )}
+      {narrow.length > 0 && (
+        <button type="button" className="btn check-fix" onClick={widen}>
+          Widen {narrow.length} door{narrow.length === 1 ? '' : 's'} to {project.units === 'metric' ? '91 cm' : '36 in'}
+        </button>
+      )}
+      {toggle}
     </Field>
   )
 }

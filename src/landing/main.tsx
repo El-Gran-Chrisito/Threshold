@@ -94,7 +94,7 @@ const STORIES: Array<{ title: string; body: string; img: string; alt: string; di
 
 const EXTRAS: Array<[string, string]> = [
   ['Start from a plan', 'Pick bedrooms, bathrooms, floors and garage for a furnished plan, or open a ready-made home from the plan library.'],
-  ['Design check', 'Rooms without doors, bedrooms without windows, blocked doors, walls inside setbacks.'],
+  ['Design check', 'Rooms without doors, bedrooms without windows, blocked doors, walls inside setbacks, and an optional wheelchair-access check.'],
   ['Whole-home styles', 'Farmhouse, Scandinavian, mid-century and more, applied to every surface in one click.'],
   ['Roofs and stairs', 'Gable, hip, shed and flat roofs in shingle, metal, tile or slate. Straight, L and U stairs.'],
   ['Electrical layout', 'Lights, switches by every door, outlets every 12 ft and smoke alarms, in one click.'],

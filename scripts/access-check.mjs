@@ -1,0 +1,35 @@
+// Accessibility check: switch it on in the design check, read the tips,
+// widen the narrow doors in one click, and read the tips again.
+import { chromium } from 'playwright'
+const out = process.argv[2]
+const base = process.env.BASE || 'http://localhost:4173/'
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const errors = []
+page.on('pageerror', (e) => errors.push(e.message))
+await page.goto(base)
+await page.evaluate(() => localStorage.setItem('threshold:welcomed', '1'))
+await page.goto(base + '#library=starter')
+await page.reload()
+await page.waitForTimeout(1500)
+console.log('design:', await page.evaluate(() => window.__threshold.store.getState().project.name))
+await page.evaluate(() => window.__threshold.store.getState().setView('plan'))
+await page.evaluate(() => window.__threshold.store.getState().select(null))
+await page.waitForTimeout(300)
+const tips = () => page.locator('.check-item').allTextContents()
+console.log('before:', (await tips()).length, 'items')
+await page.click('label[for="access-check"], #access-check')
+await page.waitForTimeout(300)
+const on = await tips()
+console.log('with access check:', on.length, 'items |', on.slice(0, 3).join(' | '))
+await page.locator('.check-fix').scrollIntoViewIfNeeded()
+await page.screenshot({ path: `${out}/access.png` })
+console.log('fix button:', await page.textContent('.check-fix'))
+await page.click('.check-fix')
+await page.waitForTimeout(400)
+console.log('toast:', await page.locator('.toast').first().textContent().catch(() => ''))
+const after = await tips()
+console.log('after widening:', after.length, 'items |', after.join(' | '))
+console.log('saved flag:', await page.evaluate(() => window.__threshold.store.getState().project.accessible))
+console.log(errors.length ? 'errors: ' + errors.join(' | ') : 'no page errors')
+await browser.close()

@@ -181,6 +181,8 @@ export interface Project {
   prices: Record<string, number>
   /** Who a professional prepared this design for (Studio): shown on the plan set and in presentations. */
   client?: string
+  /** The design check also looks at wheelchair access (see model/access.ts). */
+  accessible?: boolean
   createdAt: number
   updatedAt: number
 }
