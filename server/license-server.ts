@@ -11,6 +11,7 @@
  *   POST /referral  (license)                   ->  { code, count } invite code (see referral.ts)
  *   POST /send-design, /leads                   ->  email a design link; tips list (leads.ts)
  *   POST /stripe-webhook                        ->  refunds and disputes revoke (webhook.ts)
+ *   POST /stats     (ADMIN_TOKEN)               ->  daily counts for the owner (stats.ts)
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -44,6 +45,7 @@ import { askClaude, checkRequest, type AssistantEnv } from './assistant'
 import { creditInviter, referralFor, type ReferralEnv } from './referral'
 import { leadsCsv, sendDesign, type LeadsEnv } from './leads'
 import { handleWebhook, isRevoked, type WebhookEnv } from './webhook'
+import { count, statsReport } from './stats'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -185,16 +187,23 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     if (!/^cs_[A-Za-z0-9_]+$/.test(id)) return json(env, { error: 'Missing checkout session' }, 400)
     const r = await keyForSession(env, id, privateJwk, now, fetchImpl)
     if (!r.ok) return json(env, { error: r.error }, r.status)
+    if (env.DESIGNS && !(await env.DESIGNS.get(`m:seen:${id}`))) {
+      await env.DESIGNS.put(`m:seen:${id}`, '1')
+      await count(env.DESIGNS, 'purchase', now)
+    }
     let emailed = false
     if (r.issued.email && canEmail(env)) {
       // Once per purchase: a repeated claim of the same checkout does not email again.
       const mark = `m:sent:${id}`
       if (!(await env.DESIGNS?.get(mark))) {
         emailed = await sendKeys(env, r.issued.email, [r.issued], fetchImpl)
-        if (emailed) await env.DESIGNS?.put(mark, '1')
+        if (emailed) {
+          await env.DESIGNS?.put(mark, '1')
+          await count(env.DESIGNS, 'key_email', now)
+        }
       }
     }
-    if (r.issued.invite && env.DESIGNS) await creditInviter(env, env.DESIGNS, r.issued.invite, { sessionId: id, email: r.issued.email }, fetchImpl)
+    if (r.issued.invite && env.DESIGNS && (await creditInviter(env, env.DESIGNS, r.issued.invite, { sessionId: id, email: r.issued.email }, fetchImpl))) await count(env.DESIGNS, 'invite_credit', now)
     return json(env, { key: r.issued.key, plan: r.issued.plan, email: r.issued.email, emailed })
   }
 
@@ -215,12 +224,18 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     await env.DESIGNS.put(mark, String(now))
     const ref = `trial_${Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => b.toString(16).padStart(2, '0')).join('')}`
     const key = await signLicense({ v: 1, plan: 'pro', ref, iat: now, exp: now + TRIAL_DAYS * 86_400_000, trial: true }, privateJwk)
+    await count(env.DESIGNS, 'trial', now)
     return json(env, { key })
   }
 
   if (path.endsWith('/send-design')) {
     const ip = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
     const r = await sendDesign(env, env.DESIGNS, body, ip, now, fetchImpl)
+    return json(env, r.body, r.status)
+  }
+
+  if (path.endsWith('/stats')) {
+    const r = await statsReport(env.DESIGNS, env.ADMIN_TOKEN, request.headers.get('authorization') ?? '', Number(body.days) || 30, now)
     return json(env, r.body, r.status)
   }
 
@@ -254,7 +269,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
       const r = await keyForSession(env, cs.id, privateJwk, now, fetchImpl)
       if (r.ok && (r.issued.exp === null || r.issued.exp > now) && !keys.some((k) => k.ref === r.issued.ref)) keys.push(r.issued)
     }
-    if (keys.length) await sendKeys(env, email, keys, fetchImpl)
+    if (keys.length && (await sendKeys(env, email, keys, fetchImpl))) await count(env.DESIGNS, 'recover', now)
     // The same answer whether or not the address bought anything.
     return json(env, { ok: true })
   }
@@ -295,6 +310,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
       await env.DESIGNS.put(k, String(used + 1))
     }
     const r = await askClaude(env, req, fetchImpl)
+    if (r.ok) await count(env.DESIGNS, 'assistant', now)
     return r.ok ? json(env, { json: r.json }) : json(env, { code: r.code, message: r.message }, r.status)
   }
 

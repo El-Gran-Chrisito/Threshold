@@ -184,6 +184,16 @@ curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" https://YOUR-WORKER/leads >
 
 Honour "stop" replies and include an unsubscribe route in whatever tool you send tips with.
 
+## Sales at a glance
+
+With `ADMIN_TOKEN` set on the license server (see the email list above) and the design-sync store in place:
+
+```bash
+ADMIN_TOKEN=... bun run stats 14
+```
+
+prints one row per day: trials, purchases, paid invites, assistant requests, key emails, lost-key requests, designs sent, tips sign-ups and refunds. Counts are approximate. For revenue, use the Stripe dashboard.
+
 ## Invites
 
 Subscribers find **Invite a friend** in the plans sheet. Their link opens your marketing page; the code is kept for 60 days and added to every checkout link. When the friend pays, the license server credits the subscriber's Stripe balance with one month of their plan (it is taken off their next invoice), once per purchase. Self-invites are ignored.

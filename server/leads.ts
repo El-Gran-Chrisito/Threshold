@@ -9,6 +9,7 @@
  * Limits: 5 emails a day from one network, 3 a day to one address.
  */
 import type { KV } from './license-server'
+import { count } from './stats'
 
 type Fetch = typeof fetch
 
@@ -79,7 +80,11 @@ export async function sendDesign(env: LeadsEnv, kv: KV | undefined, body: Record
   } catch {
     return { status: 502, body: { error: 'Could not send the email. Try again later.' } }
   }
-  if (tips) await kv.put(`lead:${email}`, '1', { metadata: { at: now, source: 'send-design' } })
+  await count(kv, 'design_email', now)
+  if (tips) {
+    if (!(await kv.get(`lead:${email}`))) await count(kv, 'tips_signup', now)
+    await kv.put(`lead:${email}`, '1', { metadata: { at: now, source: 'send-design' } })
+  }
   return { status: 200, body: { ok: true } }
 }
 

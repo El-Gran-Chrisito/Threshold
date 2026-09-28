@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "license": "bun scripts/license-keys.ts",
-    "launch-check": "bun scripts/launch-check.ts"
+    "launch-check": "bun scripts/launch-check.ts",
+    "stats": "bun scripts/stats.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

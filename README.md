@@ -16,6 +16,7 @@ bun run build        # static site in dist/
 bun run build:single # one self-contained HTML file in dist-single/
 bun run license init # create license signing keys (once; see docs/MONETIZATION.md)
 bun run launch-check # before going live: checks every selling setting (--live also calls the license server)
+bun run stats        # daily trials, purchases, invites and more from the license server (needs ADMIN_TOKEN)
 ```
 
 `scripts/*.mjs` drive the built app in headless Chromium (Playwright) for end-to-end checks and screenshots.

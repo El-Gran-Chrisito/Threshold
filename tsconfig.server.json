@@ -23,6 +23,7 @@
     "server",
     "scripts/license-keys.ts",
     "scripts/launch-check.ts",
-    "scripts/launch-check.test.ts"
+    "scripts/launch-check.test.ts",
+    "scripts/stats.ts"
   ]
 }

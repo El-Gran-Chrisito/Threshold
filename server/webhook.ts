@@ -9,6 +9,7 @@
  * Events: charge.refunded (full refunds only), charge.dispute.created.
  */
 import type { KV } from './license-server'
+import { count } from './stats'
 
 type Fetch = typeof fetch
 
@@ -79,5 +80,6 @@ export async function handleWebhook(env: WebhookEnv, kv: KV | undefined, request
   const sessions = res.ok ? ((await res.json()) as { data: Array<{ id: string; subscription?: string | null }> }).data : []
   const refs = sessions.flatMap((s) => [s.id, s.subscription ?? null]).filter((r): r is string => !!r)
   for (const r of refs) await kv.put(revokedKey(r), reason)
+  if (refs.length) await count(kv, 'revoked')
   return { status: 200, body: { received: true, revoked: refs.length } }
 }
