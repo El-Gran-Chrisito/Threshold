@@ -5,6 +5,9 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 const errors = []
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
 await page.goto('http://localhost:4173/')
+// The electrical layout is a Pro feature: run as a Pro trial.
+await page.evaluate(() => localStorage.setItem('threshold:trial', String(Date.now())))
+await page.reload()
 await page.waitForTimeout(800)
 if (await page.$('.welcome')) await page.click('text=Explore the example home')
 await page.waitForTimeout(1200)
