@@ -12,7 +12,7 @@ Threshold ships ready to sell. Setup takes about an hour: see [docs/MONETIZATION
 | Paid features | PDF plan set, clean and high-resolution exports, 3D model, shopping spreadsheet, electrical layout, design assistant, all styles and surroundings, the full plan library, design versions, design sync; Studio branding, presentations and client links |
 | License keys | Signed keys checked offline; emailed after purchase; "Email me my key" recovery; renewals while a subscription is paid |
 | License server | Stripe checkout to key, renewals, design sync, hosted design assistant, signed trials, invites with Stripe balance credit, "Email me this design" with an opt-in tips list, refund and dispute revocation, daily stats (`bun run stats`) |
-| Growth | Marketing page with pricing, sample plan set, FAQ and search data; share and client links; invite links; store links on the shopping list (affiliate-ready) |
+| Growth | Marketing page with pricing, sample plan set, FAQ and search data; public pages for every ready-made home (`/plans/`); share and client links; invite links; store links on the shopping list (affiliate-ready) |
 | Legal | Terms, privacy and refund page templates |
 
 ## Run
