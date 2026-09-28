@@ -235,7 +235,7 @@ Every line of the shopping list (paint, flooring, tile, roofing, doors, windows,
 Everything is in `src/product/plans.ts`:
 
 - `FEATURES` says which plan unlocks each feature.
-- `FREE_LIMITS` sets the free design count and free styles.
+- `FREE_LIMITS` sets how many designs, whole-home styles and design versions the free plan keeps. The plan library marks each ready-made home free or Pro in `src/model/library.ts`.
 - `PLANS` holds prices, taglines and the bullet lists shown in the app and on the marketing page.
 
 Change a price in Stripe and in `PLANS` together.
