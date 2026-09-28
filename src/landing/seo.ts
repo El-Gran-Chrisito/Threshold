@@ -65,11 +65,11 @@ export function seoHead(siteUrl = ''): string {
 }
 
 /** robots.txt and sitemap.xml for the hosted site. */
-export function crawlFiles(siteUrl = ''): { robots: string; sitemap: string | null } {
+export function crawlFiles(siteUrl = '', extraPages: string[] = []): { robots: string; sitemap: string | null } {
   const url = siteUrl.replace(/\/$/, '')
   const robots = `User-agent: *\nAllow: /\nDisallow: /app\n${url ? `Sitemap: ${url}/sitemap.xml\n` : ''}`
   if (!url) return { robots, sitemap: null }
-  const pages = ['/', '/legal/terms.html', '/legal/privacy.html', '/legal/refunds.html']
+  const pages = ['/', '/legal/terms.html', '/legal/privacy.html', '/legal/refunds.html', ...extraPages]
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${esc(url + p)}</loc></url>`).join('\n')}\n</urlset>\n`
   return { robots, sitemap }
 }

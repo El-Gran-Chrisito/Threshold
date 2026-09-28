@@ -7,7 +7,9 @@ import { decodeShared, sharedCode } from './store/share'
 import { uid } from './model/factory'
 import { track } from './product/analytics'
 import { watchOnboarding } from './product/onboarding'
-import { requireFeature, showTrialEndedOnce, useEntitlements } from './product/entitlements'
+import { can, requireFeature, showTrialEndedOnce, useEntitlements } from './product/entitlements'
+import { LIBRARY, buildLibraryPlan } from './model/library'
+import { canStartNewDesign } from './product/gates'
 import { useAudience, type Audience } from './product/audience'
 import { captureInvite } from './product/invite'
 import { productConfig } from './product/config'
@@ -112,6 +114,19 @@ export default function App() {
         }
         window.history.replaceState(null, '', window.location.pathname + window.location.search)
       }
+      // Opened from a plan library page: #library=<id>.
+      const libId = window.location.hash.match(/^#library=([a-z-]+)$/)?.[1]
+      if (libId) {
+        const l = LIBRARY.find((x) => x.id === libId)
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        if (l && l.pro && !can('plan-library')) useEntitlements.getState().openPaywall('plan-library')
+        else if (l && canStartNewDesign(useStore.getState().project.id)) {
+          useStore.getState().loadProject(buildLibraryPlan(l.id))
+          useStore.getState().setView(window.matchMedia?.('(max-width: 820px)').matches ? '3d' : 'split')
+          useStore.getState().notify(`Opened the ${l.name}. It is yours to change.`)
+          track('design_created', { from: `plan-page-${l.id}` })
+        }
+      }
       const params = new URLSearchParams(window.location.search)
       const session = params.get('checkout_session') ?? params.get('session_id')
       if (!session && !useStore.getState().presenting) showTrialEndedOnce()
@@ -126,7 +141,7 @@ export default function App() {
     })()
   }, [])
   const [welcome, setWelcome] = useState(() => {
-    if (sharedCode()) return false
+    if (sharedCode() || window.location.hash.startsWith('#library=')) return false
     try {
       return !localStorage.getItem('threshold:welcomed') && !localStorage.getItem('threshold:last')
     } catch {

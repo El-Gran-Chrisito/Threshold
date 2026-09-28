@@ -12,6 +12,8 @@ const env = import.meta.env as Record<string, string | undefined>
 const APP = env.VITE_APP_PATH || './index.html'
 // An invite link (?invite=...) is kept for checkout on this page and in the app.
 const INVITED = captureInvite() ?? storedInvite()
+// The plan library pages exist in the hosted build, not in the one-file preview.
+const HAS_PLAN_PAGES = !import.meta.env.MODE.startsWith('artifact')
 
 function Mark() {
   return (
@@ -369,6 +371,7 @@ function Landing() {
         <div className="wrap foot-row">
           <span>© {year} Threshold</span>
           <nav aria-label="Legal">
+            {HAS_PLAN_PAGES && <a href="plans/index.html">House plans</a>}
             <a href="legal/terms.html">Terms</a>
             <a href="legal/privacy.html">Privacy</a>
             <a href="legal/refunds.html">Refunds</a>
