@@ -4,6 +4,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })
 page.on('pageerror', (e) => console.log('pageerror: ' + e.message))
 await page.goto('http://localhost:4173/')
+// The 3D model export is a Pro feature: run as a Pro trial.
+await page.evaluate(() => localStorage.setItem('threshold:trial', String(Date.now())))
+await page.reload()
 await page.waitForTimeout(800)
 if (await page.$('.welcome')) await page.click('text=Explore the example home')
 await page.waitForTimeout(2500)
