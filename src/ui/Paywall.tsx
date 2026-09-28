@@ -107,7 +107,7 @@ export function PaywallSheet() {
           value={billing}
           onChange={setBilling}
           options={[
-            { value: 'yearly', label: `Yearly · save up to ${bestSaving}%` },
+            { value: 'yearly', label: 'Yearly', badge: `save up to ${bestSaving}%` },
             { value: 'monthly', label: 'Monthly' },
           ]}
         />

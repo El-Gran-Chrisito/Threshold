@@ -139,13 +139,14 @@ function toHex(v: string) {
   return /^#[0-9a-f]{6}$/i.test(v) ? v : '#cccccc'
 }
 
-export function Segmented<T extends string>({ options, value, onChange, label }: { options: Array<{ value: T; label: string; icon?: ReactNode }>; value: T; onChange: (v: T) => void; label: string }) {
+export function Segmented<T extends string>({ options, value, onChange, label }: { options: Array<{ value: T; label: string; icon?: ReactNode; badge?: string }>; value: T; onChange: (v: T) => void; label: string }) {
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={o.value === value} className={o.value === value ? 'is-on' : ''} onClick={() => onChange(o.value)}>
           {o.icon}
           <span>{o.label}</span>
+          {o.badge && <span className="seg-badge">{o.badge}</span>}
         </button>
       ))}
     </div>

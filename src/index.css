@@ -575,6 +575,30 @@ a.btn:not(.btn-primary) {
   box-shadow: var(--shadow);
 }
 
+.seg-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+/* Phones: lead with the plan we suggest, and the plan you have last. */
+@media (max-width: 700px) {
+  .plan-card.is-recommended {
+    order: -1;
+  }
+
+  .plan-card.is-current {
+    order: 2;
+  }
+}
+
 .len-input.is-bad {
   border-color: var(--danger);
   animation: shake 0.3s;
