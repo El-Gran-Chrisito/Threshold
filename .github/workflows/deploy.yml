@@ -1,0 +1,64 @@
+name: Deploy
+
+# Runs only when started by hand: Actions → Deploy → Run workflow.
+# Builds the site with the repository's VITE_* variables, publishes it to
+# Cloudflare Pages, and deploys the license server to Cloudflare Workers.
+# Setup: docs/MONETIZATION.md, "Deploy from GitHub".
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: Deploy the site (Cloudflare Pages)
+        type: boolean
+        default: true
+      server:
+        description: Deploy the license server (Cloudflare Workers)
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bunx vitest run
+
+      - name: Build the site
+        if: ${{ inputs.site }}
+        env:
+          VITE_LICENSE_PUBLIC_KEY: ${{ vars.VITE_LICENSE_PUBLIC_KEY }}
+          VITE_LICENSE_API: ${{ vars.VITE_LICENSE_API }}
+          VITE_CHECKOUT_PRO_MONTHLY: ${{ vars.VITE_CHECKOUT_PRO_MONTHLY }}
+          VITE_CHECKOUT_PRO_YEARLY: ${{ vars.VITE_CHECKOUT_PRO_YEARLY }}
+          VITE_CHECKOUT_STUDIO_MONTHLY: ${{ vars.VITE_CHECKOUT_STUDIO_MONTHLY }}
+          VITE_CHECKOUT_STUDIO_YEARLY: ${{ vars.VITE_CHECKOUT_STUDIO_YEARLY }}
+          VITE_CHECKOUT_PRO_PASS: ${{ vars.VITE_CHECKOUT_PRO_PASS }}
+          VITE_BILLING_PORTAL_URL: ${{ vars.VITE_BILLING_PORTAL_URL }}
+          VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+          VITE_APP_PATH: ${{ vars.VITE_APP_PATH || '/app' }}
+          VITE_SHOP_URL: ${{ vars.VITE_SHOP_URL }}
+          VITE_SHOP_URLS: ${{ vars.VITE_SHOP_URLS }}
+          VITE_INVITE_PROMO_CODE: ${{ vars.VITE_INVITE_PROMO_CODE }}
+          VITE_INVITE_OFFER: ${{ vars.VITE_INVITE_OFFER }}
+        run: |
+          bun run launch-check || echo "::warning::launch-check found settings to fix (see above)"
+          bun run build
+          # Cloudflare Pages does not use the "!" that Netlify needs for the home page rewrite.
+          sed -i 's/ 200!$/ 200/' dist/_redirects
+
+      - name: Publish the site to Cloudflare Pages
+        if: ${{ inputs.site }}
+        run: bunx wrangler pages deploy dist --project-name "${{ vars.CF_PAGES_PROJECT || 'threshold' }}" --branch main
+
+      - name: Deploy the license server
+        if: ${{ inputs.server }}
+        working-directory: server
+        run: bunx wrangler deploy

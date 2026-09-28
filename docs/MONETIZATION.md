@@ -156,6 +156,18 @@ Build command: `bun install && bun run build`. Publish folder: `dist`.
 
 Check: `/` shows the marketing page, `/app` opens the app, and the upgrade sheet shows "Choose Pro" buttons instead of "Checkout is not connected". `/sitemap.xml` lists the pages, and pasting your address into a chat app shows the street picture as its preview.
 
+### Deploy from GitHub (optional)
+
+`.github/workflows/deploy.yml` builds and deploys both parts to Cloudflare when you start it by hand (**Actions → Deploy → Run workflow**). It never runs on its own.
+
+1. In Cloudflare, create an API token with *Cloudflare Pages: Edit* and *Workers Scripts: Edit*, and note your account id.
+2. In GitHub, **Settings → Secrets and variables → Actions**:
+   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+   - Variables: every `VITE_*` setting from the table above, and `CF_PAGES_PROJECT` (your Pages project name, default `threshold`).
+3. The license server's own secrets (Stripe, signing key, email, assistant) stay in Cloudflare (`wrangler secret put`, step 3); the workflow only uploads the code and `wrangler.toml`.
+
+The workflow runs the lint, the tests and `launch-check` first, and switches `_redirects` to the Cloudflare Pages form.
+
 ## Step 5: test a purchase end to end
 
 1. In Stripe test mode, open the app, click **Upgrade → Choose Pro**, pay with card `4242 4242 4242 4242`.
