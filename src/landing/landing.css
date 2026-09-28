@@ -383,6 +383,38 @@ p {
   max-width: 52ch;
 }
 
+/* Plan set: three printed pages, fanned */
+.handoff-cta {
+  align-self: flex-start;
+}
+
+.sheets {
+  display: grid;
+  padding: 12% 16% 8% 0;
+}
+
+.sheets img {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 3px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(20, 30, 35, 0.12), 0 10px 28px rgba(20, 30, 35, 0.16);
+}
+
+.sheets img:nth-child(1) {
+  transform: translate(17%, -13%) rotate(5deg);
+}
+
+.sheets img:nth-child(2) {
+  transform: translate(9%, -6%) rotate(2deg);
+}
+
+.sheets img:nth-child(3) {
+  transform: translate(0, 4%) rotate(-2.5deg);
+}
+
 @media (max-width: 860px) {
   .story-row {
     grid-template-columns: 1fr;

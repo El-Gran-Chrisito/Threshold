@@ -245,6 +245,24 @@ function Landing() {
           ))}
         </section>
 
+        <section className="band handoff">
+          <div className="wrap story-row">
+            <div className="story-text">
+              <Dim label="Letter or A4 · Pro" />
+              <h2>Hand your builder a plan set</h2>
+              <p>One PDF with a cover, a dimensioned sheet for every floor, a room schedule with finishes and ceiling heights, and the shopping list. Print it, or send it to your builder, designer or family.</p>
+              <a className="btn btn-primary handoff-cta" href="#pricing">
+                See Pro and the Build Pass
+              </a>
+            </div>
+            <div className="sheets" role="img" aria-label="Three pages from a sample plan set: the cover, the ground floor plan and the shopping list">
+              <img src="shots/set-list.jpg" alt="" loading="lazy" width={1100} height={850} />
+              <img src="shots/set-plan.jpg" alt="" loading="lazy" width={1100} height={850} />
+              <img src="shots/set-cover.jpg" alt="" loading="lazy" width={1100} height={850} />
+            </div>
+          </div>
+        </section>
+
         <section className="band extras">
           <div className="wrap">
             <h2>Everything else a home needs</h2>
