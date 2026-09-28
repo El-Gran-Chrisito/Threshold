@@ -32,12 +32,12 @@ async function sha(s: string): Promise<string> {
 }
 
 /** Only links to this site that carry a design. */
-export function validDesignLink(link: string, allowedOrigin?: string): boolean {
+export function validDesignLink(link: string, allowedOrigin: string): boolean {
   if (link.length > 200_000) return false
   try {
     const u = new URL(link)
     if (u.protocol !== 'https:' && u.hostname !== 'localhost') return false
-    if (allowedOrigin && allowedOrigin !== '*' && u.origin !== new URL(allowedOrigin).origin) return false
+    if (u.origin !== new URL(allowedOrigin).origin) return false
     return u.hash.startsWith('#design=')
   } catch {
     return false
@@ -53,6 +53,8 @@ async function bump(kv: KV, key: string, max: number): Promise<boolean> {
 
 export async function sendDesign(env: LeadsEnv, kv: KV | undefined, body: Record<string, unknown>, ip: string, now: number, fetchImpl: Fetch): Promise<LeadResult> {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM || !kv) return { status: 501, body: { error: 'Email is not set up on this site' } }
+  // Only this site's links: without a known site address the route could mail anyone any link.
+  if (!env.ALLOWED_ORIGIN || env.ALLOWED_ORIGIN === '*') return { status: 501, body: { error: 'Set ALLOWED_ORIGIN on the license server to send designs by email' } }
   const email = String(body.email ?? '')
     .trim()
     .toLowerCase()
@@ -95,7 +97,9 @@ export async function leadsCsv(env: LeadsEnv, kv: KV | undefined, auth: string):
   const { keys } = await kv.list({ prefix: 'lead:', limit: 1000 })
   const rows = keys.map((k) => {
     const m = (k.metadata ?? {}) as { at?: number; source?: string }
-    return [k.name.slice(5), m.at ? new Date(m.at).toISOString() : '', m.source ?? ''].join(',')
+    // Cells starting with = + - @ would run as formulas in a spreadsheet.
+    const cell = (v: string) => (/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/[",\n]/g, '')
+    return [cell(k.name.slice(5)), m.at ? new Date(m.at).toISOString() : '', cell(m.source ?? '')].join(',')
   })
   return { status: 200, csv: ['email,signed_up,source', ...rows].join('\n') + '\n' }
 }

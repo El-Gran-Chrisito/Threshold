@@ -173,7 +173,7 @@ Fill in the bracketed details in `public/legal/terms.html`, `privacy.html` and `
 
 ## Email list: "Email me this design"
 
-With key emails set up (step 3), the Project panel offers **Email me this design**: the design's share link goes to the address given. People who tick *Also send me occasional home-design tips* are kept in a list; nobody else is. Sending is limited to 5 emails a day per network and 3 a day per address, and only links to your own site (`ALLOWED_ORIGIN`) are sent.
+With key emails set up (step 3), the Project panel offers **Email me this design**: the design's share link goes to the address given. People who tick *Also send me occasional home-design tips* are kept in a list; nobody else is. Sending is limited to 5 emails a day per network and 3 a day per address, and only links to your own site are sent, so `ALLOWED_ORIGIN` must be set to your site's address for this to work.
 
 Download the list as CSV:
 
