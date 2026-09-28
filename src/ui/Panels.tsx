@@ -744,6 +744,13 @@ export function ProjectPanel() {
     setMaking(true)
     s.notify('Drawing the plan set…')
     try {
+      // From plan view, open Split for a moment so the 3D pictures can be taken.
+      const was = useStore.getState().view
+      if (was === 'plan') {
+        useStore.getState().setView('split')
+        for (let t = 0; t < 40 && !document.querySelector('.view-3d canvas'); t++) await new Promise((r) => setTimeout(r, 200))
+        await new Promise((r) => setTimeout(r, 800))
+      }
       const canvas = document.querySelector('.view-3d canvas') as HTMLCanvasElement | null
       const views = await capture3dViews([
         { dir: 'street', name: 'From the street' },
@@ -751,6 +758,7 @@ export function ProjectPanel() {
         { dir: 'N', name: 'Garden side' },
         { dir: 'top', name: 'From above' },
       ])
+      if (was === 'plan') useStore.getState().setView('plan')
       const blob = await planSetPdf(useStore.getState().project, { cover3d: canvas, views, brand: can('branding') ? useBrand.getState() : null, shopping: can('shopping-export') })
       track('export', { kind: 'plan-set' })
       const r = await saveFile(`${slug(project.name)}-plan-set.pdf`, blob, 'application/pdf')
@@ -976,7 +984,7 @@ export function ProjectPanel() {
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             <Icon name="upload" size={16} /> Open design file
           </button>
-          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover, 3D views (open 3D or Split first), every floor plan, room schedule and shopping list">
+          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover, 3D views, every floor plan, room schedule and shopping list">
             <Icon name="sheets" size={16} /> {making ? 'Making plan set…' : 'Save plan set (PDF)'} <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportPlan}>
