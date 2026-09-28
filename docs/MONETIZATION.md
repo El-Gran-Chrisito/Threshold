@@ -66,7 +66,7 @@ Check: `bun run license issue --plan pro --email you@example.com --days 30` prin
 4. Create a **Payment Link** for each of the four prices. In each link, under *After payment*, choose *Don't show confirmation page* and redirect to:
    `https://YOUR-SITE/app?checkout_session={CHECKOUT_SESSION_ID}`
 5. Optional, for people planning one home: create a product **Threshold Pro Build Pass** with a **one-time** price of $49. Add metadata `plan = pro` and `days = 183` to the product (the server also treats any price whose lookup key or product name contains "pass" as 183 days). Make a Payment Link for it with the same redirect, and put it in `VITE_CHECKOUT_PRO_PASS`. Buyers get a key that ends after 183 days and never renews; a one-time price without `days` gives a key that never ends (a lifetime deal).
-6. Turn on the **customer portal** (Settings → Billing → Customer portal) and copy its login link. Subscribers use it to cancel or change their card.
+6. Turn on the **customer portal**. Allow customers to switch between the monthly and yearly prices there: monthly subscribers see a "Switch to yearly" offer in the plans sheet that opens the portal. (Settings → Billing → Customer portal) and copy its login link. Subscribers use it to cancel or change their card.
 
 If you must charge sales tax or VAT, turn on **Stripe Tax** (Settings → Tax) and tick *Collect tax automatically* on each Payment Link. Prices in `plans.ts` are shown before tax.
 

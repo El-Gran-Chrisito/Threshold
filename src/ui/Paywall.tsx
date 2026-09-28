@@ -170,6 +170,7 @@ export function PaywallSheet() {
               {msg && <p className={msg.ok ? 'check-ok' : 'error'}>{msg.text}</p>}
             </details>
           )}
+          {license.billing === 'monthly' && <YearlyOffer plan={license.plan} />}
           {storedKey && license.ref?.startsWith('sub_') && productConfig.licenseApi && <InviteBox licenseKey={storedKey} planName={planInfo(license.plan).name} />}
           <p className="paywall-fine">
             Licensed to {license.email || license.name || 'you'}
@@ -244,6 +245,35 @@ export function PaywallSheet() {
         </p>
       </div>
     </div>
+  )
+}
+
+/** Monthly subscribers: what a year costs on the yearly price instead. */
+function YearlyOffer({ plan }: { plan: PlanId }) {
+  const p = planInfo(plan)
+  if (!p.monthly || !p.yearly) return null
+  const monthlyYear = p.monthly * 12
+  const save = Math.round((1 - p.yearly / monthlyYear) * 100)
+  if (save <= 0) return null
+  return (
+    <aside className="pass-offer">
+      <div>
+        <span className="eyebrow">Save {save}%</span>
+        <h3>
+          Switch to yearly <span className="pass-price">{money(p.yearly)} a year</span>
+        </h3>
+        <p>
+          Instead of {money(monthlyYear)} a year on monthly billing. Same {p.name} features.
+        </p>
+      </div>
+      {productConfig.billingPortal ? (
+        <a className="btn" href={productConfig.billingPortal} target="_blank" rel="noreferrer" onClick={() => track('upgrade_clicked', { plan, billing: 'switch-yearly' })}>
+          Switch in billing
+        </a>
+      ) : productConfig.supportEmail ? (
+        <span className="plan-soon">Write to {productConfig.supportEmail} to switch</span>
+      ) : null}
+    </aside>
   )
 }
 

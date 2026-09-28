@@ -22,6 +22,8 @@ export interface LicensePayload {
   exp: number | null
   /** A free trial key from the license server: Pro for a few days, no design sync. */
   trial?: boolean
+  /** How a subscription is billed, so monthly subscribers can be shown the yearly saving. */
+  billing?: 'monthly' | 'yearly'
 }
 
 export type VerifyResult = { ok: true; payload: LicensePayload } | { ok: false; reason: 'unconfigured' | 'format' | 'signature' | 'expired' }

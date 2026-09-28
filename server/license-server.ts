@@ -83,6 +83,7 @@ const GRACE_MS = 3 * 86_400_000
 interface StripePrice {
   id: string
   lookup_key?: string | null
+  recurring?: { interval?: string } | null
   metadata?: Record<string, string>
   product?: string | { metadata?: Record<string, string>; name?: string }
 }
@@ -154,6 +155,12 @@ export function daysForPurchase(session: Pick<StripeSession, 'metadata'>, price:
   }
   const hint = [price?.lookup_key, product?.name, price?.metadata?.plan, product?.metadata?.plan].filter(Boolean).join(' ').toLowerCase()
   return hint.includes('pass') ? PASS.days : null
+}
+
+/** Monthly or yearly, from the price's billing interval. */
+export function billingOf(price: StripePrice | undefined): 'monthly' | 'yearly' | undefined {
+  const i = price?.recurring?.interval
+  return i === 'year' ? 'yearly' : i === 'month' ? 'monthly' : undefined
 }
 
 function periodEnd(sub: StripeSubscription): number | null {
@@ -308,7 +315,9 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     }
     if (!['active', 'trialing', 'past_due'].includes(sub.status)) return json(env, { error: 'The subscription has ended' }, 403)
     const end = periodEnd(sub) ?? now + 32 * 86_400_000
-    return json(env, { key: await signLicense({ ...v.payload, iat: now, exp: end + GRACE_MS }, privateJwk) })
+    // The customer may have switched between monthly and yearly in the billing portal.
+    const billing = billingOf(sub.items?.data?.[0]?.price) ?? v.payload.billing
+    return json(env, { key: await signLicense({ ...v.payload, iat: now, exp: end + GRACE_MS, ...(billing ? { billing } : {}) }, privateJwk) })
   }
 
   if (path.includes('/designs/')) return designs(request, path, body, env, publicFromPrivate(privateJwk))
@@ -371,6 +380,7 @@ async function keyForSession(env: Env, id: string, privateJwk: JsonWebKey, now: 
     ref: sub?.id ?? (typeof s.subscription === 'string' ? s.subscription : s.id),
     iat: now,
     exp: s.mode === 'subscription' ? (end ?? now + 32 * 86_400_000) + GRACE_MS : days ? now + days * 86_400_000 : null,
+    ...(s.mode === 'subscription' && billingOf(s.line_items?.data?.[0]?.price) ? { billing: billingOf(s.line_items?.data?.[0]?.price) } : {}),
   }
   return { ok: true, issued: { key: await signLicense(payload, privateJwk), plan, email: payload.email ?? null, ref: payload.ref!, exp: payload.exp, invite: s.client_reference_id ?? null } }
 }

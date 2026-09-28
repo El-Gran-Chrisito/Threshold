@@ -28,7 +28,7 @@ describe('license server', () => {
         mode: 'subscription',
         customer_details: { email: 'buyer@example.com', name: 'Ann Buyer' },
         subscription: { id: 'sub_1', status: 'active', items: { data: [{ current_period_end: periodEnd }] } },
-        line_items: { data: [{ price: { id: 'price_p', lookup_key: 'pro_monthly' } }] },
+        line_items: { data: [{ price: { id: 'price_p', lookup_key: 'pro_monthly', recurring: { interval: 'month' } } }] },
       },
     })
     const res = await post('/activate', { sessionId: 'cs_test_1' })
@@ -39,6 +39,7 @@ describe('license server', () => {
     const v = await verifyLicense(data.key, publicJwk)
     expect(v.ok && v.payload.ref).toBe('sub_1')
     expect(v.ok && v.payload.exp! > periodEnd * 1000).toBe(true)
+    expect(v.ok && v.payload.billing).toBe('monthly')
   })
 
   it('refuses unpaid sessions and bad input', async () => {
@@ -49,12 +50,13 @@ describe('license server', () => {
   })
 
   it('renews while the subscription is paid, and stops when it ends', async () => {
-    const live = await setup({ 'subscriptions/sub_9': { id: 'sub_9', status: 'active', current_period_end: periodEnd } })
+    const live = await setup({ 'subscriptions/sub_9': { id: 'sub_9', status: 'active', current_period_end: periodEnd, items: { data: [{ price: { id: 'p', recurring: { interval: 'year' } } }] } } })
     const old = await signLicense({ v: 1, plan: 'studio', ref: 'sub_9', iat: 0, exp: Date.now() - 1000 }, live.privateJwk)
     const res = await live.post('/refresh', { key: old })
     expect(res.status).toBe(200)
     const v = await verifyLicense(((await res.json()) as { key: string }).key, live.publicJwk)
     expect(v.ok && v.payload.plan).toBe('studio')
+    expect(v.ok && v.payload.billing).toBe('yearly')
 
     const ended = await setup({ 'subscriptions/sub_9': { id: 'sub_9', status: 'canceled' } })
     const k2 = await signLicense({ v: 1, plan: 'pro', ref: 'sub_9', iat: 0, exp: 1 }, ended.privateJwk)
