@@ -10,6 +10,7 @@
  *                   network per 30 days (needs DESIGNS for the count)
  *   POST /referral  (license)                   ->  { code, count } invite code (see referral.ts)
  *   POST /send-design, /leads                   ->  email a design link; tips list (leads.ts)
+ *   POST /stripe-webhook                        ->  refunds and disputes revoke (webhook.ts)
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -42,6 +43,7 @@ import { allows, PASS } from '../src/product/plans'
 import { askClaude, checkRequest, type AssistantEnv } from './assistant'
 import { creditInviter, referralFor, type ReferralEnv } from './referral'
 import { leadsCsv, sendDesign, type LeadsEnv } from './leads'
+import { handleWebhook, isRevoked, type WebhookEnv } from './webhook'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -51,7 +53,7 @@ export interface KV {
   list(opts: { prefix: string; limit?: number }): Promise<{ keys: Array<{ name: string; metadata?: unknown }> }>
 }
 
-export interface Env extends AssistantEnv, ReferralEnv, LeadsEnv {
+export interface Env extends AssistantEnv, ReferralEnv, LeadsEnv, WebhookEnv {
   STRIPE_SECRET_KEY: string
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
@@ -165,6 +167,10 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(env) })
   if (request.method !== 'POST') return json(env, { error: 'Use POST' }, 405)
   const path = new URL(request.url).pathname.replace(/\/+$/, '')
+  if (path.endsWith('/stripe-webhook')) {
+    const r = await handleWebhook(env, env.DESIGNS, request, fetchImpl)
+    return json(env, r.body, r.status)
+  }
   let body: Record<string, unknown>
   try {
     body = (await request.json()) as Record<string, unknown>
@@ -196,7 +202,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     if (!env.DESIGNS) return json(env, { error: 'Invites are not set up here' }, 501)
     const v = await verifyLicense((request.headers.get('authorization') ?? '').replace(/^License\s+/i, ''), publicFromPrivate(privateJwk))
     if (!v.ok) return json(env, { error: 'License required' }, 401)
-    if (!v.payload.ref?.startsWith('sub_')) return json(env, { error: 'Invites are for subscribers' }, 403)
+    if (!v.payload.ref?.startsWith('sub_') || (await isRevoked(env.DESIGNS, v.payload.ref))) return json(env, { error: 'Invites are for subscribers' }, 403)
     return json(env, await referralFor(env.DESIGNS, v.payload))
   }
 
@@ -260,6 +266,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     if (!v.ok) return json(env, { error: 'Not a valid license key' }, 400)
     const ref = v.payload.ref ?? ''
     if (!ref.startsWith('sub_')) return json(env, { error: 'This license does not renew' }, 400)
+    if (await isRevoked(env.DESIGNS, ref)) return json(env, { error: 'This purchase was refunded' }, 403)
     let sub: StripeSubscription
     try {
       sub = await stripe<StripeSubscription>(env, `subscriptions/${ref}`, fetchImpl)
@@ -277,6 +284,7 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     const v = await verifyLicense((request.headers.get('authorization') ?? '').replace(/^License\s+/i, ''), publicFromPrivate(privateJwk))
     if (!v.ok) return json(env, { code: 'not_granted', message: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
     if (!allows(v.payload.plan, 'assistant')) return json(env, { code: 'not_granted', message: 'The assistant is part of Pro' }, 403)
+    if (await isRevoked(env.DESIGNS, v.payload.ref)) return json(env, { code: 'not_granted', message: 'This purchase was refunded' }, 403)
     const req = checkRequest(body)
     if ('ok' in req) return json(env, { code: req.code, message: req.message }, req.status)
     if (env.DESIGNS) {
@@ -318,6 +326,7 @@ async function keyForSession(env: Env, id: string, privateJwk: JsonWebKey, now: 
   if (!plan) return { ok: false, status: 422, error: 'This purchase is not linked to a plan' }
   const sub = typeof s.subscription === 'object' && s.subscription ? s.subscription : null
   if (sub && !['active', 'trialing', 'past_due'].includes(sub.status)) return { ok: false, status: 403, error: 'The subscription has ended' }
+  if (await isRevoked(env.DESIGNS, s.id, sub?.id)) return { ok: false, status: 403, error: 'This purchase was refunded' }
   const end = sub ? periodEnd(sub) : null
   const days = s.mode === 'subscription' ? null : daysForPurchase(s, s.line_items?.data?.[0]?.price)
   const payload: LicensePayload = {
@@ -380,6 +389,7 @@ async function designs(request: Request, path: string, body: Record<string, unkn
   if (!v.ok) return json(env, { error: v.reason === 'expired' ? 'License expired' : 'License required' }, 401)
   if (!v.payload.ref && !v.payload.email) return json(env, { error: 'This license cannot sync' }, 403)
   if (v.payload.trial) return json(env, { error: 'Design sync starts when you buy a plan' }, 403)
+  if (await isRevoked(env.DESIGNS, v.payload.ref)) return json(env, { error: 'This purchase was refunded' }, 403)
   const prefix = `d:${await ownerKey(v.payload)}:`
   const kv = env.DESIGNS
   const id = String(body.id ?? '')

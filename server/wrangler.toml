@@ -18,6 +18,7 @@ compatibility_date = "2026-09-01"
 # Invite credit per paid friend, in cents (default: one month of the inviter's plan):
 # REFERRAL_CREDIT_CENTS = "1200"
 # Tips list download (POST /leads): wrangler secret put ADMIN_TOKEN
+# Refunds and disputes (POST /stripe-webhook): wrangler secret put STRIPE_WEBHOOK_SECRET
 
 # Design sync for paying customers (optional). Create the namespace with
 #   npx wrangler kv namespace create DESIGNS

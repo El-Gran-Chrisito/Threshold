@@ -83,6 +83,15 @@ npx wrangler deploy
 
 Set `ALLOWED_ORIGIN` in `wrangler.toml` to your site's address, and `PRICE_PLANS` if you used price ids in step 2.
 
+### Refunds and chargebacks (recommended)
+
+A key works offline, so a refund cannot switch off the app on the buyer's device. The server can stop everything it provides: new keys, renewals, design sync, the hosted assistant and invites.
+
+1. In Stripe, **Developers → Webhooks → Add endpoint**: `https://YOUR-WORKER/stripe-webhook`, events `charge.refunded` and `charge.dispute.created`.
+2. `npx wrangler secret put STRIPE_WEBHOOK_SECRET` with the endpoint's signing secret (`whsec_...`).
+
+Full refunds and disputes on one-time purchases (Build Pass, lifetime keys) are revoked; partial refunds are not. For subscriptions, cancel the subscription when you refund: the key then stops renewing and ends within a few days. Needs the design-sync store.
+
 ### Emailing license keys (recommended)
 
 Without this, a buyer gets their key only in the browser they paid in. With it, the server emails each buyer their key after checkout, and "Email me my key" in the app sends lost keys to the address that paid.
