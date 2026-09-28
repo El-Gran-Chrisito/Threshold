@@ -995,7 +995,7 @@ export function ProjectPanel() {
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             <Icon name="upload" size={16} /> Open design file
           </button>
-          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover, 3D views, every floor plan, room schedule and shopping list">
+          <button type="button" className="btn" onClick={exportPlanSet} disabled={making} title="Cover, 3D views, every floor plan, room schedule, cost estimate and shopping list">
             <Icon name="sheets" size={16} /> {making ? 'Making plan set…' : 'Save plan set (PDF)'} <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportPlan}>

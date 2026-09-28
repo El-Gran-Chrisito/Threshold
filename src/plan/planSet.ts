@@ -76,7 +76,7 @@ function tablePages(
   idPrefix: string,
   title: string,
   columns: Array<{ label: string; share: number }>,
-  rows: Array<{ cells: string[]; heading?: boolean }>,
+  rows: Array<{ cells: string[]; heading?: boolean; note?: boolean }>,
   perPage: number,
 ): Sheet[] {
   const pages: Sheet[] = []
@@ -110,7 +110,11 @@ function tablePages(
           if (r.heading) {
             ctx.font = font(700, 30)
             ctx.fillStyle = ACCENT
-            ctx.fillText(r.cells[0], m, y - 10)
+            ctx.fillText(fit(ctx, r.cells[0], inner), m, y - 10)
+          } else if (r.note) {
+            ctx.font = font(400, 24)
+            ctx.fillStyle = INK_2
+            ctx.fillText(fit(ctx, r.cells[0], inner), m, y - 10)
           } else {
             ctx.font = font(400, 28)
             ctx.fillStyle = INK
@@ -202,6 +206,32 @@ export async function planSetPdf(project: Project, opts: PlanSetOptions = {}): P
       Math.floor((H - 1.75 * DPI) / (DPI * 0.19)),
     ),
   )
+
+  // Cost estimate: every budget line by group, with group and grand totals.
+  const est = budget(project)
+  if (est.lines.length) {
+    const groups = [...new Set(est.lines.map((l) => l.group))]
+    const rows: Array<{ cells: string[]; heading?: boolean; note?: boolean }> = []
+    for (const g of groups) {
+      rows.push({ cells: [`${g} · ${formatMoney(est.byGroup[g] ?? 0)}`], heading: true })
+      rows.push(...est.lines.filter((l) => l.group === g).map((l) => ({ cells: [l.label, l.qty, formatMoney(l.cost)] })))
+    }
+    rows.push({ cells: [`Total · ${formatMoney(est.total)}`], heading: true })
+    rows.push({ cells: ['US ballpark prices for materials and installation. Land, foundations, plumbing, wiring, permits and fees are not included.'], note: true })
+    sheets.push(
+      ...tablePages(
+        'C',
+        'Cost estimate',
+        [
+          { label: 'Item', share: 0.55 },
+          { label: 'Amount', share: 0.3 },
+          { label: 'Cost', share: 0.15 },
+        ],
+        rows,
+        Math.floor((H - 1.75 * DPI) / (DPI * 0.19)),
+      ),
+    )
+  }
 
   if (opts.shopping) {
     const lines = takeoff(project)

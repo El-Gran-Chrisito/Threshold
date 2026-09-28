@@ -299,7 +299,7 @@ function Landing() {
             <div className="story-text">
               <Dim label="Letter or A4 · Pro" />
               <h2>Hand your builder a plan set</h2>
-              <p>One PDF with a cover, 3D views from the street, the corner, the garden and above, a dimensioned sheet for every floor, a room schedule with finishes and ceiling heights, and the shopping list. Print it, or send it to your builder, designer or family.</p>
+              <p>One PDF with a cover, 3D views from the street, the corner, the garden and above, a dimensioned sheet for every floor, a room schedule with finishes and ceiling heights, a cost estimate and the shopping list. Print it, or send it to your builder, designer or family.</p>
               <a className="btn btn-primary handoff-cta" href="#pricing">
                 See Pro and the Build Pass
               </a>
