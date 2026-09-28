@@ -9,7 +9,7 @@ Threshold ships ready to sell. Setup takes about an hour: see [docs/MONETIZATION
 | Part | What it does |
 | --- | --- |
 | Plans | Free, Pro and Studio, monthly or yearly; a one-time 6-month Build Pass; a 7-day Pro trial |
-| Paid features | PDF plan set, clean and high-resolution exports, 3D model, shopping spreadsheet, electrical layout, design assistant, all styles and surroundings, design sync; Studio branding, presentations and client links |
+| Paid features | PDF plan set, clean and high-resolution exports, 3D model, shopping spreadsheet, electrical layout, design assistant, all styles and surroundings, the full plan library, design sync; Studio branding, presentations and client links |
 | License keys | Signed keys checked offline; emailed after purchase; "Email me my key" recovery; renewals while a subscription is paid |
 | License server | Stripe checkout to key, renewals, design sync, hosted design assistant, signed trials, invites with Stripe balance credit, "Email me this design" with an opt-in tips list, refund and dispute revocation, daily stats (`bun run stats`) |
 | Growth | Marketing page with pricing, sample plan set, FAQ and search data; share and client links; invite links; store links on the shopping list (affiliate-ready) |
@@ -34,7 +34,7 @@ bun run stats        # daily trials, purchases, invites and more from the licens
 
 | Area | Features |
 | --- | --- |
-| Start | Example home, templates, or a furnished plan made from your needs (bedrooms, bathrooms, one or two floors, garage, office, open plan) that passes the design check |
+| Start | Example home, templates, a plan library of ready-made styled homes (2 free, 8 with Pro), or a furnished plan made from your needs (bedrooms, bathrooms, one or two floors, garage, office, open plan) that passes the design check |
 | Plan (2D) | Rectangle and free-shape rooms, floor-only areas (patios, decks, lawns), walls with typed lengths and chosen thickness, shared walls, closed wall loops become rooms, doors / double doors / sliders / archways / garage doors / windows, snapping (grid, corners, alignment guides, 15° angles), drag / resize / rotate handles, add corners to room edges, click a dimension to edit it, click a room's name, area or size on the plan to type a new one, measure, text labels, multi-select with align and distribute, right-click and long-press quick actions, tracing image with scale calibration |
 | Furniture | 103 parametric items in 12 categories (living, bedroom, dining, kitchen, bath, office, laundry, lighting, electrical, decor, outdoor, structure); auto-backs onto walls; any size, two colours, mirror, lock, swap; one-click kitchen cabinet runs |
 | Finishes | Six whole-home styles (modern farmhouse, Scandinavian, mid-century, industrial, coastal, traditional) in one click; nine wall finishes per wall side (paint, wallpaper, tile, wood, brick, stone, siding, shingle, concrete), 18 floor finishes with real-scale textures and pattern direction, ceilings, trim and baseboards, door and window styles, exterior and roof colour |

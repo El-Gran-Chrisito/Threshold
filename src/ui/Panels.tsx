@@ -23,6 +23,7 @@ import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeo
 import { shopConfig, shopUrl } from '../product/shop'
 import { productConfig } from '../product/config'
 import { TEMPLATES, buildTemplate } from '../model/templates'
+import { LIBRARY, buildLibraryPlan, libraryBlurb } from '../model/library'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
 import { dataUrlToBlob, saveFile, slug } from '../store/files'
@@ -863,6 +864,32 @@ export function ProjectPanel() {
             >
               <strong>{t.name}</strong>
               <span className="muted">{t.blurb}</span>
+            </ConfirmButton>
+          ))}
+        </div>
+      </Field>
+      <Field label="Plan library" hint="Ready-made homes, furnished and styled. Start from one and change anything.">
+        <div className="template-list">
+          {LIBRARY.map((l) => (
+            <ConfirmButton
+              key={l.id}
+              className="template-card"
+              confirmText="Click again: your current design stays saved"
+              onConfirm={() => {
+                if (l.pro && !requireFeature('plan-library')) return
+                if (!canStartNewDesign(useStore.getState().project.id)) return
+                const p = buildLibraryPlan(l.id)
+                useStore.getState().loadProject({ ...p, units: project.units })
+                setSaved(listSaved())
+                track('design_created', { from: `library-${l.id}` })
+                useStore.getState().notify(`Started: ${l.name}`)
+              }}
+            >
+              <strong>
+                {l.name} {l.pro && <PlanTag plan="pro" />}
+              </strong>
+              <span className="muted">{libraryBlurb(l)}</span>
+              <span className="muted">{l.for}</span>
             </ConfirmButton>
           ))}
         </div>
