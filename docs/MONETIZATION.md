@@ -33,7 +33,7 @@ This guide takes Threshold from this repository to a paid product. It uses Strip
 ## How a sale works
 
 1. A visitor opens the app from the marketing page and designs for free.
-2. They reach a paid feature. The upgrade sheet opens. They can start the 7-day Pro trial or choose a plan.
+2. They reach a paid feature. The upgrade sheet opens. They can start the 7-day trial (Pro, or Studio for people who said they design for clients) or choose a plan.
 3. "Choose Pro" opens your Stripe Payment Link.
 4. After payment, Stripe sends them back to `https://YOUR-SITE/app?checkout_session=cs_...`.
 5. The app sends that id to the license server. The server asks Stripe if the payment is complete and returns a signed license key.
