@@ -71,7 +71,7 @@ export const PLANS: PlanInfo[] = [
     tagline: 'For planning a real build or renovation',
     monthly: 12,
     yearly: 96,
-    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model (.glb) export', 'Shopping list spreadsheet', 'One-click electrical layout', 'Design assistant', 'All styles and surroundings', 'Full library of ready-made homes', 'Design versions to try ideas'],
+    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model and shopping list exports', 'Design assistant and one-click electrical', 'Every style, setting and ready-made home', 'Design versions to try ideas'],
   },
   {
     id: 'studio',
