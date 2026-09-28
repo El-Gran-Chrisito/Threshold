@@ -138,6 +138,17 @@ Fill in the bracketed details in `public/legal/terms.html`, `privacy.html` and `
 - **Lifetime deals**: issue keys with `--days 0` (no expiry).
 - **Other payment providers** (Lemon Squeezy, Paddle, Gumroad): put their checkout links in the `VITE_CHECKOUT_*` settings and issue keys by hand, or add a route to the license server that checks their order API the same way `/activate` checks Stripe.
 
+## Earning from free users: store links
+
+Every line of the shopping list (paint, flooring, tile, roofing, doors, windows, furniture) has a **Find it** link that opens a store search for that item. The spreadsheet export has the same links in a "Find it" column.
+
+- By default the links search Google Shopping and earn nothing.
+- Set `VITE_SHOP_URL` to an affiliate search link with `{q}` where the search words go, for example an Amazon Associates link `https://www.amazon.com/s?k={q}&tag=yourtag-20`. Links are marked `rel="sponsored"`.
+- `VITE_SHOP_URLS` sends groups to different stores: `{"Paint":"https://paint-store.example/search?q={q}","Furniture & fixtures":"https://furniture.example/s?q={q}"}`. Group names are the headings in the list.
+- When either is set, the list says that store links may earn a commission. Affiliate programmes require this notice; keep it.
+
+`shop_click` events (with the group) show which groups people buy from.
+
 ## Changing what each plan includes
 
 Everything is in `src/product/plans.ts`:

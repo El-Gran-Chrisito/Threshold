@@ -229,8 +229,10 @@ function csvCell(s: string): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
-export function takeoffCsv(lines: TakeoffLine[]): string {
-  const rows = [['Group', 'Item', 'Buy', 'Details', 'For'], ...lines.map((l) => [l.group, l.item, l.qty, l.detail, l.where])]
+/** Spreadsheet of the list; `link` adds a store link column. */
+export function takeoffCsv(lines: TakeoffLine[], link?: (l: TakeoffLine) => string | null): string {
+  const head = ['Group', 'Item', 'Buy', 'Details', 'For', ...(link ? ['Find it'] : [])]
+  const rows = [head, ...lines.map((l) => [l.group, l.item, l.qty, l.detail, l.where, ...(link ? [link(l) ?? ''] : [])])]
   return rows.map((r) => r.map(csvCell).join(',')).join('\n') + '\n'
 }
 

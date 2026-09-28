@@ -20,6 +20,7 @@ import { brandForLink, readLogo, useBrand } from '../product/brand'
 import { defaultLot } from '../model/site'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
+import { shopConfig, shopUrl } from '../product/shop'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
@@ -426,7 +427,7 @@ function ShoppingList() {
   const notify = useStore.getState().notify
   const saveCsv = async () => {
     if (!requireFeature('shopping-export')) return
-    const r = await saveFile(`${slug(project.name)}-shopping-list.csv`, takeoffCsv(lines), 'text/csv')
+    const r = await saveFile(`${slug(project.name)}-shopping-list.csv`, takeoffCsv(lines, (l) => shopUrl(l)), 'text/csv')
     notify(r === 'saved' ? 'Shopping list saved' : r === 'declined' ? 'Save cancelled' : 'Could not save the file')
   }
   const copy = async () => {
@@ -465,13 +466,21 @@ function ShoppingList() {
                   <span className="takeoff-qty num">{l.qty}</span>
                   <span className="takeoff-detail muted">{l.detail}</span>
                   <span className="takeoff-where muted">{l.where}</span>
+                  {shopUrl(l) && (
+                    <a className="takeoff-find" href={shopUrl(l)!} target="_blank" rel="noreferrer sponsored" onClick={() => track('shop_click', { group: l.group })} aria-label={`Find ${l.item} in a store`}>
+                      Find it
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         )
       })}
-      <p className="tip">Paint is 2 coats. Flooring and wall finishes include cutting waste. Check amounts with your supplier before you buy.</p>
+      <p className="tip">
+        Paint is 2 coats. Flooring and wall finishes include cutting waste. Check amounts with your supplier before you buy.
+        {shopConfig.affiliate ? ' Store links may earn Threshold a commission, at no cost to you.' : ''}
+      </p>
     </>
   )
 }
