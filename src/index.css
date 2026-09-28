@@ -1019,8 +1019,14 @@ a.btn:not(.btn-primary) {
 
 .room-fill.is-selected {
   fill-opacity: 0.7;
+}
+
+/* Drawn over walls and furniture so the selected room is easy to see. */
+.room-highlight {
+  fill: var(--accent);
+  fill-opacity: 0.1;
   stroke: var(--accent);
-  stroke-dasharray: 6 4;
+  stroke-linejoin: round;
 }
 
 .room-label text {

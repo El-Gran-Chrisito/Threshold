@@ -1,5 +1,5 @@
 // Screenshots of every main screen for a design review.
-// Usage: FONT_CACHE=<dir> node scripts/ui-audit.mjs <out dir> [desktop|phone]
+// Usage: FONT_CACHE=<dir> [SCHEME=dark] node scripts/ui-audit.mjs <out dir> [desktop|phone]
 // Fill the font cache with curl from fonts.googleapis.com (css-<md5 of query + newline, 10 chars>.css)
 // and fonts.gstatic.com (path with / replaced by _).
 import { chromium } from 'playwright'
@@ -9,13 +9,13 @@ const mode = process.argv[3] || 'desktop'
 const base = process.env.BASE || 'http://localhost:4173/'
 const phone = mode === 'phone'
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
-const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1 })
+const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1, colorScheme: process.env.SCHEME === 'dark' ? 'dark' : 'light' })
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
 await serveLocalFonts(page)
 const shot = async (name) => {
   await page.waitForTimeout(700)
-  await page.screenshot({ path: `${out}/${mode}-${name}.png` })
+  await page.screenshot({ path: `${out}/${process.env.SCHEME === 'dark' ? 'dark-' : ''}${mode}-${name}.png` })
 }
 const st = (fn, arg) => page.evaluate(fn, arg)
 

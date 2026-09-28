@@ -83,6 +83,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const levelId = useStore((s) => s.levelId)
   const level = activeLevel({ project, levelId })
   const selection = useStore((s) => s.selection)
+  const selectedRoom = selection?.kind === 'room' ? level.rooms.find((r) => r.id === selection.id) ?? null : null
   const tool = useStore((s) => s.tool)
   const placeType = useStore((s) => s.placeType)
   const showDims = useStore((s) => s.showDims)
@@ -1103,6 +1104,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling' && (showElectrical || (catalogEntry(i.type).category !== 'Electrical' && i.type !== 'recessed'))} />
+        {!minimap && selectedRoom && <path d={polyPath(selectedRoom.points)} className="room-highlight" strokeWidth={px * 2.5} pointerEvents="none" />}
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} editable={tool === 'select'} editing={labelEdit ? `${labelEdit.id}:${labelEdit.field}` : undefined} />}
         {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
         <LabelsLayer labels={level.labels} px={px} selection={selection} />
