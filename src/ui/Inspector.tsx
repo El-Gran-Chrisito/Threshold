@@ -604,7 +604,7 @@ function MultiInspector({ ids }: { ids: string[] }) {
         </div>
       </Field>
       <Field label="Main colour for all">
-        <Swatches label="Main colour for all" swatches={[...FINISHES, ...PAINTS.slice(8)]} value={items[0]?.color ?? '#ffffff'} onChange={(c) => recolor({ color: c })} />
+        <Swatches label="Main colour for all" swatches={[...FINISHES, ...PAINTS.slice(8)]} value={items[0]?.color ?? '#ffffff'} onChange={(c) => recolor({ color: c })} collapse={8} />
       </Field>
       <div className="btn-row">
         <button type="button" className="btn" onClick={() => duplicateItems(items)}>
@@ -660,10 +660,10 @@ function ItemInspector({ item, units }: { item: Item; units: 'imperial' | 'metri
         </Field>
       </div>
       <Field label="Main colour">
-        <Swatches label="Main colour" swatches={[...FINISHES, ...PAINTS.slice(8)]} value={item.color} onChange={(v) => upd({ color: v })} />
+        <Swatches label="Main colour" swatches={[...FINISHES, ...PAINTS.slice(8)]} value={item.color} onChange={(v) => upd({ color: v })} collapse={8} />
       </Field>
       <Field label="Accent colour">
-        <Swatches label="Accent colour" swatches={FINISHES} value={item.color2} onChange={(v) => upd({ color2: v })} />
+        <Swatches label="Accent colour" swatches={FINISHES} value={item.color2} onChange={(v) => upd({ color2: v })} collapse={8} />
       </Field>
       <div className="toggle-row">
         <Toggle id="item-mirror" checked={!!item.mirrored} onChange={(v) => upd({ mirrored: v })} label="Mirror" />

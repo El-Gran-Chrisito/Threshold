@@ -3483,3 +3483,22 @@ kbd {
   align-self: flex-start;
   text-align: left;
 }
+
+.swatch-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.swatch-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.swatch-current {
+  color: var(--ink-2);
+  font-weight: 600;
+}

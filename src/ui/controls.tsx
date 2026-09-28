@@ -91,28 +91,45 @@ function round(v: number) {
   return Math.round(v * 100) / 100
 }
 
-export function Swatches({ swatches, value, onChange, allowCustom = true, label }: { swatches: Swatch[]; value: string; onChange: (hex: string) => void; allowCustom?: boolean; label: string }) {
+export function Swatches({ swatches, value, onChange, allowCustom = true, label, collapse }: { swatches: Swatch[]; value: string; onChange: (hex: string) => void; allowCustom?: boolean; label: string; collapse?: number }) {
   const id = useId()
+  const current = swatches.findIndex((s) => s.hex.toLowerCase() === value.toLowerCase())
+  // Long palettes can start as one row; the chosen colour always shows.
+  const [open, setOpen] = useState(false)
+  const short = collapse !== undefined && swatches.length > collapse + 1 && !open && current < collapse
+  const shown = short ? swatches.slice(0, collapse) : swatches
   return (
-    <div className="swatches" role="radiogroup" aria-label={label}>
-      {swatches.map((s) => (
-        <button
-          key={s.hex}
-          type="button"
-          role="radio"
-          aria-checked={value.toLowerCase() === s.hex.toLowerCase()}
-          className="swatch"
-          style={{ background: s.hex }}
-          title={s.name}
-          aria-label={s.name}
-          onClick={() => onChange(s.hex)}
-        />
-      ))}
-      {allowCustom && (
-        <label className="swatch swatch-custom" htmlFor={id} title="Custom colour">
-          <input id={id} type="color" value={toHex(value)} onChange={(e) => onChange(e.target.value.toUpperCase())} aria-label="Custom colour" />
-          <span aria-hidden>+</span>
-        </label>
+    <div className="swatch-block">
+      <div className="swatches" role="radiogroup" aria-label={label}>
+        {shown.map((s) => (
+          <button
+            key={s.hex}
+            type="button"
+            role="radio"
+            aria-checked={value.toLowerCase() === s.hex.toLowerCase()}
+            className="swatch"
+            style={{ background: s.hex }}
+            title={s.name}
+            aria-label={s.name}
+            onClick={() => onChange(s.hex)}
+          />
+        ))}
+        {allowCustom && (
+          <label className="swatch swatch-custom" htmlFor={id} title="Custom colour">
+            <input id={id} type="color" value={toHex(value)} onChange={(e) => onChange(e.target.value.toUpperCase())} aria-label="Custom colour" />
+            <span aria-hidden>+</span>
+          </label>
+        )}
+      </div>
+      {collapse !== undefined && (
+        <div className="swatch-meta">
+          <span className="swatch-current">{current >= 0 ? swatches[current].name : `Custom ${value.toUpperCase()}`}</span>
+          {swatches.length > collapse + 1 && current < collapse && (
+            <button type="button" className="linklike" onClick={() => setOpen(!open)} aria-expanded={!short}>
+              {short ? `${swatches.length - collapse} more colours` : 'Fewer colours'}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
