@@ -96,6 +96,8 @@ Set these in your host's build settings (or `.env.local` for a local build). See
 | `VITE_LICENSE_PUBLIC_KEY` | from step 1 |
 | `VITE_LICENSE_API` | your license server address |
 | `VITE_CHECKOUT_PRO_MONTHLY`, `..._PRO_YEARLY`, `..._STUDIO_MONTHLY`, `..._STUDIO_YEARLY` | the four Payment Links |
+| `VITE_CHECKOUT_PRO_PASS` | the Build Pass Payment Link (optional) |
+| `VITE_SITE_URL` | your site address, e.g. `https://threshold.example` (link previews, search data, sitemap) |
 | `VITE_BILLING_PORTAL_URL` | the customer portal login link |
 | `VITE_SUPPORT_EMAIL` | where customers write to you |
 | `VITE_APP_PATH` | `/app` |
@@ -106,7 +108,7 @@ Build command: `bun install && bun run build`. Publish folder: `dist`.
 - **Vercel**: `vercel.json` is included.
 - **Cloudflare Pages**: copy `public/_redirects` and remove the `!` after `200`.
 
-Check: `/` shows the marketing page, `/app` opens the app, and the upgrade sheet shows "Choose Pro" buttons instead of "Checkout is not connected".
+Check: `/` shows the marketing page, `/app` opens the app, and the upgrade sheet shows "Choose Pro" buttons instead of "Checkout is not connected". `/sitemap.xml` lists the pages, and pasting your address into a chat app shows the street picture as its preview.
 
 ## Step 5: test a purchase end to end
 
