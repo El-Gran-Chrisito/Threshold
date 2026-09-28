@@ -36,6 +36,7 @@ import { planPng } from '../plan/exportPlan'
 import { planSetPdf } from '../plan/planSet'
 import { capture3dViews } from '../three/captureViews'
 import { exportGlb } from '../three/exportModel'
+import { planDxf } from '../plan/dxf'
 import { readImage, useUnderlay } from '../store/underlay'
 import { levelBounds } from '../model/ops'
 
@@ -857,10 +858,16 @@ export function ProjectPanel() {
       const blob = await exportGlb()
       if (!blob) return s.notify('Open the 3D view first')
       const r = await saveFile(`${slug(project.name)}.glb`, blob, 'model/gltf-binary')
-      s.notify(r === 'saved' ? '3D model saved' : '3D model not saved')
+      s.notify(r === 'saved' ? '3D model saved' : r === 'unsupported' ? 'This preview cannot save .glb files. The hosted app can.' : '3D model not saved')
     } catch {
       s.notify('Could not export the 3D model')
     }
+  }
+  const exportCad = async () => {
+    if (!requireFeature('cad-export')) return
+    const r = await saveFile(`${slug(project.name)}.dxf`, planDxf(useStore.getState().project), 'application/dxf')
+    track('export', { kind: 'dxf' })
+    s.notify(r === 'saved' ? `CAD drawing saved (${project.units === 'metric' ? 'millimetres' : 'inches'})` : r === 'unsupported' ? 'This preview cannot save .dxf files. The hosted app can.' : 'CAD drawing not saved')
   }
   const copyShare = async () => {
     try {
@@ -1068,6 +1075,9 @@ export function ProjectPanel() {
           </button>
           <button type="button" className="btn" onClick={exportModel}>
             <Icon name="cube" size={16} /> Save 3D model (.glb) <PlanTag plan="pro" />
+          </button>
+          <button type="button" className="btn" onClick={exportCad} title="Every floor with walls, doors, windows, rooms and furniture on separate layers, for AutoCAD and other CAD programs">
+            <Icon name="plan" size={16} /> Save CAD drawing (.dxf) <PlanTag plan="pro" />
           </button>
           <button type="button" className="btn" onClick={exportImage}>
             <Icon name="image" size={16} /> Save 3D image

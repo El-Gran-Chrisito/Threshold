@@ -103,14 +103,14 @@ const EXTRAS: Array<[string, string]> = [
   ['Design versions', 'Save named versions of a design, try a bold idea, and go back to any version.'],
   ['Share a link', 'Send a link that opens your design in 3D. The person who opens it needs no account.'],
   ['Works offline', 'Install it like an app. It keeps working without a connection.'],
-  ['Exports', 'A PDF plan set for your builder, floor plan sheets, 3D images, a .glb model for other tools, and spreadsheets.'],
+  ['Exports', 'A PDF plan set for your builder, a DXF drawing for CAD, floor plan sheets, 3D images, a .glb model and spreadsheets.'],
   ['Made for reading', 'Large-text and extra-spacing modes, Lexend or Atkinson Hyperlegible, feet or metres.'],
 ]
 
 
 /** Every feature by plan, from the same list the app uses to unlock them. */
 const BASICS = ['Floor plans, walls, doors, windows and stairs', '3D, walk-through and exploded view', 'Furniture, finishes and whole-home styles (2 free)', 'Design check and cost estimate', 'Share links and design files']
-const ORDER: Feature[] = ['unlimited-designs', 'plan-set', 'clean-exports', 'hd-exports', 'model-export', 'shopping-export', 'electrical', 'assistant', 'all-styles', 'surroundings', 'sun-study', 'plan-library', 'versions', 'sync', 'branding', 'presentation']
+const ORDER: Feature[] = ['unlimited-designs', 'plan-set', 'clean-exports', 'hd-exports', 'model-export', 'cad-export', 'shopping-export', 'electrical', 'assistant', 'all-styles', 'surroundings', 'sun-study', 'plan-library', 'versions', 'sync', 'branding', 'presentation']
 
 function Compare() {
   const cols: PlanId[] = ['free', 'pro', 'studio']

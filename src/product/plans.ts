@@ -13,6 +13,7 @@ export type Feature =
   | 'clean-exports'
   | 'hd-exports'
   | 'model-export'
+  | 'cad-export'
   | 'shopping-export'
   | 'electrical'
   | 'assistant'
@@ -31,6 +32,7 @@ export const FEATURES: Record<Feature, { name: string; blurb: string; plan: Plan
   'clean-exports': { name: 'Exports without a watermark', blurb: 'Floor plans and 3D images ready to share with builders, banks and family.', plan: 'pro' },
   'hd-exports': { name: 'High-resolution exports', blurb: 'Print-quality floor plan sheets at twice the resolution.', plan: 'pro' },
   'model-export': { name: '3D model export', blurb: 'Download the whole home as a .glb model for other 3D tools, AR and rendering.', plan: 'pro' },
+  'cad-export': { name: 'CAD drawing export', blurb: 'Every floor as a DXF drawing with walls, doors, windows, rooms and furniture on separate layers, for AutoCAD, Revit, SketchUp and other CAD programs.', plan: 'pro' },
   'shopping-export': { name: 'Shopping list export', blurb: 'Save the materials and furniture list as a spreadsheet for suppliers and contractors.', plan: 'pro' },
   electrical: { name: 'One-click electrical layout', blurb: 'Lights, switches, outlets and smoke alarms placed in every room.', plan: 'pro' },
   assistant: { name: 'Design assistant', blurb: 'Describe a change in plain words, or upload a photo of a floor plan, and it is drawn for you.', plan: 'pro' },
@@ -73,7 +75,7 @@ export const PLANS: PlanInfo[] = [
     tagline: 'For planning a real build or renovation',
     monthly: 12,
     yearly: 96,
-    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model and shopping list exports', 'Design assistant and one-click electrical', 'Every style, setting and ready-made home', 'Design versions to try ideas'],
+    bullets: ['Unlimited designs, synced across devices', 'PDF plan set for your builder', 'Watermark-free, high-resolution exports', '3D model, CAD drawing and shopping list exports', 'Design assistant and one-click electrical', 'Every style, setting and ready-made home', 'Design versions to try ideas'],
   },
   {
     id: 'studio',

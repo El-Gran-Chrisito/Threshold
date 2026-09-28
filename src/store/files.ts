@@ -22,14 +22,16 @@ function downloads(): Promise<DownloadsNS | null> {
   return downloadsPromise
 }
 
-export async function saveFile(filename: string, data: string | Blob, mimeType: string): Promise<'saved' | 'declined' | 'failed'> {
+/** 'unsupported' means this host cannot save that kind of file (the hosted app can). */
+export async function saveFile(filename: string, data: string | Blob, mimeType: string): Promise<'saved' | 'declined' | 'failed' | 'unsupported'> {
   const ns = await downloads()
   if (ns) {
     try {
       await ns.save({ filename, data, mimeType })
       return 'saved'
-    } catch {
-      return 'declined'
+    } catch (e) {
+      const code = (e as { code?: string } | null)?.code
+      return code === 'rejected_extension' || code === 'extension_not_enabled' ? 'unsupported' : 'declined'
     }
   }
   try {
