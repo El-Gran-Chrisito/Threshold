@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react'
 import type { UnitSystem, WallFinish } from '../model/types'
 import { formatLength, parseLength } from '../model/units'
 import { WALL_FINISHES, type Swatch } from '../model/materials'
+import { colorName } from '../model/takeoff'
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
@@ -123,7 +124,7 @@ export function Swatches({ swatches, value, onChange, allowCustom = true, label,
       </div>
       {collapse !== undefined && (
         <div className="swatch-meta">
-          <span className="swatch-current">{current >= 0 ? swatches[current].name : `Custom ${value.toUpperCase()}`}</span>
+          <span className="swatch-current">{current >= 0 ? swatches[current].name : customName(value)}</span>
           {swatches.length > collapse + 1 && current < collapse && (
             <button type="button" className="linklike" onClick={() => setOpen(!open)} aria-expanded={!short}>
               {short ? `${swatches.length - collapse} more colours` : 'Fewer colours'}
@@ -133,6 +134,15 @@ export function Swatches({ swatches, value, onChange, allowCustom = true, label,
       )}
     </div>
   )
+}
+
+/** "Close to Linen" for a colour near a named one, else "Custom #A1B2C3". */
+function customName(value: string): string {
+  const hex = /^#[0-9a-f]{3}$/i.test(value) ? `#${[...value.slice(1)].map((c) => c + c).join('')}` : value
+  const name = colorName(hex)
+  const near = name.match(/close to ([^)]+)\)/)
+  if (near) return `Close to ${near[1]}`
+  return name.startsWith('#') ? `Custom ${name}` : name
 }
 
 function toHex(v: string) {
