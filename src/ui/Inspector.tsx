@@ -348,10 +348,10 @@ function RoomInspector({ r, level, units }: { r: Room; level: Level; units: 'imp
       </div>
       {rect && (
         <div className="grid-2">
-          <Field label="Width (east edge moves)">
+          <Field label="Width (right edge moves)">
             <LengthInput id="room-w" value={width} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'E'), v - width))} />
           </Field>
-          <Field label="Depth (south edge moves)">
+          <Field label="Depth (bottom edge moves)">
             <LengthInput id="room-d" value={depth} units={units} min={30} onChange={(v) => applyLevel((l) => moveRoomEdge(l, r.id, edgeOnSide(r, 'S'), v - depth))} />
           </Field>
         </div>

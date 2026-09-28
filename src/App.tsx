@@ -454,10 +454,10 @@ function View3DBar() {
             <option value="street">Street (eye level)</option>
             <option value="corner">Corner</option>
             <option value="top">Top</option>
-            <option value="S">South (front)</option>
-            <option value="N">North</option>
-            <option value="E">East</option>
-            <option value="W">West</option>
+            <option value="S">Front</option>
+            <option value="E">Right side</option>
+            <option value="N">Back (garden side)</option>
+            <option value="W">Left side</option>
           </select>
         </label>
         <label className="pill pill-select" htmlFor="surroundings">
