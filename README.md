@@ -4,7 +4,16 @@ Design every part of a home in the browser: floor plan, walls, doors, windows, f
 
 ## Selling it
 
-Threshold ships with Free, Pro and Studio plans, a 7-day Pro trial, a one-time 6-month Build Pass, offline-checked license keys, a license server for Stripe checkout, renewals and design sync across devices, a marketing page with pricing, and legal page templates. Setup takes about an hour: see [docs/MONETIZATION.md](docs/MONETIZATION.md).
+Threshold ships ready to sell. Setup takes about an hour: see [docs/MONETIZATION.md](docs/MONETIZATION.md), then run `bun run launch-check --live`.
+
+| Part | What it does |
+| --- | --- |
+| Plans | Free, Pro and Studio, monthly or yearly; a one-time 6-month Build Pass; a 7-day Pro trial |
+| Paid features | PDF plan set, clean and high-resolution exports, 3D model, shopping spreadsheet, electrical layout, design assistant, all styles and surroundings, design sync; Studio branding, presentations and client links |
+| License keys | Signed keys checked offline; emailed after purchase; "Email me my key" recovery; renewals while a subscription is paid |
+| License server | Stripe checkout to key, renewals, design sync, hosted design assistant, signed trials, invites with Stripe balance credit, "Email me this design" with an opt-in tips list, refund and dispute revocation, daily stats (`bun run stats`) |
+| Growth | Marketing page with pricing, sample plan set, FAQ and search data; share and client links; invite links; store links on the shopping list (affiliate-ready) |
+| Legal | Terms, privacy and refund page templates |
 
 ## Run
 
