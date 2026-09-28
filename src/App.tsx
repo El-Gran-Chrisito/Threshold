@@ -776,10 +776,16 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
             />
             <div className="welcome-grid">
               <button type="button" className="welcome-card is-primary" onClick={() => start(null)}>
+                <i className="welcome-icon" aria-hidden>
+                  <Icon name="cube" size={20} />
+                </i>
                 <strong>Explore the example home</strong>
                 <span>Two storeys, 3 bedrooms, fully furnished. Change anything.</span>
               </button>
               <button type="button" className="welcome-card" onClick={() => setStep('brief')}>
+                <i className="welcome-icon" aria-hidden>
+                  <Icon name="magic" size={20} />
+                </i>
                 <strong>Plan from your needs</strong>
                 <span>Pick bedrooms, bathrooms, floors and garage. Get a furnished plan.</span>
               </button>
@@ -799,10 +805,16 @@ function WelcomeSheet({ onClose }: { onClose: () => void }) {
                   for (const ms of [150, 450, 900]) setTimeout(reveal, ms)
                 }}
               >
+                <i className="welcome-icon" aria-hidden>
+                  <Icon name="catalog" size={20} />
+                </i>
                 <strong>Pick a ready-made home</strong>
                 <span>Cottages, ranches, farmhouses and family homes, furnished and styled.</span>
               </button>
               <button type="button" className="welcome-card" onClick={() => start('blank')}>
+                <i className="welcome-icon" aria-hidden>
+                  <Icon name="room" size={20} />
+                </i>
                 <strong>Start from scratch</strong>
                 <span>Empty plot. The Room tool is ready: drag to draw your first room.</span>
               </button>
