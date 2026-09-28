@@ -3021,3 +3021,34 @@ kbd {
   flex-direction: column;
   gap: 6px;
 }
+
+.email-design-open {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.email-design {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.email-design > label:first-child {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.check-row input[type='checkbox'] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}

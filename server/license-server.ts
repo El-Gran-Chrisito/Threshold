@@ -9,6 +9,7 @@
  *   POST /trial     {}                          ->  { key } a 7-day Pro trial key, one per
  *                   network per 30 days (needs DESIGNS for the count)
  *   POST /referral  (license)                   ->  { code, count } invite code (see referral.ts)
+ *   POST /send-design, /leads                   ->  email a design link; tips list (leads.ts)
  *   POST /recover   { "email": "..." }          ->  { ok } and, if that email
  *                   bought a plan or pass, an email with the key
  *
@@ -40,6 +41,7 @@ import { signLicense, verifyLicense, type LicensePayload } from '../src/product/
 import { allows, PASS } from '../src/product/plans'
 import { askClaude, checkRequest, type AssistantEnv } from './assistant'
 import { creditInviter, referralFor, type ReferralEnv } from './referral'
+import { leadsCsv, sendDesign, type LeadsEnv } from './leads'
 
 /** The part of a Cloudflare KV namespace this server uses. */
 export interface KV {
@@ -49,7 +51,7 @@ export interface KV {
   list(opts: { prefix: string; limit?: number }): Promise<{ keys: Array<{ name: string; metadata?: unknown }> }>
 }
 
-export interface Env extends AssistantEnv, ReferralEnv {
+export interface Env extends AssistantEnv, ReferralEnv, LeadsEnv {
   STRIPE_SECRET_KEY: string
   LICENSE_PRIVATE_KEY: string
   PRICE_PLANS?: string
@@ -208,6 +210,17 @@ export async function handle(request: Request, env: Env, fetchImpl: Fetch = fetc
     const ref = `trial_${Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => b.toString(16).padStart(2, '0')).join('')}`
     const key = await signLicense({ v: 1, plan: 'pro', ref, iat: now, exp: now + TRIAL_DAYS * 86_400_000, trial: true }, privateJwk)
     return json(env, { key })
+  }
+
+  if (path.endsWith('/send-design')) {
+    const ip = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
+    const r = await sendDesign(env, env.DESIGNS, body, ip, now, fetchImpl)
+    return json(env, r.body, r.status)
+  }
+
+  if (path.endsWith('/leads')) {
+    const r = await leadsCsv(env, env.DESIGNS, request.headers.get('authorization') ?? '')
+    return r.csv ? new Response(r.csv, { headers: { 'content-type': 'text/csv; charset=utf-8', ...cors(env) } }) : json(env, { error: 'Not allowed' }, r.status)
   }
 
   if (path.endsWith('/recover')) {

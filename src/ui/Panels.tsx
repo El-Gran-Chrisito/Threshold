@@ -21,6 +21,7 @@ import { defaultLot } from '../model/site'
 import { SURROUNDINGS } from '../model/landscape'
 import { TAKEOFF_GROUPS, takeoff, takeoffCsv, takeoffText } from '../model/takeoff'
 import { shopConfig, shopUrl } from '../product/shop'
+import { productConfig } from '../product/config'
 import { TEMPLATES, buildTemplate } from '../model/templates'
 import { deleteSaved, listSaved, loadSaved, normalizeProject, saveProject } from '../store/persistence'
 import { uid } from '../model/factory'
@@ -485,6 +486,58 @@ function ShoppingList() {
   )
 }
 
+/** Send the design's share link to an email address (and, if ticked, sign up for tips). */
+function EmailDesign() {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [tips, setTips] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  if (!open)
+    return (
+      <button type="button" className="linklike email-design-open" onClick={() => setOpen(true)}>
+        Email me this design
+      </button>
+    )
+  return (
+    <form
+      className="email-design"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (busy) return
+        setBusy(true)
+        try {
+          const p = useStore.getState().project
+          const res = await fetch(`${productConfig.licenseApi}/send-design`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email, link: await shareLink(p), name: p.name, tips }),
+          })
+          const data = (await res.json().catch(() => ({}))) as { error?: string }
+          setMsg(res.ok ? { ok: true, text: `Sent to ${email.trim()}. Open the link on any device to get this design.` } : { ok: false, text: data.error ?? 'Could not send the email.' })
+          if (res.ok) track('export', { kind: 'email-design' })
+        } catch {
+          setMsg({ ok: false, text: 'Could not reach the server. Try again later.' })
+        }
+        setBusy(false)
+      }}
+    >
+      <label htmlFor="email-design">Your email address</label>
+      <div className="paywall-key-row">
+        <input id="email-design" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+        <button type="submit" className="btn" disabled={busy}>
+          {busy ? 'Sending…' : 'Send'}
+        </button>
+      </div>
+      <label className="check-row">
+        <input type="checkbox" checked={tips} onChange={(e) => setTips(e.target.checked)} />
+        <span>Also send me occasional home-design tips</span>
+      </label>
+      {msg && <p className={msg.ok ? 'check-ok' : 'error'}>{msg.text}</p>}
+    </form>
+  )
+}
+
 /** Free plan: how many of the free designs are in use. */
 function DesignAllowance({ count }: { count: number }) {
   const plan = useEntitlements((s) => s.plan)
@@ -860,6 +913,7 @@ export function ProjectPanel() {
               <Icon name="copy" size={16} /> Copy client link <PlanTag plan="studio" />
             </button>
           </div>
+          {productConfig.licenseApi && <EmailDesign />}
         </Field>
       )}
       <Field label="Files">

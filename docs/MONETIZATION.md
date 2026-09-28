@@ -162,6 +162,19 @@ Fill in the bracketed details in `public/legal/terms.html`, `privacy.html` and `
 - **Lifetime deals**: issue keys with `--days 0` (no expiry).
 - **Other payment providers** (Lemon Squeezy, Paddle, Gumroad): put their checkout links in the `VITE_CHECKOUT_*` settings and issue keys by hand, or add a route to the license server that checks their order API the same way `/activate` checks Stripe.
 
+## Email list: "Email me this design"
+
+With key emails set up (step 3), the Project panel offers **Email me this design**: the design's share link goes to the address given. People who tick *Also send me occasional home-design tips* are kept in a list; nobody else is. Sending is limited to 5 emails a day per network and 3 a day per address, and only links to your own site (`ALLOWED_ORIGIN`) are sent.
+
+Download the list as CSV:
+
+```bash
+npx wrangler secret put ADMIN_TOKEN   # a long random string, 24+ characters
+curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" https://YOUR-WORKER/leads > tips-list.csv
+```
+
+Honour "stop" replies and include an unsubscribe route in whatever tool you send tips with.
+
 ## Invites
 
 Subscribers find **Invite a friend** in the plans sheet. Their link opens your marketing page; the code is kept for 60 days and added to every checkout link. When the friend pays, the license server credits the subscriber's Stripe balance with one month of their plan (it is taken off their next invoice), once per purchase. Self-invites are ignored.
