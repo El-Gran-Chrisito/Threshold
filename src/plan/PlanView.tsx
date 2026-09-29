@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { Item, Level, Opening, Vec2 } from '../model/types'
+import type { Item, Level, Opening, Selection, Vec2 } from '../model/types'
 import { activeLevel, selectedItemIds, useStore } from '../store/store'
-import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, scale, sideOf, snapToGrid, sub } from '../model/geometry'
+import { add, angleDeg, closestOnSegment, dist, norm, normalOf, pointInPolygon, scale, sideOf, rectCorners, snapToGrid, sub } from '../model/geometry'
 import {
   addRoom,
   addWalls,
@@ -98,6 +98,8 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
 
   const [hover, setHover] = useState<SnapResult | null>(null)
   const [rawHover, setRawHover] = useState<Vec2 | null>(null)
+  /** What a click would select, in the Select tool ("room:id", "item:id"...). */
+  const [hoverHit, setHoverHit] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft>(null)
   const [measure, setMeasure] = useState<{ a: Vec2; b: Vec2 } | null>(null)
   const [marquee, setMarquee] = useState<{ a: Vec2; b: Vec2 } | null>(null)
@@ -732,6 +734,11 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     const dr = drag.current
 
     if (!dr) {
+      if (s.tool === 'select') {
+        const hit = (e.target as Element).closest('[data-hit]')?.getAttribute('data-hit') ?? null
+        const target = hit && /^(room|item|wall|opening):/.test(hit) ? hit : null
+        if (target !== hoverHit) setHoverHit(target)
+      } else if (hoverHit) setHoverHit(null)
       // Hover feedback for drawing tools.
       if (s.tool === 'wall' || s.tool === 'room' || s.tool === 'polyroom' || s.tool === 'measure') {
         const from = draft?.kind === 'chain' ? draft.points[draft.points.length - 1] : undefined
@@ -1026,7 +1033,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const polyPts = draft?.kind === 'poly' ? draft.points : null
 
   return (
-    <div ref={wrapRef} className="plan-wrap" style={{ cursor }}>
+    <div ref={wrapRef} className={`plan-wrap tool-${tool}`} style={{ cursor }} onPointerLeave={() => hoverHit && setHoverHit(null)}>
       <svg
         ref={svgRef}
         className="plan-svg"
@@ -1104,6 +1111,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
         <WallsLayer level={level} px={px} selection={selection} />
         <OpeningsLayer level={level} px={px} selection={selection} />
         <ItemsLayer items={level.items} px={px} selection={selection} filter={(i) => catalogEntry(i.type).mount === 'ceiling' && (showElectrical || (catalogEntry(i.type).category !== 'Electrical' && i.type !== 'recessed'))} />
+        {!minimap && tool === 'select' && <HoverHighlight level={level} hit={hoverHit} selection={selection} px={px} />}
         {!minimap && selectedRoom && <path d={polyPath(selectedRoom.points)} className="room-highlight" strokeWidth={px * 2.5} pointerEvents="none" />}
         {!minimap && <RoomLabelsLayer level={level} px={px} units={units} showDims={showDims} editable={tool === 'select'} editing={labelEdit ? `${labelEdit.id}:${labelEdit.field}` : undefined} />}
         {!minimap && level.dims && level.dims.length > 0 && <KeptDims dims={level.dims} px={px} units={units} selection={selection} />}
@@ -1280,6 +1288,24 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       {!minimap && <ToolHint drawing={draft} />}
     </div>
   )
+}
+
+/** A light outline on what a click would select (a room or a piece of furniture). */
+function HoverHighlight({ level, hit, selection, px }: { level: Level; hit: string | null; selection: Selection | null; px: number }) {
+  if (!hit) return null
+  const [kind, id] = hit.split(':')
+  if (selection && selection.kind === kind && selection.id === id) return null
+  if (kind === 'room') {
+    const r = level.rooms.find((x) => x.id === id)
+    return r ? <path d={polyPath(r.points)} className="room-hover" strokeWidth={px * 2} pointerEvents="none" /> : null
+  }
+  if (kind === 'item') {
+    const it = level.items.find((x) => x.id === id)
+    if (!it) return null
+    const pad = 3 * px
+    return <path d={polyPath(rectCorners(it, it.width + pad * 2, it.depth + pad * 2, it.rotation))} className="item-hover" strokeWidth={px * 1.5} pointerEvents="none" />
+  }
+  return null
 }
 
 /** A floor with nothing on it: how to start. Clicks and drags pass through to the plan. */

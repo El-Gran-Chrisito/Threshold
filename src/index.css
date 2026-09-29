@@ -3835,3 +3835,44 @@ kbd {
 .swatch:hover {
   transform: scale(1.08);
 }
+
+/* Select tool: show what a click will pick. */
+.room-hover {
+  fill: var(--accent);
+  fill-opacity: 0.06;
+  stroke: var(--accent);
+  stroke-opacity: 0.55;
+  stroke-dasharray: 8 5;
+  stroke-linejoin: round;
+}
+
+.item-hover {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.8;
+  stroke-linejoin: round;
+}
+
+.plan-wrap.tool-select [data-hit^='room:'],
+.plan-wrap.tool-select [data-hit^='item:'],
+.plan-wrap.tool-select [data-hit^='wall:'],
+.plan-wrap.tool-select [data-hit^='opening:'],
+.plan-wrap.tool-select [data-hit^='label:'],
+.plan-wrap.tool-select [data-hit^='ann:'] {
+  cursor: pointer;
+}
+
+.plan-wrap.tool-select .item.is-selected,
+.plan-wrap.tool-select .handle.is-move rect {
+  cursor: move;
+}
+
+.plan-wrap.tool-select .wall:hover path:not(.hit-line) {
+  fill: color-mix(in srgb, var(--wall) 70%, var(--accent));
+  stroke: color-mix(in srgb, var(--wall) 70%, var(--accent));
+}
+
+.plan-wrap.tool-select .opening:hover .op-leaf,
+.plan-wrap.tool-select .opening:hover .op-window {
+  stroke: var(--accent);
+}
