@@ -3,7 +3,7 @@ import type { Dimension, Item, Label, Level, Lot, Opening, Room, Selection, Unit
 import { add, angleDeg, bounds, dist, labelPoint, lerp, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
 import { exteriorSides, rectSides, roomArea, roomWallSides } from '../model/ops'
 import { formatArea, formatLength } from '../model/units'
-import { floorMaterial } from '../model/materials'
+import { floorMaterial, type FloorMaterial } from '../model/materials'
 import { catalogEntry } from '../model/catalog'
 import { ItemSymbol } from './symbols'
 import { jointKeys, polyPath, spanPolygon, wallSpans } from './wallGeometry'
@@ -12,19 +12,117 @@ import { buildable } from '../model/site'
 // ---------------------------------------------------------------------------
 // Rooms
 
+/** Pattern id for a floor material and plank direction. */
+const patternId = (floor: string, angle: number) => `fp-${floor}-${Math.round(angle)}`
+
+/**
+ * Floor textures for the plan: plank joints, tile grids, brick bond and so
+ * on, drawn in plan units from each material's module size. Lines are one
+ * screen pixel wide; patterns switch off when zoomed out so far that their
+ * lines would crowd together.
+ */
+function FloorPatternDef({ id, m, angle, px }: { id: string; m: FloorMaterial; angle: number; px: number }) {
+  const line = { stroke: m.accent, strokeWidth: px, strokeOpacity: 0.55, fill: 'none' }
+  const u = m.module
+  const t = angle ? `rotate(${angle})` : undefined
+  switch (m.pattern) {
+    case 'planks':
+    case 'deck': {
+      const L = u * 7
+      return (
+        <pattern id={id} width={L} height={u * 2} patternUnits="userSpaceOnUse" patternTransform={t}>
+          <rect width={L} height={u * 2} fill={m.base} />
+          <path d={`M0 0H${L}M0 ${u}H${L}M0 0V${u}M${L / 2} ${u}V${u * 2}`} {...line} />
+        </pattern>
+      )
+    }
+    case 'brick': {
+      const L = u * 2.1
+      return (
+        <pattern id={id} width={L} height={u * 2} patternUnits="userSpaceOnUse" patternTransform={t}>
+          <rect width={L} height={u * 2} fill={m.base} />
+          <path d={`M0 0H${L}M0 ${u}H${L}M0 0V${u}M${L / 2} ${u}V${u * 2}`} {...line} />
+        </pattern>
+      )
+    }
+    case 'parquet': {
+      // Basket weave: blocks of three strips, turning every block.
+      const B = u * 3
+      const strips = (x: number, y: number, across: boolean) => [1, 2].map((k) => (across ? `M${x} ${y + k * u}H${x + B}` : `M${x + k * u} ${y}V${y + B}`)).join('')
+      return (
+        <pattern id={id} width={B * 2} height={B * 2} patternUnits="userSpaceOnUse" patternTransform={t}>
+          <rect width={B * 2} height={B * 2} fill={m.base} />
+          <path d={`M0 0H${B * 2}M0 ${B}H${B * 2}M0 0V${B * 2}M${B} 0V${B * 2}${strips(0, 0, true)}${strips(B, 0, false)}${strips(0, B, false)}${strips(B, B, true)}`} {...line} />
+        </pattern>
+      )
+    }
+    case 'tiles':
+    case 'hex':
+    case 'concrete':
+      return (
+        <pattern id={id} width={u} height={u} patternUnits="userSpaceOnUse" patternTransform={t}>
+          <rect width={u} height={u} fill={m.base} />
+          <path d={`M0 0H${u}M0 0V${u}`} {...line} strokeOpacity={m.pattern === 'concrete' ? 0.35 : 0.55} />
+        </pattern>
+      )
+    case 'terrazzo':
+      return (
+        <pattern id={id} width={u} height={u} patternUnits="userSpaceOnUse">
+          <rect width={u} height={u} fill={m.base} />
+          {[
+            [0.2, 0.3, 1.6],
+            [0.7, 0.15, 1.1],
+            [0.55, 0.65, 2],
+            [0.15, 0.8, 1.2],
+            [0.85, 0.85, 1.4],
+          ].map(([x, y, r], k) => (
+            <circle key={k} cx={x * u} cy={y * u} r={r} fill={m.accent} fillOpacity={0.6} />
+          ))}
+        </pattern>
+      )
+    default:
+      return null
+  }
+}
+
+/** Whether a material's texture is worth drawing at this zoom (lines at least ~6 screen pixels apart). */
+function textured(m: FloorMaterial, px: number): boolean {
+  if (m.pattern === 'terrazzo') return m.module / px >= 12
+  return ['planks', 'deck', 'brick', 'parquet', 'tiles', 'hex', 'concrete'].includes(m.pattern) && m.module / px >= 6
+}
+
 export const RoomsLayer = memo(function RoomsLayer({ level, px, selection }: { level: Level; px: number; selection: Selection | null }) {
+  // One pattern per material and plank direction on this floor.
+  const defs = new Map<string, { m: FloorMaterial; angle: number }>()
+  for (const r of level.rooms) {
+    const m = floorMaterial(r.floor)
+    if (r.floorColor || !textured(m, px)) continue
+    const angle = r.floorAngle ?? 0
+    defs.set(patternId(m.id, angle), { m, angle })
+  }
   return (
     <g>
-      {level.rooms.map((r) => (
-        <path
-          key={r.id}
-          d={polyPath(r.points)}
-          data-hit={`room:${r.id}`}
-          className={`room-fill${selection?.kind === 'room' && selection.id === r.id ? ' is-selected' : ''}`}
-          style={{ fill: r.floorColor ?? floorMaterial(r.floor).base }}
-          strokeWidth={px * 2}
-        />
-      ))}
+      {defs.size > 0 && (
+        <defs>
+          {[...defs].map(([id, d]) => (
+            <FloorPatternDef key={id} id={id} m={d.m} angle={d.angle} px={px} />
+          ))}
+        </defs>
+      )}
+      {level.rooms.map((r) => {
+        const m = floorMaterial(r.floor)
+        const id = patternId(m.id, r.floorAngle ?? 0)
+        return (
+          <path
+            key={r.id}
+            d={polyPath(r.points)}
+            data-hit={`room:${r.id}`}
+            className={`room-fill${selection?.kind === 'room' && selection.id === r.id ? ' is-selected' : ''}${defs.has(id) && !r.floorColor ? ' is-textured' : ''}`}
+            style={{ fill: !r.floorColor && defs.has(id) ? `url(#${id})` : (r.floorColor ?? m.base) }}
+            strokeWidth={px * 2}
+          />
+        )
+      })}
     </g>
   )
 })

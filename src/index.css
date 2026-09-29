@@ -1060,16 +1060,16 @@ a.btn:not(.btn-primary) {
 }
 
 .room-fill {
-  fill-opacity: 0.5;
+  fill-opacity: 0.82;
   stroke: transparent;
 }
 
 .room-fill:hover {
-  fill-opacity: 0.62;
+  fill-opacity: 0.92;
 }
 
 .room-fill.is-selected {
-  fill-opacity: 0.7;
+  fill-opacity: 0.95;
 }
 
 /* Drawn over walls and furniture so the selected room is easy to see. */
@@ -3787,4 +3787,51 @@ kbd {
   from {
     opacity: 0;
   }
+}
+
+/* Gentle feedback: colours ease on hover, buttons settle a pixel when pressed. */
+.btn,
+.chip,
+.tool,
+.icon-btn,
+.mode-seg button,
+.ctl-btn,
+.panel-tabs button,
+.view-switch button,
+.segmented button,
+.plan-badge,
+.welcome-card,
+.sun-play,
+.swatch {
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.08s ease;
+}
+
+.btn:active:not(:disabled),
+.chip:active,
+.plan-badge:active,
+.welcome-card:active,
+.sun-play:active {
+  transform: translateY(1px);
+}
+
+.welcome-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.btn:hover:not(:disabled):not(.btn-primary):not(.btn-danger) {
+  border-color: var(--ink-3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  border-color: color-mix(in srgb, var(--accent) 88%, var(--ink));
+}
+
+.swatch:hover {
+  transform: scale(1.08);
 }
