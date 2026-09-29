@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatArea, formatLength, parseLength, CM_PER_FT, CM_PER_IN } from './units'
 import { polygonArea, signedArea, subtractCovered, pointInPolygon, snapAngle } from './geometry'
-import { addRoom, addWalls, autoRooms, detectFaces, insertRoomVertex, moveRoomEdge, moveVertex, rectPoints, roomWallSides, snapItemToWall, splitWall, wallLength } from './ops'
+import { addRoom, addWalls, autoRooms, detectFaces, freeOffset, insertRoomVertex, moveRoomEdge, moveVertex, rectPoints, roomWallSides, snapItemToWall, splitWall, wallLength } from './ops'
 import { makeItem, makeLevel, makeOpening } from './factory'
 import { TEMPLATES } from './templates'
 
@@ -185,5 +185,23 @@ describe('furniture alignment', () => {
     const far = alignItem({ width: 40, depth: 40, rotation: 0 }, { x: 90, y: 300 }, [other], 5)
     expect(far.guides).toHaveLength(0)
     expect(far.pos).toEqual({ x: 90, y: 300 })
+  })
+})
+
+describe('freeOffset', () => {
+  const level = makeLevel('Ground', 0)
+  const w = { ...addWalls(level, [[{ x: 0, y: 0 }, { x: 400, y: 0 }]]).added[0], thickness: 15 }
+  it('uses the middle of an empty wall', () => {
+    expect(freeOffset({ ...level, walls: [w] }, w, 90)).toBe(200)
+  })
+  it('uses the widest gap beside existing openings', () => {
+    const o = { ...makeOpening(w.id, 'door', 150), width: 90 }
+    const at = freeOffset({ ...level, walls: [w], openings: [o] }, w, 90)!
+    // The door covers 105 to 195; 195 to 387.5 is the widest gap.
+    expect(at).toBeCloseTo((195 + 387.5) / 2)
+  })
+  it('refuses a wall that is too short', () => {
+    const short = { ...w, b: { x: 80, y: 0 } }
+    expect(freeOffset({ ...level, walls: [short] }, short, 90)).toBeNull()
   })
 })

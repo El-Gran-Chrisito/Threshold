@@ -1291,8 +1291,8 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
       {!minimap && !draft && level.rooms.length === 0 && level.walls.length === 0 && level.items.length === 0 && <EmptyPlan />}
       {!minimap && <ToolHint drawing={draft} />}
-      {!minimap && tool === 'select' && !dragging && !draft && (
-        <SelectionBar toScreen={(q) => ({ x: (q.x - cam.x0) * cam.scale, y: (q.y - cam.y0) * cam.scale })} scale={cam.scale} width={size.w} height={size.h} />
+      {!minimap && tool === 'select' && !dragging && !draft && !labelEdit && (
+        <SelectionBar toScreen={(q) => ({ x: (q.x - cam.x0) * cam.scale, y: (q.y - cam.y0) * cam.scale })} scale={cam.scale} width={size.w} height={size.h} onRename={(id) => openLabelEdit(id, 'name')} />
       )}
     </div>
   )

@@ -40,6 +40,27 @@ export function clampOpening(o: Opening, w: Wall): Opening {
   return width === o.width && offset === o.offset ? o : { ...o, width, offset }
 }
 
+/**
+ * Centre of the widest free stretch of a wall (clear of its openings and of
+ * the corners) that fits an opening `width` wide, or null when none does.
+ */
+export function freeOffset(level: Level, w: Wall, width: number): number | null {
+  const L = wallLength(w)
+  const end = w.thickness / 2 + 5
+  const taken = level.openings
+    .filter((o) => o.wallId === w.id)
+    .map((o) => [o.offset - o.width / 2, o.offset + o.width / 2])
+    .sort((a, b) => a[0] - b[0])
+  let best: [number, number] | null = null
+  let from = end
+  for (const [s, e] of [...taken, [L - end, L - end]]) {
+    if (s - from > (best ? best[1] - best[0] : 0)) best = [from, s]
+    from = Math.max(from, e)
+  }
+  if (!best || best[1] - best[0] < width + 10) return null
+  return (best[0] + best[1]) / 2
+}
+
 // ---------------------------------------------------------------------------
 // Walls
 

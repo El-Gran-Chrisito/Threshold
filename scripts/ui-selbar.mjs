@@ -89,6 +89,58 @@ const b2 = await page.locator('.selection-bar').boundingBox()
 console.log('bar clears rotate handle:', b2.y + b2.height <= rot.y)
 await shot('selbar-up')
 
+// Wall: add a window in its widest free stretch
+const wallId = await page.evaluate(() => {
+  const s = window.__threshold.store.getState()
+  const l = s.project.levels.find((x) => x.id === s.levelId)
+  const len = (w) => Math.hypot(w.b.x - w.a.x, w.b.y - w.a.y)
+  const w = [...l.walls].sort((a, b) => len(b) - len(a))[0]
+  s.select({ kind: 'wall', id: w.id })
+  return w.id
+})
+await page.waitForTimeout(300)
+console.log('wall bar buttons:', await page.locator('.selection-bar button').count())
+await shot('selbar-wall')
+const o0 = (await level()).openings.length
+await page.click('.selection-bar button[aria-label="Add a window"]')
+await page.waitForTimeout(200)
+const sel = await page.evaluate(() => window.__threshold.store.getState().selection)
+const added = await page.evaluate((wid) => {
+  const s = window.__threshold.store.getState()
+  const l = s.project.levels.find((x) => x.id === s.levelId)
+  const mine = l.openings.filter((o) => o.wallId === wid).sort((a, b) => a.offset - b.offset)
+  // No two openings on the wall overlap.
+  return mine.every((o, i) => i === 0 || mine[i - 1].offset + mine[i - 1].width / 2 <= o.offset - o.width / 2)
+}, wallId)
+console.log('add window:', o0, '->', (await level()).openings.length, '| selected:', sel?.kind, '| no overlap:', added)
+await shot('selbar-wall-added')
+
+// Room: the bar sits above its name; Rename opens the name for typing,
+// Furnish adds furniture.
+const bedroom = await page.evaluate(() => {
+  const s = window.__threshold.store.getState()
+  const l = s.project.levels.find((x) => x.id === s.levelId)
+  const r = l.rooms.find((x) => x.name === 'Den') ?? l.rooms[0]
+  s.select({ kind: 'room', id: r.id })
+  return r.id
+})
+await page.waitForTimeout(300)
+console.log('room bar buttons:', await page.locator('.selection-bar button').count())
+const nameBox = await page.locator(`[data-hit="rl:name:${bedroom}"]`).boundingBox()
+const rb = await page.locator('.selection-bar').boundingBox()
+console.log('bar just above the name:', rb.y + rb.height <= nameBox.y && nameBox.y - (rb.y + rb.height) < 30)
+await shot('selbar-room')
+await page.click('.selection-bar button[aria-label="Rename"]')
+await page.waitForTimeout(200)
+console.log('rename opens name box:', await page.locator('.plan-wrap input:focus').count(), '| bar hidden while typing:', (await page.locator('.selection-bar').count()) === 0)
+await page.keyboard.press('Escape')
+await page.evaluate((id) => window.__threshold.store.getState().select({ kind: 'room', id }), bedroom)
+await page.waitForTimeout(200)
+const i0 = (await level()).items.length
+await page.click('.selection-bar button[aria-label="Furnish this room"]')
+await page.waitForTimeout(200)
+console.log('furnish:', i0, '->', (await level()).items.length)
+
 // Nothing selected
 await page.keyboard.press('Escape')
 await page.waitForTimeout(200)

@@ -241,7 +241,7 @@ function uniqueRoomName(level: Level, base: string, selfId: string): string {
 }
 
 /** Add a starter set of furniture to rooms (one undo step). */
-function furnish(rooms: Room[]) {
+export function furnish(rooms: Room[]) {
   const s = useStore.getState()
   let level = activeLevel(s)
   const added: Item[] = []
