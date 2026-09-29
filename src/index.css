@@ -1327,6 +1327,66 @@ a.btn:not(.btn-primary) {
   opacity: 0;
 }
 
+/* Floating actions above the selection on the plan */
+.selection-bar {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -100%);
+  animation: selection-bar-in 0.14s ease-out;
+}
+
+.selection-bar.is-below {
+  transform: translate(-50%, 0);
+}
+
+.selection-bar button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.selection-bar button:hover {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+
+.selection-bar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.selection-bar button.is-danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.selection-bar-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: var(--line);
+}
+
+@keyframes selection-bar-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .scale-bar {
   position: absolute;
   left: 14px;
@@ -3653,6 +3713,11 @@ kbd {
 
 /* Touch screens: every control at least about 40 px, so fingers hit it. */
 @media (pointer: coarse) {
+  .selection-bar button {
+    width: 44px;
+    height: 44px;
+  }
+
   .icon-btn {
     width: 42px;
     height: 42px;

@@ -31,6 +31,7 @@ import { useUnderlay } from '../store/underlay'
 import { ContextMenu, type MenuState } from './ContextMenu'
 import { DimLine, ItemGlyph, ItemsLayer, KeptDims, LabelsLayer, LotLayer, roomLabelLayout, type RoomLabelField, OpeningSymbol, OpeningsLayer, RoomLabelsLayer, RoomsLayer, SelectionHandles, WallDims, WallsLayer, rotateVec } from './PlanLayers'
 import { polyPath } from './wallGeometry'
+import { SelectionBar } from './SelectionBar'
 
 interface Camera {
   x0: number
@@ -100,6 +101,8 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
   const [rawHover, setRawHover] = useState<Vec2 | null>(null)
   /** What a click would select, in the Select tool ("room:id", "item:id"...). */
   const [hoverHit, setHoverHit] = useState<string | null>(null)
+  /** A drag (not a pan) is in progress: the selection bar hides. */
+  const [dragging, setDragging] = useState(false)
   const [draft, setDraft] = useState<Draft>(null)
   const [measure, setMeasure] = useState<{ a: Vec2; b: Vec2 } | null>(null)
   const [marquee, setMarquee] = useState<{ a: Vec2; b: Vec2 } | null>(null)
@@ -747,6 +750,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       return
     }
 
+    if (dr.kind !== 'pan' && !dragging) setDragging(true)
     const scaleNow = camRef.current.scale
     switch (dr.kind) {
       case 'pan': {
@@ -936,6 +940,7 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
     }
     const dr = drag.current
     drag.current = null
+    if (dragging) setDragging(false)
     if (!dr) return
     if (itemGuides.length) setItemGuides([])
     const s = useStore.getState()
@@ -1286,6 +1291,9 @@ export function PlanView({ minimap = false }: { minimap?: boolean }) {
       {!minimap && <ScaleBar scale={cam.scale} units={units} />}
       {!minimap && !draft && level.rooms.length === 0 && level.walls.length === 0 && level.items.length === 0 && <EmptyPlan />}
       {!minimap && <ToolHint drawing={draft} />}
+      {!minimap && tool === 'select' && !dragging && !draft && (
+        <SelectionBar toScreen={(q) => ({ x: (q.x - cam.x0) * cam.scale, y: (q.y - cam.y0) * cam.scale })} scale={cam.scale} width={size.w} height={size.h} />
+      )}
     </div>
   )
 }
