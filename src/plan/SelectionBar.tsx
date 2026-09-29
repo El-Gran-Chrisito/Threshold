@@ -1,18 +1,12 @@
 /**
- * A small bar of the most used actions, floating just above what is
- * selected on the plan: rotate, mirror, duplicate and delete for furniture;
- * flip, swing and delete for a door or window; add a door or window and
- * delete for a wall; furnish, rename and delete for a room. The same actions
- * are in the side panel and the right-click menu; this puts them where the
- * eye is.
+ * The selection's action row (see SelectionActions), floating just above what
+ * is selected on the plan, clear of its handles, dimension lines and door
+ * swing.
  */
-import { activeLevel, selectedItemIds, useStore } from '../store/store'
+import { useStore } from '../store/store'
 import { add, bounds, norm, normalOf, rectCorners, scale, sub } from '../model/geometry'
 import { roomLabelLayout, rotateVec } from './PlanLayers'
-import { deleteWalls, freeOffset } from '../model/ops'
-import { makeOpening } from '../model/factory'
-import { deleteItems, deleteSelection, duplicateItems, furnish } from '../ui/Inspector'
-import { Icon } from '../ui/Icon'
+import { SelectionActions, actionCount, useSelectionTarget } from '../ui/SelectionActions'
 import type { Vec2 } from '../model/types'
 
 interface Props {
@@ -27,18 +21,11 @@ interface Props {
 }
 
 export function SelectionBar({ toScreen, scale: k, width, height, onRename }: Props) {
-  const selection = useStore((s) => s.selection)
-  const level = useStore(activeLevel)
-  const multi = useStore((s) => s.multi)
   const units = useStore((s) => s.project.units)
   const showDims = useStore((s) => s.showDims)
-  const s = useStore.getState()
-  const ids = selectedItemIds(s)
-  const items = level.items.filter((i) => ids.includes(i.id))
-  const opening = selection?.kind === 'opening' ? level.openings.find((o) => o.id === selection.id) : null
-  const wall = selection?.kind === 'wall' ? level.walls.find((w) => w.id === selection.id) : null
-  const room = selection?.kind === 'room' ? level.rooms.find((r) => r.id === selection.id) : null
-  if (!items.length && !opening && !wall && !room) return null
+  const target = useSelectionTarget()
+  if (!target) return null
+  const { level, items, opening, wall, room } = target
 
   // Everything the selection draws on screen (outline, handles, dimension
   // lines, a door's swing), so the bar never covers a handle.
@@ -100,86 +87,14 @@ export function SelectionBar({ toScreen, scale: k, width, height, onRename }: Pr
   // Keep the whole bar on screen: a button is 36 px (46 on touch screens),
   // a separator 7 px.
   const btn = window.matchMedia?.('(pointer: coarse)').matches ? 46 : 36
-  const isDoor = opening?.kind === 'door' || opening?.kind === 'double-door'
-  const buttons = items.length ? 4 : wall || room || isDoor ? 3 : 1
+  const buttons = actionCount(target)
   const half = (buttons * btn + (buttons > 1 ? 7 : 0) + 10) / 2 + 8
   const x = Math.max(half, Math.min(width - half, cx))
   if (y < 0 || y > height) return null
 
-  const applyItems = (fn: (i: (typeof items)[number]) => Partial<(typeof items)[number]>) =>
-    s.applyLevel((l) => ({ ...l, items: l.items.map((i) => (ids.includes(i.id) ? { ...i, ...fn(i) } : i)) }))
-  const many = items.length > 1 || multi.length > 1
-  const addOpening = (kind: 'door' | 'window') => {
-    if (!wall) return
-    const o = makeOpening(wall.id, kind, 0)
-    const at = freeOffset(level, wall, o.width)
-    if (at === null) return s.notify(`No free space on this wall for a ${kind}`)
-    s.applyLevel((l) => ({ ...l, openings: [...l.openings, { ...o, offset: at }] }))
-    s.select({ kind: 'opening', id: o.id })
-  }
-
   return (
     <div className={`selection-bar${above ? '' : ' is-below'}`} style={{ left: x, top: y }} role="toolbar" aria-label="Actions for the selection" onPointerDown={(e) => e.stopPropagation()}>
-      {items.length > 0 ? (
-        <>
-          <button type="button" onClick={() => applyItems((i) => ({ rotation: (i.rotation + 90) % 360 }))} data-tip="Rotate 90°" data-tip-key="Q E" aria-label="Rotate 90°">
-            <Icon name="rotate" size={17} />
-          </button>
-          <button type="button" onClick={() => applyItems((i) => ({ mirrored: !i.mirrored }))} data-tip="Mirror" aria-label="Mirror">
-            <Icon name="mirror" size={17} />
-          </button>
-          <button type="button" onClick={() => duplicateItems(items)} data-tip={many ? `Duplicate ${items.length} items` : 'Duplicate'} aria-label="Duplicate">
-            <Icon name="copy" size={17} />
-          </button>
-          <span className="selection-bar-sep" aria-hidden />
-          <button type="button" className="is-danger" onClick={() => (many ? deleteItems(ids) : deleteSelection())} data-tip={many ? `Delete ${items.length} items` : 'Delete'} data-tip-key="Del" aria-label="Delete">
-            <Icon name="trash" size={17} />
-          </button>
-        </>
-      ) : room ? (
-        <>
-          <button type="button" onClick={() => furnish([room])} data-tip="Furnish this room" aria-label="Furnish this room">
-            <Icon name="item" size={17} />
-          </button>
-          <button type="button" onClick={() => onRename(room.id)} data-tip="Rename" aria-label="Rename">
-            <Icon name="label" size={17} />
-          </button>
-          <span className="selection-bar-sep" aria-hidden />
-          <button type="button" className="is-danger" onClick={() => deleteSelection()} data-tip="Delete room (keeps its walls)" data-tip-key="Del" aria-label="Delete room">
-            <Icon name="trash" size={17} />
-          </button>
-        </>
-      ) : wall ? (
-        <>
-          <button type="button" onClick={() => addOpening('door')} data-tip="Add a door" aria-label="Add a door">
-            <Icon name="door" size={17} />
-          </button>
-          <button type="button" onClick={() => addOpening('window')} data-tip="Add a window" aria-label="Add a window">
-            <Icon name="window" size={17} />
-          </button>
-          <span className="selection-bar-sep" aria-hidden />
-          <button type="button" className="is-danger" onClick={() => (s.applyLevel((l) => deleteWalls(l, [wall.id])), s.select(null))} data-tip="Delete wall" data-tip-key="Del" aria-label="Delete wall">
-            <Icon name="trash" size={17} />
-          </button>
-        </>
-      ) : opening ? (
-        <>
-          {isDoor ? (
-            <>
-              <button type="button" onClick={() => s.applyLevel((l) => ({ ...l, openings: l.openings.map((o) => (o.id === opening.id ? { ...o, hinge: o.hinge === 'start' ? 'end' : 'start' } : o)) }))} data-tip="Flip the hinge side" aria-label="Flip hinge">
-                <Icon name="mirror" size={17} />
-              </button>
-              <button type="button" onClick={() => s.applyLevel((l) => ({ ...l, openings: l.openings.map((o) => (o.id === opening.id ? { ...o, swing: o.swing === 'A' ? 'B' : 'A' } : o)) }))} data-tip="Open the other way" aria-label="Swing the other way">
-                <Icon name="rotate" size={17} />
-              </button>
-              <span className="selection-bar-sep" aria-hidden />
-            </>
-          ) : null}
-          <button type="button" className="is-danger" onClick={() => deleteSelection()} data-tip="Delete" data-tip-key="Del" aria-label="Delete">
-            <Icon name="trash" size={17} />
-          </button>
-        </>
-      ) : null}
+      <SelectionActions target={target} onRename={onRename} />
     </div>
   )
 }
